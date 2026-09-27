@@ -1,0 +1,14 @@
+*.iml
+*.swp
+.idea
+.DS_Store
+.vscode
+.tmp
+
+dist
+build
+node_modules
+CMakeUserPresets.json
+npm-debug.log
+# Vega build artifacts (machine-specific; builds run in the WSL ext4 mirror, see README)
+buildinfo.json

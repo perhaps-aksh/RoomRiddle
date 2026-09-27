@@ -1,0 +1,227 @@
+import React, {useEffect, useRef} from 'react';
+import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
+import {FocusableCard} from '../FocusableCard/FocusableCard';
+import {formatPlayers, TVMystery} from '../../data/mysteries';
+import {px, theme} from '../../theme/theme';
+
+export interface MysteryCardProps {
+  mystery: TVMystery;
+  onPress: () => void;
+  preferredFocus?: boolean;
+  selected?: boolean;
+  testID?: string;
+}
+
+export const CARD_WIDTH = px(382);
+const CARD_HEIGHT = px(500);
+
+export const MysteryCard = ({
+  mystery,
+  onPress,
+  preferredFocus,
+  selected,
+  testID,
+}: MysteryCardProps) => {
+  const available = mystery.availability === 'available';
+  return (
+    <FocusableCard
+      onPress={onPress}
+      preferredFocus={preferredFocus}
+      style={styles.card}
+      accessibilityLabel={`${mystery.title}. ${mystery.shortDescription} ${
+        available ? '' : 'Coming soon.'
+      }`}
+      accessibilityHint="Opens the mystery details"
+      testID={testID}>
+      {focused => (
+        <>
+          <CardAtmosphere active={focused} />
+          <View style={styles.topRow}>
+            <Text style={styles.genre}>{mystery.genre.toUpperCase()}</Text>
+            {selected ? (
+              <Text style={styles.selectedTag}>SELECTED</Text>
+            ) : !available ? (
+              <Text style={styles.soonTag}>SOON</Text>
+            ) : null}
+          </View>
+          <Text
+            style={[styles.title, focused && styles.titleFocused]}
+            numberOfLines={2}>
+            {mystery.title}
+          </Text>
+          <Text style={styles.description} numberOfLines={3}>
+            {mystery.shortDescription}
+          </Text>
+          <View style={styles.spacer} />
+          <Text style={styles.atmosphere} numberOfLines={2}>
+            {mystery.atmosphere}
+          </Text>
+          <View style={styles.divider} />
+          <View style={styles.metaRow}>
+            <Meta label="Players" value={formatPlayers(mystery)} />
+            <Meta label="Difficulty" value={mystery.difficulty} />
+          </View>
+        </>
+      )}
+    </FocusableCard>
+  );
+};
+
+const Meta = ({label, value}: {label: string; value: string}) => (
+  <View>
+    <Text style={styles.metaLabel}>{label.toUpperCase()}</Text>
+    <Text style={styles.metaValue}>{value}</Text>
+  </View>
+);
+
+/** Slow drifting light inside the focused card. Stopped when not focused. */
+const CardAtmosphere = ({active}: {active: boolean}) => {
+  const drift = useRef(new Animated.Value(0)).current;
+  const presence = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(presence, {
+      toValue: active ? 1 : 0,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+    if (!active) {
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(drift, {
+          toValue: 1,
+          duration: theme.motion.breathMs,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(drift, {
+          toValue: 0,
+          duration: theme.motion.breathMs,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [active, drift, presence]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.atmosphereGlow,
+        {
+          opacity: presence,
+          transform: [
+            {translateX: drift.interpolate({inputRange: [0, 1], outputRange: [px(-40), px(40)]})},
+            {translateY: drift.interpolate({inputRange: [0, 1], outputRange: [px(0), px(30)]})},
+          ],
+        },
+      ]}>
+      <View style={[styles.glowRing, styles.glowOuter]} />
+      <View style={[styles.glowRing, styles.glowInner]} />
+    </Animated.View>
+  );
+};
+
+const GLOW = px(520);
+
+const styles = StyleSheet.create({
+  card: {
+    width: CARD_WIDTH,
+    height: CARD_HEIGHT,
+    padding: theme.spacing.lg,
+  },
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  genre: {
+    color: theme.colors.accent,
+    fontSize: theme.type.caption,
+    letterSpacing: px(5),
+  },
+  soonTag: {
+    color: theme.colors.faintText,
+    fontSize: px(20),
+    letterSpacing: px(4),
+  },
+  selectedTag: {
+    color: theme.colors.success,
+    fontSize: px(20),
+    letterSpacing: px(4),
+  },
+  title: {
+    marginTop: theme.spacing.md,
+    color: theme.colors.text,
+    fontSize: px(42),
+    lineHeight: px(50),
+    fontWeight: '300',
+  },
+  titleFocused: {
+    color: theme.colors.focus,
+  },
+  description: {
+    marginTop: theme.spacing.sm,
+    color: theme.colors.mutedText,
+    fontSize: theme.type.body,
+    lineHeight: px(38),
+  },
+  spacer: {
+    flex: 1,
+  },
+  atmosphere: {
+    color: theme.colors.faintText,
+    fontSize: theme.type.caption,
+    lineHeight: px(32),
+  },
+  divider: {
+    height: 1,
+    marginVertical: theme.spacing.md,
+    backgroundColor: theme.colors.border,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  metaLabel: {
+    color: theme.colors.faintText,
+    fontSize: px(18),
+    letterSpacing: px(3),
+  },
+  metaValue: {
+    marginTop: px(4),
+    color: theme.colors.text,
+    fontSize: theme.type.body,
+  },
+  atmosphereGlow: {
+    position: 'absolute',
+    top: -GLOW / 2,
+    left: CARD_WIDTH / 2 - GLOW / 2,
+    width: GLOW,
+    height: GLOW,
+  },
+  glowRing: {
+    position: 'absolute',
+    borderRadius: GLOW,
+    backgroundColor: theme.colors.glowWarm,
+  },
+  glowOuter: {
+    left: 0,
+    top: 0,
+    width: GLOW,
+    height: GLOW,
+    opacity: 0.05,
+  },
+  glowInner: {
+    left: GLOW * 0.2,
+    top: GLOW * 0.2,
+    width: GLOW * 0.6,
+    height: GLOW * 0.6,
+    opacity: 0.06,
+  },
+});

@@ -25,7 +25,39 @@ The source of truth is this folder on `D:`. `scripts/wsl-build.sh` rsyncs it (mi
 Edit files here on D:, then rerun the script. `node_modules` under this folder only exists for editor IntelliSense. The build never uses it.
 
 ## Workspaces
-`apps/tv` stays outside the root npm workspaces. Vega pins its own React Native and React versions, and its dependencies must be installed from Linux. How it will consume `@roomriddle/shared-types`, `mystery-data` and `ui` (Metro `watchFolders` or a file dependency) is decided at Milestone 1 and recorded in `docs/architecture.md`.
+`apps/tv` stays outside the root npm workspaces. Vega pins its own React Native and React versions, and its dependencies must be installed from Linux. For now the TV shell keeps a local copy of the theme colours (`src/theme/theme.ts`) and mock mystery listings (`src/data/mysteries.ts`). How it will consume `@roomriddle/shared-types`, `mystery-data` and `ui` (Metro `watchFolders` or a file dependency) is decided when the game engine is wired in.
 
-## Milestone 1 scope
-Home · Create Room · Join Room · Mystery Library · Settings. D-pad focus with an obvious focus state. Back must never destroy a room or progress without confirmation. No multiplayer, no AI.
+## Check (typecheck + lint + tests)
+```bash
+wsl.exe -d Ubuntu-24.04 -- bash /mnt/d/RoomRiddle/apps/tv/scripts/wsl-check.sh
+```
+
+## Keeping the VVD alive under WSL
+WSL stops the distro, and with it the VVD, when the last `wsl.exe` session exits (FL-006). While testing, keep one session open in a separate terminal:
+```bash
+wsl.exe -d Ubuntu-24.04 -- bash -lc 'source ~/vega/env; vega virtual-device start; sleep infinity'
+```
+
+## Layout units
+The VVD window is 960×540 layout units at 2× density. All sizes in `src/` are written in **1920×1080 design pixels** and wrapped in `px()` from `src/theme/theme.ts` (FL-005). Colours, type sizes, spacing and motion values live only in the theme.
+
+## TV shell structure (Phase 2)
+```
+src/
+  App.tsx                    stack navigation + global Back handling
+  navigation/TVNavigation.ts pure navigation reducer (tested), Back-interceptor context
+  navigation/useBackInterceptor.ts
+  theme/theme.ts             colours, type, spacing, motion, px()
+  data/mysteries.ts          PLACEHOLDER listing data (mirrors packages/mystery-data)
+  data/mockRoom.ts           PLACEHOLDER room code 4827
+  components/                TVButton, FocusableCard, ScreenHeader, Background(+ScreenTransition), MysteryCard
+  screens/                   Home, CreateRoom, JoinRoom, Mysteries, MysteryDetails, Settings
+```
+The template's `components/Tile.tsx`, `data/tiles.tsx` and `assets/` are kept but are no longer rendered.
+
+## Back behaviour
+| Screen | Back |
+|---|---|
+| Home | Asks "Leave RoomRiddle?" (Stay / Exit) |
+| Create Room | Asks "Close this room?" (Keep Room / Close Room). A second Back cancels the prompt |
+| Any other screen | Returns to the previous screen and restores focus to the control that opened it |

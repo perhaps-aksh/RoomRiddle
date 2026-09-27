@@ -35,3 +35,33 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Severity:** High for Windows+WSL users. The failure message points at the manifest content, not at the filesystem.
 - **Workaround:** Build from WSL's own ext4 filesystem. `apps/tv/scripts/wsl-build.sh` rsyncs the source from `D:` to `~/rr-build/tv` and builds there. Results: `npm ci` took 31 s, the build took 31 s, and all three `.vpkg` files (aarch64/armv7/x86_64) were valid. The x86_64 package installed and launched on the VVD.
 - **Suggestion:** Detect `/mnt/<drive>` (9p/drvfs) project paths in `vega build` and warn, or say in the docs that the project must live on the Linux filesystem when using WSL.
+
+## FL-004: `BackHandler` is undefined under the Vega Jest preset
+- **Date:** 2026-09-27
+- **Task:** Unit-test the TV shell's Back handling with the Jest setup the `helloWorld` template generates (`preset: @amazon-devices/react-native-kepler`, SDK 0.24.12112).
+- **Steps:** Call `BackHandler.addEventListener('hardwareBackPress', …)` in a component, render it with `@testing-library/react-native`.
+- **Expected:** The preset mocks `BackHandler`, as it mocks other core modules.
+- **Actual:** `TypeError: Cannot read properties of undefined (reading 'addEventListener')`: `require('react-native').BackHandler` is `undefined` in tests (verified with a probe spec). The preset sets Haste `defaultPlatform: 'kepler'`, and its `jest/setup.js` registers a mock for `KeplerBackHandler` but none for `BackHandler`. The preset ships `jest/mocks/BackHandler.js`, but `setup.js` never references it. Mocking the `.kepler` variant (below) fixes it, which points at the `BackHandler.kepler.js` resolution path. The exact failure inside the lazy getter wasn't traced further.
+- **Severity:** Low to medium. Any app using the documented `BackHandler` API can't be tested out of the box, and the error message points at app code.
+- **Workaround:** `apps/tv/test/support/backHandler.ts` mocks `@amazon-devices/react-native-kepler/Libraries/Utilities/BackHandler.kepler`, returning a real `{remove}` subscription and a `pressBack()` helper to simulate the remote.
+- **Suggestion:** Register the existing `jest/mocks/BackHandler.js` for the `.kepler` variant in `jest/setup.js`, and return a subscription object from its `addEventListener`.
+
+## FL-005: VVD lays out at 960×540 dp, so 1080p design values render at 2×
+- **Date:** 2026-09-27
+- **Task:** Lay out TV screens with sizes designed for a 1920×1080 canvas (the VVD's screenshot resolution and the usual Fire TV output).
+- **Steps:** Use style values such as `fontSize: 104` for a wordmark, build, run on the VVD.
+- **Expected:** Style units map to 1080p pixels, or the docs state the layout-unit canvas size.
+- **Actual:** Everything rendered twice as large: the wordmark wrapped and the menu fell off-screen. The window is 960×540 layout units at 2× density, and screenshots are 1920×1080. The hello-world template's own sizes (64 px headings, 280 px tiles) hide this because they happen to fit.
+- **Severity:** Medium. It is the first thing a TV layout hits, and it's only obvious on-device.
+- **Workaround:** `px()` in `apps/tv/src/theme/theme.ts` scales 1080p design pixels by `min(window.width/1920, window.height/1080)` and rounds with `PixelRatio.roundToNearestPixel`.
+- **Suggestion:** State the VVD / Fire TV layout canvas (dp size and density) on the UI design and "10-foot UI" pages, with a sizing helper example.
+
+## FL-006: The VVD stops when the last WSL session exits
+- **Date:** 2026-09-27
+- **Task:** Start the VVD from a one-shot `wsl.exe -- bash -lc '…'` command, then install the app from a second command.
+- **Steps:** `wsl.exe -d Ubuntu-24.04 -- bash wsl-run.sh` (starts the VVD, builds, runs), then later `vega run-app …` from a new `wsl.exe` call.
+- **Expected:** The VVD keeps running between commands, like it does in a native Ubuntu terminal.
+- **Actual:** `run-app` right after boot failed with "Cannot read properties of undefined (reading 'trim')", and later calls found "No devices found". WSL shuts the distro down when no session is left, which kills QEMU.
+- **Severity:** Low (WSL-specific, and WSL is unofficial, see FL-001). The `trim` error is opaque, though.
+- **Workaround:** Keep one long-lived WSL session open, e.g. a background `wsl.exe … 'vega virtual-device start; while true; do sleep 60; done'`, then run build/install commands in separate calls.
+- **Suggestion:** When the device disappears mid-command, report "virtual device not running" instead of a JavaScript `trim` error.

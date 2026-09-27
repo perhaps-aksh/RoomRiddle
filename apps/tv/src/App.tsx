@@ -1,118 +1,117 @@
-import React, {useState} from 'react';
-import {StyleSheet, Text, ImageBackground, View, Image} from 'react-native';
-import {TVFocusGuideView} from '@amazon-devices/react-native-kepler';
-import {Tile} from './components/Tile';
-import {tiles} from './data/tiles';
+import React, {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
+import {BackHandler, StyleSheet, View} from 'react-native';
+import {Background} from './components/Background/Background';
+import {ScreenTransition} from './components/Background/ScreenTransition';
+import {DEFAULT_MYSTERY_ID} from './data/mysteries';
+import {
+  BackInterceptorContext,
+  BackInterceptorRegistry,
+  canGoBack,
+  createInitialStack,
+  currentEntry,
+  navigationReducer,
+  Navigator,
+  Route,
+} from './navigation/TVNavigation';
+import {CreateRoomScreen} from './screens/CreateRoom/CreateRoomScreen';
+import {HomeScreen} from './screens/Home/HomeScreen';
+import {JoinRoomScreen} from './screens/JoinRoom/JoinRoomScreen';
+import {MysteriesScreen} from './screens/Mysteries/MysteriesScreen';
+import {MysteryDetailsScreen} from './screens/MysteryDetails/MysteryDetailsScreen';
+import {SettingsScreen} from './screens/Settings/SettingsScreen';
+import {ScreenProps} from './screens/types';
 
+/**
+ * RoomRiddle TV shell (Phase 2). Local, deterministic state only: no networking,
+ * no game engine, no AI.
+ *
+ * Replaces the Vega helloWorld template screen. The template's own files
+ * (components/Tile.tsx, data/tiles.tsx, assets/) are left in place untouched.
+ */
 export const App = () => {
-  const [focusedTileId, setFocusedTileId] = useState<string>('home');
+  const [stack, dispatch] = useReducer(navigationReducer, undefined, createInitialStack);
+  const [selectedMysteryId, setSelectedMysteryId] = useState(DEFAULT_MYSTERY_ID);
 
-  const focusedTile = tiles.find((t) => t.id === focusedTileId);
+  const navigator = useMemo<Navigator>(
+    () => ({
+      push: (route: Route, fromFocusKey?: string) =>
+        dispatch({type: 'push', route, fromFocusKey}),
+      back: () => dispatch({type: 'pop'}),
+    }),
+    [],
+  );
+
+  // Screens can take over Back (e.g. "Close this room?"). Held in a ref so
+  // registering a handler never re-renders the tree.
+  const interceptorRef = useRef<(() => boolean) | null>(null);
+  const registry = useMemo<BackInterceptorRegistry>(
+    () => ({
+      set: handler => {
+        interceptorRef.current = handler;
+      },
+    }),
+    [],
+  );
+
+  const stackRef = useRef(stack);
+  stackRef.current = stack;
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (interceptorRef.current?.()) {
+        return true;
+      }
+      if (canGoBack(stackRef.current)) {
+        dispatch({type: 'pop'});
+        return true;
+      }
+      return false;
+    });
+    return () => subscription.remove();
+  }, []);
+
+  const onSelectMystery = useCallback((id: string) => setSelectedMysteryId(id), []);
+
+  const entry = currentEntry(stack);
+  const props: ScreenProps = {
+    navigator,
+    initialFocusKey: entry.focusKey,
+    selectedMysteryId,
+    onSelectMystery,
+  };
 
   return (
-    <ImageBackground
-      source={require('./assets/background.png')}
-      style={styles.background}>
-      <View style={styles.headerArea}>
-        {focusedTileId === 'home' ? (
-          <>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Hello Vega,</Text>
-              <Text style={styles.headerSubtitle}>
-                Use your remote to explore and start your Vega journey 🚀
-              </Text>
-            </View>
-            <Image
-              source={require('./assets/vega.png')}
-              style={styles.vegaLogo}
-              resizeMode="contain"
-              testID="vega-logo"
-            />
-          </>
-        ) : (
-          <>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.focusedTitle}>{focusedTile?.label}</Text>
-            </View>
-            {focusedTile?.description && (
-              <Text style={styles.focusedDescription}>
-                {focusedTile.description}
-              </Text>
-            )}
-          </>
-        )}
+    <BackInterceptorContext.Provider value={registry}>
+      <View style={styles.root}>
+        <Background />
+        {/* New key per stack depth + route: replays the entrance and re-applies initial focus. */}
+        <ScreenTransition key={`${stack.length}-${entry.route.name}`}>
+          {renderScreen(entry.route, props)}
+        </ScreenTransition>
       </View>
-
-      <TVFocusGuideView style={styles.tileRowContent}>
-        {tiles.map((tile) => (
-          <Tile
-            key={tile.id}
-            label={tile.label}
-            icon={tile.icon}
-            isFocused={focusedTileId === tile.id}
-            onFocus={() => setFocusedTileId(tile.id)}
-            onBlur={() => {}}
-            testID={`tile-${tile.id}`}
-            accessibilityLabel={tile.accessibilityLabel}
-            hasTVPreferredFocus={tile.id === 'home'}
-          />
-        ))}
-      </TVFocusGuideView>
-    </ImageBackground>
+    </BackInterceptorContext.Provider>
   );
 };
 
+function renderScreen(route: Route, props: ScreenProps) {
+  switch (route.name) {
+    case 'home':
+      return <HomeScreen {...props} />;
+    case 'createRoom':
+      return <CreateRoomScreen {...props} />;
+    case 'joinRoom':
+      return <JoinRoomScreen {...props} />;
+    case 'mysteries':
+      return <MysteriesScreen {...props} />;
+    case 'mysteryDetails':
+      return <MysteryDetailsScreen {...props} route={route} />;
+    case 'settings':
+      return <SettingsScreen {...props} />;
+  }
+}
+
 const styles = StyleSheet.create({
-  background: {
+  root: {
     flex: 1,
-    paddingHorizontal: 64,
-    paddingVertical: 32,
-  },
-  headerArea: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerTextContainer: {
-    flex: 1,
-    flexShrink: 1,
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 64,
-    lineHeight: 72,
-    fontWeight: '600',
-    flexShrink: 1,
-  },
-  headerSubtitle: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    flexShrink: 1,
-  },
-  vegaLogo: {
-    width: 280,
-    height: 200,
-    marginLeft: 40,
-  },
-  focusedTitle: {
-    color: '#FFFFFF',
-    fontSize: 64,
-    lineHeight: 72,
-    fontWeight: 'bold',
-    flexShrink: 1,
-  },
-  focusedDescription: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    lineHeight: 32,
-    flex: 1,
-    marginLeft: 20,
-    paddingTop: 10,
-  },
-  tileRowContent: {
-    flex: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
 });

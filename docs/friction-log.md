@@ -64,4 +64,5 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Actual:** `run-app` right after boot failed with "Cannot read properties of undefined (reading 'trim')", and later calls found "No devices found". WSL shuts the distro down when no session is left, which kills QEMU.
 - **Severity:** Low (WSL-specific, and WSL is unofficial, see FL-001). The `trim` error is opaque, though.
 - **Workaround:** Keep one long-lived WSL session open, e.g. a background `wsl.exe … 'vega virtual-device start; while true; do sleep 60; done'`, then run build/install commands in separate calls.
-- **Suggestion:** When the device disappears mid-command, report "virtual device not running" instead of a JavaScript `trim` error.
+- **Also:** `vega run-app` printed "Vega operation FAILED due to an irrecoverable error…" but **exited with code 0**. `wsl-run.sh` runs under `set -euo pipefail` and `run-app` is its last command, yet the script reported `EXIT=0`, so scripts and CI can't detect the failure.
+- **Suggestion:** When the device disappears mid-command, report "virtual device not running" instead of a JavaScript `trim` error, and exit non-zero on any "operation FAILED".

@@ -1,0 +1,12 @@
+{
+  "name": "@roomriddle/shared-types",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Types shared by the TV app, player app, server, game engine and mystery data.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

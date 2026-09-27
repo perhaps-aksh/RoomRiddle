@@ -1,0 +1,11 @@
+{
+  "name": "@roomriddle/player",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RoomRiddle phone companion (mobile web → PWA → Android). UI stack is chosen in Phase 5.",
+  "type": "module",
+  "dependencies": {
+    "@roomriddle/shared-types": "*",
+    "@roomriddle/ui": "*"
+  }
+}

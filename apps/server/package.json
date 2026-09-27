@@ -1,0 +1,17 @@
+{
+  "name": "@roomriddle/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Authoritative RoomRiddle game server (Node.js + TypeScript; WebSockets arrive in Phase 4).",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@roomriddle/game-engine": "*",
+    "@roomriddle/mystery-data": "*",
+    "@roomriddle/shared-types": "*"
+  }
+}

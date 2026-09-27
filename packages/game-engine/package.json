@@ -1,0 +1,18 @@
+{
+  "name": "@roomriddle/game-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic, mystery-agnostic RoomRiddle rules and state transitions. No I/O, no AI.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@roomriddle/shared-types": "*"
+  }
+}

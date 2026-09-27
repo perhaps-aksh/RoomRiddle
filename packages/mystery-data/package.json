@@ -1,0 +1,18 @@
+{
+  "name": "@roomriddle/mystery-data",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pre-authored RoomRiddle mysteries (story, clues, puzzles, hints, answers, endings) as pure data.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@roomriddle/shared-types": "*"
+  }
+}

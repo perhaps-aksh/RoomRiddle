@@ -1,0 +1,19 @@
+# The repo lives on Windows (D:/) but the Vega SDK runs on Linux (WSL/Ubuntu).
+# Keep LF everywhere so shell scripts and tooling behave identically on both.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.gif binary
+*.ico binary
+*.mp3 binary
+*.ogg binary
+*.wav binary
+*.mp4 binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.vpkg binary

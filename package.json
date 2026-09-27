@@ -1,0 +1,27 @@
+{
+  "name": "roomriddle",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RoomRiddle: a TV-led multiplayer mystery game for Amazon Fire TV / Vega OS. Gather. Investigate. Unravel the Mystery.",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/server",
+    "apps/player"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "check": "npm run typecheck && npm run test",
+    "dev:server": "npm run dev -w @roomriddle/server"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.0",
+    "tsx": "^4.23.15",
+    "typescript": "~5.9.3"
+  }
+}

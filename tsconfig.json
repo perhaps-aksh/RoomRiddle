@@ -1,0 +1,13 @@
+{
+  "//": "Root type-check for every TypeScript workspace except apps/tv. The Vega-generated TV app keeps its own tsconfig.",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": [
+    "packages/*/src",
+    "apps/server/src",
+    "apps/player/src"
+  ]
+}

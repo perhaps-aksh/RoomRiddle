@@ -12,6 +12,11 @@
   "dependencies": {
     "@roomriddle/game-engine": "*",
     "@roomriddle/mystery-data": "*",
-    "@roomriddle/shared-types": "*"
+    "@roomriddle/shared-types": "*",
+    "qrcode-generator": "^2.0.4",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }

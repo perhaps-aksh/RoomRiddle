@@ -7,5 +7,8 @@
   "dependencies": {
     "@roomriddle/shared-types": "*",
     "@roomriddle/ui": "*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
   }
 }

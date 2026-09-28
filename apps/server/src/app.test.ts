@@ -4,7 +4,7 @@ import type { AddressInfo } from 'node:net';
 import { createAppServer } from './app';
 
 async function withServer(run: (baseUrl: string) => Promise<void>): Promise<void> {
-  const server = createAppServer();
+  const server = createAppServer({ playerDir: '/nonexistent' });
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
   const { port } = server.address() as AddressInfo;
   try {
@@ -20,6 +20,33 @@ test('GET /health reports ok and sees the mystery catalog', async () => {
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), { status: 'ok', service: 'roomriddle-server', mysteries: 4 });
   });
+});
+
+test('serves the player app for / and /join/<code>, and blocks path traversal', async () => {
+  const { mkdtempSync, writeFileSync, mkdirSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { tmpdir } = await import('node:os');
+  const dir = mkdtempSync(join(tmpdir(), 'rr-player-'));
+  writeFileSync(join(dir, 'index.html'), '<!doctype html><title>RoomRiddle</title>');
+  mkdirSync(join(dir, 'assets'));
+  writeFileSync(join(dir, 'assets', 'app.js'), 'console.log(1)');
+  const server = createAppServer({ playerDir: dir });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    for (const path of ['/', '/join/4827']) {
+      const res = await fetch(base + path);
+      assert.equal(res.status, 200);
+      assert.match(await res.text(), /RoomRiddle/);
+    }
+    const js = await fetch(`${base}/assets/app.js`);
+    assert.equal(js.headers.get('content-type'), 'text/javascript; charset=utf-8');
+    assert.equal((await fetch(`${base}/..%2F..%2Fpackage.json`)).status, 404);
+    assert.equal((await fetch(`${base}/%E0%A4%A`)).status, 404);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
 });
 
 test('unknown routes return 404', async () => {

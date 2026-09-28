@@ -10,6 +10,8 @@ export interface FocusableCardProps {
   accessibilityLabel: string;
   accessibilityHint?: string;
   testID?: string;
+  /** Keeps a gold edge while unfocused (a chosen answer option). */
+  selected?: boolean;
   /** Render the card body; receives whether the card currently has remote focus. */
   children: (focused: boolean) => ReactNode;
 }
@@ -24,6 +26,7 @@ export const FocusableCard = ({
   accessibilityHint,
   testID,
   children,
+  selected,
 }: FocusableCardProps) => {
   const [focused, setFocused] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
@@ -54,7 +57,7 @@ export const FocusableCard = ({
         style={[
           styles.card,
           style,
-          focused ? styles.focused : styles.idle,
+          focused ? styles.focused : selected ? styles.selected : styles.idle,
           {transform: [{scale}]},
         ]}>
         {children(focused)}
@@ -76,5 +79,10 @@ const styles = StyleSheet.create({
   focused: {
     borderColor: theme.colors.focus,
     backgroundColor: theme.colors.surfaceRaised,
+  },
+  /** Chosen but not focused (answer options): a quieter gold edge. */
+  selected: {
+    borderColor: theme.colors.accent,
+    backgroundColor: theme.colors.focusFill,
   },
 });

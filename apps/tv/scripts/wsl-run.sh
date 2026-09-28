@@ -8,6 +8,6 @@ bash "$(dirname "$0")/wsl-build.sh" "$BUILD_TYPE"
 if ! vega virtual-device status 2>/dev/null | grep -q '"running":true'; then
   vega virtual-device start --timeout 240
 fi
-cd "$HOME/rr-build/tv"
+cd "$HOME/rr-build/repo/apps/tv"
 LC_TYPE="$(echo "$BUILD_TYPE" | tr '[:upper:]' '[:lower:]')"
 vega run-app "build/x86_64-${LC_TYPE}/roomriddletv_x86_64.vpkg" com.roomriddle.tv.main -d VirtualDevice

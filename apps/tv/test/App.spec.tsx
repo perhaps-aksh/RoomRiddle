@@ -87,15 +87,17 @@ describe('RoomRiddle TV shell', () => {
     ).toBeTruthy();
   });
 
-  it('Select Mystery updates local state', () => {
+  it('Select Mystery starts The Last Train at its intro', () => {
     const screen = render(<App />);
     fireEvent.press(screen.getByTestId('home-mysteries'));
     fireEvent.press(screen.getByTestId('mystery-the-last-train'));
     fireEvent.press(screen.getByTestId('details-select'));
+    expect(screen.getByTestId('intro-begin')).toBeTruthy();
+    expect(screen.getByText('Its conductor, Elias Caldwell, has vanished.')).toBeTruthy();
+    // Back from the intro returns to the details, where the mystery is now selected.
+    fireEvent.press(screen.getByTestId('intro-back'));
     expect(
-      screen.getByText(
-        '✓ Selected for tonight. Gameplay arrives with the game engine.',
-      ),
+      screen.getByText('✓ Selected for tonight. Local play on this TV, phones join in a later phase.'),
     ).toBeTruthy();
   });
 

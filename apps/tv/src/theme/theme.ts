@@ -50,12 +50,17 @@ export const theme = {
     scrim: 'rgba(4, 5, 9, 0.86)',
     success: '#6FBF8A',
     danger: '#D9695F',
+    /** Ending tones. */
+    toneTriumph: '#F0C465',
+    toneBittersweet: '#9FB4CF',
+    toneDefeat: '#D9695F',
   },
   /** Font sizes in design pixels (1080p). TV body text never goes below 28 (AGENTS.md). */
   type: {
     wordmark: px(104),
     title: px(64),
     heading: px(44),
+    narration: px(36),
     nav: px(32),
     body: px(28),
     caption: px(24),

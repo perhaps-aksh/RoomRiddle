@@ -47,6 +47,18 @@ describe('TV navigation reducer', () => {
     expect(stack).toEqual(createInitialStack());
   });
 
+  it('reset can stack screens above Home (e.g. Home → Ending)', () => {
+    let stack = navigationReducer(createInitialStack(), {type: 'push', route: {name: 'scene'}});
+    stack = navigationReducer(stack, {type: 'reset', routes: [{name: 'ending'}]});
+    expect(stack.map(e => e.route.name)).toEqual(['home', 'ending']);
+  });
+
+  it('replace swaps the top screen without adding a Back step', () => {
+    let stack = navigationReducer(createInitialStack(), {type: 'push', route: {name: 'gameIntro'}});
+    stack = navigationReducer(stack, {type: 'replace', route: {name: 'scene'}});
+    expect(stack.map(e => e.route.name)).toEqual(['home', 'scene']);
+  });
+
   it('never mutates the previous stack', () => {
     const start = createInitialStack();
     const snapshot = JSON.stringify(start);

@@ -18,14 +18,14 @@ wsl.exe -d Ubuntu-24.04 -- bash /mnt/d/RoomRiddle/apps/tv/scripts/wsl-build.sh D
 ```
 
 ### Why the build runs in a mirror, not on D:
-The source of truth is this folder on `D:`. `scripts/wsl-build.sh` rsyncs it (minus `node_modules` and `build`) to `~/rr-build/tv` on WSL's own ext4 filesystem and builds there. Building directly on `/mnt/d` caused two problems:
+The source of truth is the repo on `D:`. `scripts/wsl-mirror.sh` rsyncs `apps/tv` (minus `node_modules` and `build`) **and `packages/`** into `~/rr-build/repo/` on WSL's own ext4 filesystem, keeping the repo layout so that `../../packages` resolves. It builds there (the old mirror at `~/rr-build/tv` is no longer used). Building directly on `/mnt/d` caused two problems:
 - `npm install` took about 15 minutes, against about 30 s on ext4.
 - The packaged `.vpkg` came out with **zero-filled** `manifest.toml` and config files, so `vpt` failed with "failed to parse manifest". See FL-003 in `docs/friction-log.md`.
 
 Edit files here on D:, then rerun the script. `node_modules` under this folder only exists for editor IntelliSense. The build never uses it.
 
 ## Workspaces
-`apps/tv` stays outside the root npm workspaces. Vega pins its own React Native and React versions, and its dependencies must be installed from Linux. For now the TV shell keeps a local copy of the theme colours (`src/theme/theme.ts`) and mock mystery listings (`src/data/mysteries.ts`). How it will consume `@roomriddle/shared-types`, `mystery-data` and `ui` (Metro `watchFolders` or a file dependency) is decided when the game engine is wired in.
+`apps/tv` stays outside the root npm workspaces. Vega pins its own React Native and React versions, and its dependencies must be installed from Linux. The shared packages are consumed **from TypeScript source**: Metro `watchFolders` + `extraNodeModules`, tsconfig `paths` and a Jest `moduleNameMapper` all point `@roomriddle/*` at `../../packages/*` (see `docs/architecture.md`). The theme colours still live in a local copy (`src/theme/theme.ts`). `src/data/mysteries.ts` is now a thin adapter over `@roomriddle/mystery-data`.
 
 ## Check (typecheck + lint + tests)
 ```bash

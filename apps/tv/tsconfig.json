@@ -2,5 +2,9 @@
     "extends": "@react-native/typescript-config",
     "compilerOptions": {
         "types": ["jest", "@amazon-devices/react-native-kepler"], // Override "jest", "react-native" from @react-native/typescript-config
+        // Shared workspace packages, bundled from source (see metro.config.js and jest.config.json).
+        "paths": {
+            "@roomriddle/*": ["../../packages/*/src/index.ts"]
+        }
     },
 }

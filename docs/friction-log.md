@@ -66,3 +66,13 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Workaround:** Keep one long-lived WSL session open, e.g. a background `wsl.exe … 'vega virtual-device start; while true; do sleep 60; done'`, then run build/install commands in separate calls.
 - **Also:** `vega run-app` printed "Vega operation FAILED due to an irrecoverable error…" but **exited with code 0**. `wsl-run.sh` runs under `set -euo pipefail` and `run-app` is its last command, yet the script reported `EXIT=0`, so scripts and CI can't detect the failure.
 - **Suggestion:** When the device disappears mid-command, report "virtual device not running" instead of a JavaScript `trim` error, and exit non-zero on any "operation FAILED".
+
+## FL-007: Remote-key injection is slow, and the game clock keeps running
+- **Date:** 2026-09-28
+- **Task:** Play The Last Train end to end on the VVD with a 20-minute in-game timer.
+- **Steps:** One `vega device run-cmd -d VirtualDevice -c "inputd-cli button_press KEY_X"` per key.
+- **Expected:** Near-instant key presses, as with a physical remote.
+- **Actual:** Each `run-cmd` takes several seconds of CLI overhead, so a full scene cost minutes of real (in-game) time. Pressing keys too quickly in a batch also gave misleading screenshots, because focus had not settled before the capture.
+- **Severity:** Low. It only affects automated testing.
+- **Workaround:** Send the whole key sequence in one on-device command (`inputd-cli button_press A; sleep 0.9; inputd-cli button_press B; …`) inside a single `run-cmd`, which gave exact, repeatable navigation. Take the screenshot after the sequence, from a separate call.
+- **Suggestion:** A documented `vega device send-keys <k1> <k2> …` with a configurable delay, for remote-driven UI tests.

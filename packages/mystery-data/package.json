@@ -14,5 +14,8 @@
   },
   "dependencies": {
     "@roomriddle/shared-types": "*"
+  },
+  "devDependencies": {
+    "@roomriddle/game-engine": "*"
   }
 }

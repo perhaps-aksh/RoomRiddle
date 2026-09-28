@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
-# Mirror apps/tv from the D: repo into the WSL ext4 filesystem and build there.
-# Canonical source stays at /mnt/d/RoomRiddle/apps/tv; the mirror is a disposable build workspace.
+# Mirror apps/tv (and the shared packages) from the D: repo into the WSL ext4 filesystem and build there.
+# Canonical source stays on /mnt/d/RoomRiddle; the mirror is a disposable build workspace.
 set -euo pipefail
 source ~/vega/env >/dev/null 2>&1
-SRC=/mnt/d/RoomRiddle/apps/tv
-DST="$HOME/rr-build/tv"
 BUILD_TYPE="${1:-Debug}"
-mkdir -p "$DST"
-command -v rsync >/dev/null || sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rsync >/dev/null
-rsync -a --delete --exclude node_modules --exclude build --exclude .tmp --exclude buildinfo.json "$SRC/" "$DST/"
-cd "$DST"
+source "$(dirname "$0")/wsl-mirror.sh"
+cd "$TV_DIR"
 S=$(date +%s)
 if [ ! -d node_modules ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then
   npm ci --no-fund --no-audit 2>&1 | tail -2

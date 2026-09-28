@@ -3,6 +3,7 @@ import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
 import {ScreenHeader} from '../../components/ScreenHeader/ScreenHeader';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {findMystery, formatPlayers} from '../../data/mysteries';
+import {useGame} from '../../game/GameContext';
 import {px, theme} from '../../theme/theme';
 import {ScreenProps} from '../types';
 
@@ -12,6 +13,7 @@ export const MysteryDetailsScreen = ({
   selectedMysteryId,
   onSelectMystery,
 }: ScreenProps & {route: {mysteryId: string}}) => {
+  const {start} = useGame();
   const mystery = findMystery(route.mysteryId);
 
   if (mystery === undefined) {
@@ -28,6 +30,13 @@ export const MysteryDetailsScreen = ({
 
   const available = mystery.availability === 'available';
   const isSelected = mystery.id === selectedMysteryId;
+
+  // Select the mystery for tonight and start it locally (no room needed yet).
+  const selectAndStart = () => {
+    onSelectMystery(mystery.id);
+    start(mystery.id);
+    navigator.push({name: 'gameIntro'}, 'details-select');
+  };
 
   return (
     <View style={styles.screen}>
@@ -58,15 +67,16 @@ export const MysteryDetailsScreen = ({
           {!available
             ? 'Coming soon. This mystery is not playable yet.'
             : isSelected
-            ? '✓ Selected for tonight. Gameplay arrives with the game engine.'
+            ? '✓ Selected for tonight. Local play on this TV, phones join in a later phase.'
             : ' '}
         </Text>
         <View style={styles.actionRow}>
           {available && (
             <TVButton
               variant="action"
-              label={isSelected ? 'Selected' : 'Select Mystery'}
-              onPress={() => onSelectMystery(mystery.id)}
+              label="Select Mystery"
+              accessibilityHint="Selects this mystery and starts it"
+              onPress={selectAndStart}
               preferredFocus
               testID="details-select"
             />

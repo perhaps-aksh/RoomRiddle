@@ -5,9 +5,11 @@
   "moduleNameMapper": {
     "^react-native$": "@amazon-devices/react-native-kepler",
     "^react-native/(.*)$": "@amazon-devices/react-native-kepler/$1",
+    "^@roomriddle/(.*)$": "<rootDir>/../../packages/$1/src/index.ts",
     "^~/(.*)$": "<rootDir>/src/$1"
   },
   "modulePaths": ["<rootDir>/src"],
+  "moduleDirectories": ["node_modules", "<rootDir>/node_modules"],
   "roots": [
     "<rootDir>/src/",
     "<rootDir>/test/",

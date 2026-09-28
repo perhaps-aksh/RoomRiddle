@@ -1,6 +1,18 @@
+import type {GameState, Hint, Puzzle} from '@roomriddle/shared-types';
+
 /**
- * Progressive hint reveal, arriving in Phase 2. Hints are pre-authored in mystery data
- * (1 = directional, 2 = interpretation, 3 = near-solution). This module only decides
- * which one is revealed next and never generates hint text.
+ * Progressive hints. Hint text is always pre-authored in mystery data
+ * (nudge → interpretation → near-solution). This module only decides which
+ * one comes next. It never generates text.
  */
-export {};
+export function revealedHints(state: GameState, puzzle: Puzzle): Hint[] {
+  return puzzle.hints.filter((hint) => state.usedHintIds.includes(hint.id));
+}
+
+export function hintsUsedFor(state: GameState, puzzle: Puzzle): number {
+  return revealedHints(state, puzzle).length;
+}
+
+export function nextHint(state: GameState, puzzle: Puzzle): Hint | undefined {
+  return puzzle.hints.find((hint) => !state.usedHintIds.includes(hint.id));
+}

@@ -145,6 +145,7 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
   },
   value: {
+    marginLeft: theme.spacing.sm,
     fontSize: theme.type.body,
     color: theme.colors.faintText,
     letterSpacing: 1,

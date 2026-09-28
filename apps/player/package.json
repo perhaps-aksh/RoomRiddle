@@ -2,9 +2,16 @@
   "name": "@roomriddle/player",
   "version": "0.1.0",
   "private": true,
-  "description": "RoomRiddle phone companion (mobile web → PWA → Android). UI stack is chosen in Phase 5.",
+  "description": "RoomRiddle phone companion (mobile web → PWA → Android). Phase 4: functional multiplayer flow in plain TypeScript + DOM; UI stack chosen in Phase 5.",
   "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "dev": "node build.mjs --watch",
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
   "dependencies": {
+    "@roomriddle/client": "*",
+    "@roomriddle/game-engine": "*",
     "@roomriddle/shared-types": "*",
     "@roomriddle/ui": "*"
   },

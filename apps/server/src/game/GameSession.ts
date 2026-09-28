@@ -86,6 +86,7 @@ export function toPublicMystery(mystery: MysteryDefinition): PublicMystery {
     puzzles: puzzles.map(({acceptedAnswers: _a, hints, solvedText: _s, ...puzzle}) => ({
       ...puzzle,
       hintCount: hints.length,
+      hintIds: hints.map(h => h.id),
     })),
     endings: endings.map(({id, title, tone}) => ({id, title, tone})),
   };

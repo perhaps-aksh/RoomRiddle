@@ -38,6 +38,8 @@ export interface Room {
  */
 export type PublicPuzzle = Omit<Puzzle, 'acceptedAnswers' | 'hints' | 'solvedText'> & {
   hintCount: number;
+  /** Hint ids in reveal order (text arrives in GameReveals once revealed). */
+  hintIds: string[];
 };
 
 /** Mystery content safe to send to phones: no answers, no unearned spoilers. */

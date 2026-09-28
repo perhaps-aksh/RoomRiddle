@@ -17,7 +17,9 @@
     "test": "npm run test --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "check": "npm run typecheck && npm run test",
-    "dev:server": "npm run dev -w @roomriddle/server"
+    "dev:server": "npm run dev -w @roomriddle/server",
+    "build:player": "npm run build -w @roomriddle/player",
+    "serve": "npm run build:player && npm run start -w @roomriddle/server"
   },
   "devDependencies": {
     "@types/node": "^24.19.0",

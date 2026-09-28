@@ -8,6 +8,7 @@
   "include": [
     "packages/*/src",
     "apps/server/src",
+    "apps/server/scripts",
     "apps/player/src"
   ]
 }

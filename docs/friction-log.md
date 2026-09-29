@@ -86,3 +86,14 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Severity:** Medium for WSL users (unofficial, see FL-001). The CLI only reports a timeout.
 - **Workaround:** `wsl.exe -d Ubuntu-24.04 -u root -- bash -c 'chgrp kvm /dev/kvm; chmod 660 /dev/kvm'` before starting the VVD. It then booted normally.
 - **Suggestion:** Check that `/dev/kvm` can be opened before launching, and say "KVM not accessible, falling back to TCG" instead of timing out.
+
+## FL-009: `export * as ns` from a shared package breaks the Vega RN Babel pipeline
+- **Date:** 2026-09-29
+- **Task:** Expose the Phase 5 design tokens from `packages/ui` as a namespace (`export * as theme from './theme/index'`) and import them in the TV app.
+- **Steps:** The TV consumes workspace packages from TS source through metro `extraNodeModules`. Run the TV jest suite, which uses the same Babel preset as the Metro bundle.
+- **Expected:** An ES2020 namespace re-export compiles, as it does under `tsc`, `tsx` and esbuild (the server, phone and package tests were all fine).
+- **Actual:** The TV suites failed to compile the shared package until the namespace re-export was replaced with a plain `import * as x` followed by `export const theme = {...}`. Type-only exports had to become explicit `export type {…}`.
+- **Severity:** Low. It is easy to work around once found, but the failure only shows in the TV toolchain, so shared code can look fine everywhere else.
+- **Workaround:** Avoid `export * as` in any package the TV consumes. A comment in `packages/ui/src/index.ts` explains why.
+- **Suggestion:** Enable the namespace-export transform in the Vega RN Babel preset, or document which ES syntax shared workspace code may use.
+

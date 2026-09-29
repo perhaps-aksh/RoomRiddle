@@ -2,7 +2,7 @@
   "name": "@roomriddle/player",
   "version": "0.1.0",
   "private": true,
-  "description": "RoomRiddle phone companion (mobile web → PWA → Android). Phase 4: functional multiplayer flow in plain TypeScript + DOM; UI stack chosen in Phase 5.",
+  "description": "RoomRiddle phone companion (mobile web → PWA → Android). Plain TypeScript + DOM on the shared design tokens (Phase 5 design).",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",

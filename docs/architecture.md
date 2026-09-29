@@ -92,5 +92,41 @@ Phone 2 ───ws───┘   router, messages  └── SessionManager (to
 - Screens read state through selectors and call `dispatch(action)`. No screen contains a game rule. For example, the Puzzle screen doesn't know the answer: it sends the entry and renders the engine's `answer-correct` / `answer-incorrect` / `rejected` event.
 - Screens: Intro → Scene (hub) → Investigation / Evidence / Puzzle (with hints and the result panel) → … → Ending.
 
+## Design system and experience layer (Phase 5)
+Direction: **Cinematic Investigation Interface**. Cinema, a detective's case file and a calm investigation system, presented as premium TV UI. Phase 5 changed how the game is presented, not how it works: no engine, protocol or server rule changed.
+
+- **`packages/ui`** is the single source of visual truth. It holds plain values only (no React, no DOM), so the TV and the phone both consume it.
+  - `theme/colors.ts`: a semantic palette (background, surface*, text*, accent*, focus*, signal*, success/warning/danger, border, overlay, paper, tones). "Night" blue-blacks and brass, evolved from the Phase 2 navy and gold.
+  - `theme/typography.ts`: three voices, each with a job.
+    - **Cinematic** serif (Bookerly): titles, narration, endings.
+    - **Functional** sans (Amazon Ember): instructions and buttons.
+    - **Technical** mono (Amazon Ember Mono): room codes, times, scores, evidence numbers.
+    - All three ship on Fire TV, so no fonts are bundled. The phone gets fallbacks.
+  - `theme/layout.ts`: spacing, radii, borders, shadows and touch-target sizes, with TV values in 1920×1080 design px and phone values in CSS px.
+  - `theme/motion.ts`: semantic motions (`focusIn`, `screenEnter`, `discovery`, `failure`, `endingReveal`…) plus `reducedMotion()`. Rule: motion must communicate focus, a state change, discovery, progression, feedback or a transition. Focus motion stays under 200 ms.
+  - `css.ts`: `cssVariables()` turns the same tokens into CSS custom properties. The player build writes them to `tokens.css`, including a `prefers-reduced-motion` block.
+  - `tokens.ts` stays as a Phase 2 compatibility re-export.
+- **`packages/client/experience.ts`** holds the shared copy both clients use:
+  - Every protocol error code gets a title, a plain-language message and at least one recovery action. A test forbids technical jargon in this copy.
+  - Loading states share one vocabulary (`CONNECTING TO ROOM`, `JOINING INVESTIGATION`, `RECONNECTING`…).
+- **TV primitives, `apps/tv/src/ui/`.** React Native components can't be shared with the DOM phone, so these live in the TV app:
+  - `motion.tsx`: turns tokens into `Animated` timings. It holds the reduced-motion preference (`MotionProvider`, seeded from the OS where available and switchable in Settings). Reduced motion is applied here and only here.
+  - `focus.tsx`, `TVButton` and `FocusableCard`: the focus identity (see below).
+  - `Transition`: entrance presets `fade`, `rise`, `scale`, `slide`, `reveal` and `cinematic`.
+  - `RRText`, `RRPanel`, `RRBadge`/`StatusDot`, `RRProgress`, `RRModal`, `Toast` (provider plus queue), `Feedback` (success/failure/hint/info), `LoadingState` (the scanner) and `ErrorState`.
+  - `cues.ts`: interaction hook points (focus moved, clue found, answer right or wrong). Handlers are stubs for now; audio arrives in P7.
+- **TV focus.** The focused element gets:
+  - a quick scale-up (1.045; cards 1.05);
+  - a brass focus frame with corner brackets that tighten in;
+  - a warm fill and a ▶ marker.
+  Losing focus scales down faster than gaining it scales up, so movement feels immediate. With reduced motion there is no scale and no bracket movement, only colour.
+- **Connection feedback.** `game/RoomWatcher.tsx` watches the hosted room.
+  - Players joining, dropping or coming back produce toasts. Lobby seats fill and mark offline players.
+  - When the TV's own socket drops, a quiet "RECONNECTING" strip appears first. After 6 s it becomes a blocking "CONNECTION INTERRUPTED" screen with Retry (`RoomClient.reconnectNow()`) and Return Home. When the connection comes back, a "CONNECTION RESTORED" toast confirms it.
+- **Phone** (`apps/player`):
+  - `render.ts`: pure screen functions of `(RoomView, UiState)`. The flow is join → joining → lobby → game → ending, plus reconnecting, rejoin error and room closed.
+  - `main.ts`: state and events only.
+  - `app.css`: uses tokens only, with no raw colours. Layout is responsive (small phones, larger phones, landscape), touch targets are at least 48 px, and it honours `prefers-reduced-motion`.
+
 ## Future AI extension point (not implemented)
 `AI Service → Game Engine`. Any AI would only *propose* text (hint phrasing, narration) and never own game truth. The deterministic engine and the authored hints stay authoritative. Nothing in the current architecture depends on this.

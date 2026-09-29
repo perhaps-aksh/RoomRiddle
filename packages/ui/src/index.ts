@@ -8,5 +8,5 @@ import * as themeModule from './theme/index';
 
 export {colors, spacing, radii, typeScale, focus} from './tokens';
 export const theme = themeModule;
-export type {ColorToken, FontVoice, TextStyleName, TextStyleToken, EasingName, MotionName, MotionToken} from './theme/index';
+export type {ColorToken, FontVoice, TextStyleName, TextStyleToken, EasingName, MotionName, MotionToken, WorldColorToken} from './theme/index';
 export {cssVariables} from './css';

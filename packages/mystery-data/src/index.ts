@@ -1,6 +1,7 @@
-import type {MysteryDefinition, MysteryId, MysterySummary} from '@roomriddle/shared-types';
+import type {MysteryDefinition, MysteryId, MysterySummary, MysteryWorld} from '@roomriddle/shared-types';
 import {comingSoon} from './coming-soon';
 import {theLastTrain, theLastTrainMystery} from './the-last-train';
+import {lastTrainWorld} from './the-last-train/world';
 
 /** Every mystery shown in the Mystery Library, in display order. */
 export const mysteryCatalog: readonly MysterySummary[] = [theLastTrain, ...comingSoon];
@@ -21,4 +22,13 @@ export function getMysteryDefinition(id: MysteryId): MysteryDefinition | undefin
 
 export const playableMysteries: readonly MysteryDefinition[] = Object.values(playable);
 
-export {theLastTrain, theLastTrainMystery};
+/** 2.5D worlds (presentation only), keyed by mystery id. A mystery without one uses the P5 screens. */
+const worlds: Readonly<Record<MysteryId, MysteryWorld>> = {
+  [lastTrainWorld.mysteryId]: lastTrainWorld,
+};
+
+export function getMysteryWorld(id: MysteryId): MysteryWorld | undefined {
+  return worlds[id];
+}
+
+export {theLastTrain, theLastTrainMystery, lastTrainWorld};

@@ -1,0 +1,22 @@
+{
+  "name": "@roomriddle/scene",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RoomRiddle 2.5D scene system: asset registry/loader, camera + parallax math, scene director/timelines, modes, interactions, train and dialogue. Pure TypeScript, no React; it presents game state and never decides it.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "tsx --test \"src/**/*.test.ts\""
+  },
+  "dependencies": {
+    "@roomriddle/shared-types": "*",
+    "@roomriddle/game-engine": "*"
+  },
+  "devDependencies": {
+    "@roomriddle/mystery-data": "*"
+  }
+}

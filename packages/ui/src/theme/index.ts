@@ -5,3 +5,5 @@ export type {FontVoice, TextStyleName, TextStyleToken} from './typography';
 export {spacing, radii, borders, shadows, touch, measure} from './layout';
 export {durations, easings, motion, motionAmounts, reducedMotion} from './motion';
 export type {EasingName, MotionName, MotionToken} from './motion';
+export {worldColors} from './world';
+export type {WorldColorToken} from './world';

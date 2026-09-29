@@ -1,8 +1,11 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useState} from 'react';
 import {Animated, Pressable, StyleSheet, Text, View} from 'react-native';
 import {px, theme} from '../../theme/theme';
+import {cue} from '../../ui/cues';
+import {FocusFrame, useFocusAnimation} from '../../ui/focus';
 
 export type TVButtonVariant = 'menu' | 'action';
+export type TVButtonTone = 'default' | 'primary' | 'danger';
 
 export interface TVButtonProps {
   label: string;
@@ -12,17 +15,26 @@ export interface TVButtonProps {
   preferredFocus?: boolean;
   /** 'menu' = wide left-aligned list row; 'action' = compact centred button. */
   variant?: TVButtonVariant;
+  /** 'primary' marks the main action of a screen; 'danger' a destructive one. */
+  tone?: TVButtonTone;
   /** Secondary value shown on the right of a menu row (e.g. "On"). */
   value?: string;
+  /** Small caption under a menu label (what will happen). */
+  caption?: string;
+  /** Shown but not selectable (still focusable, so focus never disappears). */
+  disabled?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   testID?: string;
 }
 
 /**
- * The one focusable button used across the TV shell.
- * Focused: gold border, warm fill, gold marker bar, slight scale-up.
- * Unfocused: no border (a transparent one keeps the layout from shifting), muted text.
+ * The one focusable button on the TV.
+ *
+ * Focus is carried by four things at once, so it reads from the couch and
+ * without colour: viewfinder brackets close in, the button lifts (scale),
+ * the fill shifts to brass, and a ▶ marker slides in. The press is
+ * acknowledged with a quick scale dip.
  */
 export const TVButton = ({
   label,
@@ -30,29 +42,44 @@ export const TVButton = ({
   onFocus,
   preferredFocus,
   variant = 'menu',
+  tone = 'default',
   value,
+  caption,
+  disabled,
   accessibilityLabel,
   accessibilityHint,
   testID,
 }: TVButtonProps) => {
   const [focused, setFocused] = useState(false);
-  const scale = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.timing(scale, {
-      toValue: focused ? theme.motion.focusScale : 1,
-      duration: theme.motion.focusMs,
-      useNativeDriver: true,
-    }).start();
-  }, [focused, scale]);
-
   const isMenu = variant === 'menu';
+  const {progress, scale} = useFocusAnimation(focused, isMenu ? 1.02 : theme.motion.focusScale);
+  const markerShift = progress.interpolate({inputRange: [0, 1], outputRange: [-px(12), 0]});
+
+  const fill = focused && !disabled;
+  const labelColor = disabled
+    ? theme.colors.textMuted
+    : fill && !isMenu
+    ? theme.colors.textOnAccent
+    : focused
+    ? theme.colors.textPrimary
+    : tone === 'primary'
+    ? theme.colors.accentStrong
+    : tone === 'danger'
+    ? theme.colors.danger
+    : theme.colors.textSecondary;
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => {
+        if (disabled) {
+          return;
+        }
+        cue('select');
+        onPress();
+      }}
       onFocus={() => {
         setFocused(true);
+        cue('focus');
         onFocus?.();
       }}
       onBlur={() => setFocused(false)}
@@ -60,32 +87,35 @@ export const TVButton = ({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{selected: focused}}
+      accessibilityState={{selected: focused, disabled: !!disabled}}
       testID={testID}>
-      <Animated.View
-        style={[
-          styles.base,
-          isMenu ? styles.menu : styles.action,
-          focused ? styles.focused : styles.idle,
-          {transform: [{scale}]},
-        ]}>
-        {isMenu && (
-          <View style={[styles.marker, focused && styles.markerOn]} />
-        )}
-        <Text
+      <Animated.View style={{transform: [{scale}]}}>
+        <View
           style={[
-            styles.label,
-            isMenu ? styles.menuLabel : styles.actionLabel,
-            focused ? styles.labelFocused : styles.labelIdle,
-          ]}
-          numberOfLines={1}>
-          {label.toUpperCase()}
-        </Text>
-        {value !== undefined && (
-          <Text style={[styles.value, focused && styles.valueFocused]}>
-            {value}
-          </Text>
-        )}
+            styles.base,
+            isMenu ? styles.menu : styles.action,
+            isMenu ? (fill ? styles.menuFocused : styles.menuIdle) : fill ? (tone === 'danger' ? styles.actionDanger : styles.actionFocused) : tone === 'primary' ? styles.actionPrimary : styles.actionIdle,
+            disabled && styles.disabled,
+          ]}>
+          {isMenu && (
+            <Animated.Text style={[styles.marker, {opacity: progress, transform: [{translateX: markerShift}]}]}>▶</Animated.Text>
+          )}
+          <View style={isMenu ? styles.menuText : undefined}>
+            <Text style={[theme.text.button, isMenu ? styles.menuLabel : styles.actionLabel, {color: labelColor}]} numberOfLines={1}>
+              {label.toUpperCase()}
+            </Text>
+            {caption !== undefined && isMenu && (
+              <Text style={[styles.caption, focused && styles.captionFocused]} numberOfLines={1}>
+                {caption}
+              </Text>
+            )}
+          </View>
+          {value !== undefined && <Text style={[styles.value, focused && styles.valueFocused]}>{value}</Text>}
+          {!isMenu && tone === 'primary' && !disabled && (
+            <Animated.Text style={[styles.arrow, {color: labelColor, transform: [{translateX: progress.interpolate({inputRange: [0, 1], outputRange: [0, px(6)]})}]}]}>→</Animated.Text>
+          )}
+        </View>
+        <FocusFrame progress={progress} tone={tone === 'danger' ? 'danger' : 'focus'} />
       </Animated.View>
     </Pressable>
   );
@@ -95,13 +125,22 @@ const styles = StyleSheet.create({
   base: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: px(2),
-    borderRadius: theme.radii.md,
+    borderWidth: theme.borders.thin,
+    borderRadius: theme.radii.sm,
   },
   menu: {
-    width: px(620),
-    height: px(80),
+    width: px(640),
+    minHeight: px(84),
     paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+  },
+  menuIdle: {
+    borderColor: 'transparent',
+    backgroundColor: 'transparent',
+  },
+  menuFocused: {
+    borderColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.focusFill,
   },
   action: {
     minWidth: px(300),
@@ -109,48 +148,58 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.lg,
     justifyContent: 'center',
   },
-  idle: {
-    borderColor: 'transparent',
-    backgroundColor: 'transparent',
+  actionIdle: {
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
   },
-  focused: {
+  actionPrimary: {
+    borderColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.accentWash,
+  },
+  actionFocused: {
     borderColor: theme.colors.focus,
-    backgroundColor: theme.colors.focusFill,
-  },
-  marker: {
-    width: px(5),
-    height: px(30),
-    borderRadius: px(3),
-    marginRight: theme.spacing.md,
-    backgroundColor: 'transparent',
-  },
-  markerOn: {
     backgroundColor: theme.colors.focus,
   },
-  label: {
-    fontSize: theme.type.nav,
-    fontWeight: '600',
-    letterSpacing: px(5),
+  actionDanger: {
+    borderColor: theme.colors.danger,
+    backgroundColor: theme.colors.danger,
+  },
+  disabled: {
+    opacity: 0.55,
+  },
+  marker: {
+    width: px(36),
+    color: theme.colors.focus,
+    fontSize: px(22),
+  },
+  menuText: {
+    flex: 1,
   },
   menuLabel: {
-    flex: 1,
+    letterSpacing: px(5),
   },
   actionLabel: {
     textAlign: 'center',
   },
-  labelIdle: {
-    color: theme.colors.mutedText,
+  caption: {
+    marginTop: px(2),
+    color: theme.colors.textMuted,
+    fontFamily: theme.fonts.functional,
+    fontSize: theme.type.caption,
   },
-  labelFocused: {
-    color: theme.colors.text,
+  captionFocused: {
+    color: theme.colors.textSecondary,
   },
   value: {
     marginLeft: theme.spacing.sm,
-    fontSize: theme.type.body,
-    color: theme.colors.faintText,
-    letterSpacing: 1,
+    ...theme.text.mono,
+    color: theme.colors.textMuted,
   },
   valueFocused: {
-    color: theme.colors.accent,
+    color: theme.colors.accentStrong,
+  },
+  arrow: {
+    marginLeft: theme.spacing.sm,
+    fontSize: px(30),
   },
 });

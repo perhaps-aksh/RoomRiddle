@@ -1,9 +1,13 @@
 import React, {useCallback, useEffect, useMemo, useReducer, useRef, useState} from 'react';
 import {BackHandler, StyleSheet, View} from 'react-native';
-import {Background} from './components/Background/Background';
+import {Background, BackgroundMood} from './components/Background/Background';
 import {ScreenTransition} from './components/Background/ScreenTransition';
 import {DEFAULT_MYSTERY_ID} from './data/mysteries';
 import {GameProvider, GameProviderProps, useGame} from './game/GameContext';
+import {RoomWatcher} from './game/RoomWatcher';
+import {MotionProvider} from './ui/motion';
+import {ToastProvider} from './ui/Toast';
+import type {TransitionPreset} from './ui/Transition';
 import {
   BackInterceptorContext,
   BackInterceptorRegistry,
@@ -31,7 +35,8 @@ import {ScreenProps} from './screens/types';
 /**
  * RoomRiddle TV app. The shell (Phase 2), local play of the mystery engine
  * (Phase 3), and hosting a multiplayer room on the RoomRiddle server
- * (Phase 4). No AI: every game rule lives in `@roomriddle/game-engine` (run by
+ * (Phase 4), presented through the RoomRiddle design system (Phase 5:
+ * packages/ui tokens + src/ui primitives). No AI: every game rule lives in `@roomriddle/game-engine` (run by
  * the server in a room), and the content in `@roomriddle/mystery-data`.
  *
  * Replaces the Vega helloWorld template screen. The template's own files
@@ -41,15 +46,22 @@ export const App = ({
   clock,
   createSocket,
   serverUrl,
+  reducedMotion,
 }: {
   clock?: () => number;
   /** Tests inject a fake WebSocket and URL. */
   createSocket?: GameProviderProps['createSocket'];
   serverUrl?: string;
+  /** Start with reduced motion (also switchable in Settings). */
+  reducedMotion?: boolean;
 }) => (
-  <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
-    <Shell />
-  </GameProvider>
+  <MotionProvider initialReduced={reducedMotion}>
+    <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
+      <ToastProvider>
+        <Shell />
+      </ToastProvider>
+    </GameProvider>
+  </MotionProvider>
 );
 
 const Shell = () => {
@@ -113,6 +125,16 @@ const Shell = () => {
     }
   }, [lostReason, mode]);
 
+  // Transition by kind of move: story beats reveal cinematically, going back fades.
+  const depth = useRef(stack.length);
+  const goingBack = stack.length < depth.current;
+  useEffect(() => {
+    depth.current = stack.length;
+  }, [stack.length]);
+
+  const [blocked, setBlocked] = useState(false);
+  const returnHome = useCallback(() => dispatch({type: 'reset'}), []);
+
   const entry = currentEntry(stack);
   const props: ScreenProps = {
     navigator,
@@ -124,15 +146,50 @@ const Shell = () => {
   return (
     <BackInterceptorContext.Provider value={registry}>
       <View style={styles.root}>
-        <Background />
-        {/* New key per stack depth + route: replays the entrance and re-applies initial focus. */}
-        <ScreenTransition key={`${stack.length}-${routeKey(entry.route)}`}>
-          {renderScreen(entry.route, props)}
-        </ScreenTransition>
+        <Background mood={moodFor(entry.route)} />
+        {/* Hidden (not unmounted) behind a blocking connection error: keeps the
+            players' entry, and display:none takes it out of D-pad focus. */}
+        <View style={[styles.root, blocked && styles.hidden]}>
+          {/* New key per stack depth + route: replays the entrance and re-applies initial focus. */}
+          <ScreenTransition key={`${stack.length}-${routeKey(entry.route)}`} preset={goingBack ? 'fade' : presetFor(entry.route)}>
+            {renderScreen(entry.route, props)}
+          </ScreenTransition>
+        </View>
+        <RoomWatcher onBlockingChange={setBlocked} onReturnHome={returnHome} />
       </View>
     </BackInterceptorContext.Provider>
   );
 };
+
+function presetFor(route: Route): TransitionPreset {
+  switch (route.name) {
+    case 'gameIntro':
+    case 'scene':
+    case 'ending':
+      return 'cinematic';
+    case 'evidence':
+    case 'puzzle':
+      return 'reveal';
+    default:
+      return 'rise';
+  }
+}
+
+function moodFor(route: Route): BackgroundMood {
+  switch (route.name) {
+    case 'ending':
+      return 'warm';
+    case 'gameIntro':
+      return 'dim';
+    case 'scene':
+    case 'investigation':
+    case 'evidence':
+    case 'puzzle':
+      return 'cool';
+    default:
+      return 'default';
+  }
+}
 
 function routeKey(route: Route): string {
   return route.name === 'puzzle' ? `puzzle-${route.puzzleId}` : route.name;
@@ -170,5 +227,8 @@ function renderScreen(route: Route, props: ScreenProps) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  hidden: {
+    display: 'none',
   },
 });

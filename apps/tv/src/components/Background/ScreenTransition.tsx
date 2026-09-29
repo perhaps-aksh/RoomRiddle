@@ -1,43 +1,18 @@
-import React, {ReactNode, useEffect, useRef} from 'react';
-import {Animated, Easing, StyleSheet} from 'react-native';
-import {theme} from '../../theme/theme';
+import React, {ReactNode} from 'react';
+import {StyleSheet} from 'react-native';
+import {Transition, TransitionPreset} from '../../ui/Transition';
 
 /**
- * Screen entrance: fade in and rise slightly. Mount it with a new `key` per screen
- * so every navigation replays the entrance.
+ * Screen entrance. Mount it with a new `key` per screen so every navigation
+ * replays it. The preset is chosen by the shell per kind of move (see
+ * App.tsx): story beats get the cinematic reveal, menus rise, going back
+ * fades. Input is never blocked while it plays.
  */
-export const ScreenTransition = ({children}: {children: ReactNode}) => {
-  const progress = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(progress, {
-      toValue: 1,
-      duration: theme.motion.screenEnterMs,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [progress]);
-
-  return (
-    <Animated.View
-      style={[
-        styles.fill,
-        {
-          opacity: progress,
-          transform: [
-            {
-              translateY: progress.interpolate({
-                inputRange: [0, 1],
-                outputRange: [theme.motion.screenEnterOffset, 0],
-              }),
-            },
-          ],
-        },
-      ]}>
-      {children}
-    </Animated.View>
-  );
-};
+export const ScreenTransition = ({children, preset = 'rise'}: {children: ReactNode; preset?: TransitionPreset}) => (
+  <Transition preset={preset} style={styles.fill}>
+    {children}
+  </Transition>
+);
 
 const styles = StyleSheet.create({
   fill: {

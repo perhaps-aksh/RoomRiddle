@@ -147,3 +147,20 @@ describe('reduceRoomView', () => {
     assert.equal(closed.ended, 'host-left');
   });
 });
+
+describe('RoomClient.reconnectNow', () => {
+  test('skips the backoff wait and resumes the session', () => {
+    const {client, sockets, timers} = setup(SESSION);
+    client.connect();
+    sockets[0]!.open();
+    sockets[0]!.drop();
+    assert.equal(client.connectionStatus, 'reconnecting');
+    assert.equal(timers.length, 1, 'a retry is scheduled');
+    client.reconnectNow();
+    assert.equal(sockets.length, 2, 'opened immediately');
+    sockets[1]!.open();
+    assert.equal(sockets[1]!.sent[0]!.type, 'RECONNECT');
+    client.reconnectNow();
+    assert.equal(sockets.length, 2, 'no-op while connected');
+  });
+});

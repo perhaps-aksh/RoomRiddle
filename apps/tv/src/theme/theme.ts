@@ -1,16 +1,17 @@
 /**
- * RoomRiddle TV theme: the only place colours, type sizes, spacing and motion values live.
+ * RoomRiddle TV theme: the TV's view of the shared design system in
+ * `packages/ui` (colours, typography, spacing, motion). Screens and components
+ * read values from here and never hard-code colours, sizes or timings.
  *
- * Colour values mirror the shared design tokens in `packages/ui/src/tokens.ts`.
- * The TV app keeps this copy until the shared packages are wired into Metro
- * (apps/tv is outside the npm workspaces, see apps/tv/README.md).
- *
- * SIZES: every size in the app is written in 1920×1080 design pixels and passed through
- * `px()`, which converts to layout units (dp) for the actual screen. The Vega Virtual
- * Device reports a 960×540 dp window at 2× density, so raw numbers would render twice
- * as large as designed (see docs/friction-log.md FL-005).
+ * SIZES: every size is written in 1920×1080 design pixels and passed through
+ * `px()`, which converts to layout units (dp) for the actual screen. The Vega
+ * Virtual Device reports a 960×540 dp window at 2× density, so raw numbers
+ * would render twice as large as designed (docs/friction-log.md FL-005).
+ * 4K panels report the same dp canvas at a higher density, so the layout
+ * holds and text simply gets sharper.
  */
-import {Dimensions, PixelRatio} from 'react-native';
+import {Dimensions, Easing, PixelRatio, TextStyle} from 'react-native';
+import {theme as ds, type EasingName, type TextStyleName, type TextStyleToken} from '@roomriddle/ui';
 
 const DESIGN_WIDTH = 1920;
 const DESIGN_HEIGHT = 1080;
@@ -31,65 +32,106 @@ export function px(designPixels: number): number {
   return PixelRatio.roundToNearestPixel(designPixels * SCALE);
 }
 
+const c = ds.colors;
+const sp = ds.spacing.tv;
+
+/** Ready-made React Native text styles for each step of the hierarchy. */
+function textStyle(token: TextStyleToken): TextStyle {
+  return {
+    fontFamily: ds.fontFamilies.tv[token.voice],
+    fontSize: px(token.size),
+    lineHeight: px(token.lineHeight),
+    letterSpacing: px(token.tracking),
+    fontWeight: token.weight,
+    ...(token.uppercase ? {textTransform: 'uppercase'} : null),
+  };
+}
+
+const text = Object.fromEntries(
+  Object.entries(ds.textStyles.tv).map(([name, token]) => [name, textStyle(token)]),
+) as Record<TextStyleName, TextStyle>;
+
+const bezier = (name: EasingName) => {
+  const [a, b, x, y] = ds.easings[name];
+  return Easing.bezier(a, b, x, y);
+};
+
 export const theme = {
   colors: {
-    background: '#07090E',
-    surface: '#10141C',
-    surfaceRaised: '#171C27',
-    border: '#262D3B',
-    text: '#F2EBDD',
-    mutedText: '#A8A294',
-    faintText: '#6E6A61',
-    accent: '#D4A64A',
-    accentSoft: '#8C6A2A',
-    /** Remote focus. Must be obvious from the couch. */
-    focus: '#F0C465',
-    focusFill: 'rgba(212, 166, 74, 0.14)',
-    glowWarm: '#D4A64A',
-    glowCool: '#27466F',
-    scrim: 'rgba(4, 5, 9, 0.86)',
-    success: '#6FBF8A',
-    danger: '#D9695F',
-    /** Ending tones. */
-    toneTriumph: '#F0C465',
-    toneBittersweet: '#9FB4CF',
-    toneDefeat: '#D9695F',
+    ...c,
+    // Phase 2/3 names, kept so earlier screens read the same values.
+    text: c.textPrimary,
+    mutedText: c.textSecondary,
+    faintText: c.textMuted,
+    surfaceRaised: c.surfaceElevated,
+    scrim: c.overlay,
   },
-  /** Font sizes in design pixels (1080p). TV body text never goes below 28 (AGENTS.md). */
+  fonts: ds.fontFamilies.tv,
+  /** Full text styles: prefer these over assembling font properties by hand. */
+  text,
+  /** Font sizes (design pixels, converted). TV body text never goes below 28. */
   type: {
-    wordmark: px(104),
+    wordmark: px(ds.textStyles.tv.wordmark.size),
     title: px(64),
+    display: px(ds.textStyles.tv.display.size),
     heading: px(44),
-    narration: px(36),
+    narration: px(ds.textStyles.tv.narration.size),
     nav: px(32),
     body: px(28),
     caption: px(24),
-    roomCode: px(148),
+    roomCode: px(ds.textStyles.tv.roomCode.size),
     motif: px(280),
   },
   spacing: {
-    xs: px(8),
-    sm: px(16),
-    md: px(24),
-    lg: px(40),
-    xl: px(64),
-    xxl: px(96),
-    screenX: px(128),
-    screenY: px(88),
+    xxs: px(sp.xxs),
+    xs: px(sp.xs),
+    sm: px(sp.sm),
+    md: px(sp.md),
+    lg: px(sp.lg),
+    xl: px(sp.xl),
+    xxl: px(sp.xxl),
+    screenX: px(sp.screenX),
+    screenY: px(sp.screenY),
   },
   radii: {
-    sm: px(8),
-    md: px(14),
-    lg: px(22),
+    none: 0,
+    sm: px(ds.radii.tv.sm),
+    md: px(ds.radii.tv.md),
+    lg: px(ds.radii.tv.lg),
+    pill: 999,
+  },
+  borders: {
+    hairline: 1,
+    thin: px(ds.borders.tv.thin),
+    focus: px(ds.borders.tv.focus),
+    heavy: px(ds.borders.tv.heavy),
+  },
+  measure: {
+    narration: px(ds.measure.tv.narration),
+    body: px(ds.measure.tv.body),
+    panel: px(ds.measure.tv.panel),
   },
   motion: {
-    focusScale: 1.04,
-    cardFocusScale: 1.05,
-    focusMs: 160,
-    screenEnterMs: 420,
-    screenEnterOffset: px(28),
-    backgroundDriftMs: 16000,
-    breathMs: 3600,
+    ...ds.motion,
+    easing: {
+      standard: bezier('standard'),
+      enter: bezier('enter'),
+      exit: bezier('exit'),
+      cinematic: bezier('cinematic'),
+      linear: Easing.linear,
+    },
+    focusScale: ds.motionAmounts.focusScale,
+    cardFocusScale: ds.motionAmounts.cardFocusScale,
+    pressScale: ds.motionAmounts.pressScale,
+    screenEnterOffset: px(ds.motionAmounts.screenEnterOffset),
+    listItemOffset: px(ds.motionAmounts.listItemOffset),
+    shake: px(ds.motionAmounts.shake),
+    discoveryScaleFrom: ds.motionAmounts.discoveryScaleFrom,
+    // Phase 2/3 names.
+    focusMs: ds.motion.focusIn.duration,
+    screenEnterMs: ds.motion.screenEnter.duration,
+    backgroundDriftMs: ds.motion.ambient.duration,
+    breathMs: ds.motion.breath.duration,
   },
 } as const;
 

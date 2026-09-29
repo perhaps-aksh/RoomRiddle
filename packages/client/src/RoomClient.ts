@@ -107,6 +107,17 @@ export class RoomClient {
     this.options.store.save(null);
   }
 
+  /**
+   * Try again now instead of waiting out the backoff (a player pressed RETRY).
+   * No-op while a connection is open or already being opened.
+   */
+  reconnectNow(): void {
+    this.wanted = true;
+    if (this.socket) return;
+    this.clearRetry();
+    this.open();
+  }
+
   close(): void {
     this.wanted = false;
     this.clearRetry();

@@ -9,3 +9,5 @@ export {initialRoomView, reduceRoomView, withConnection, serverNow, isHost, me} 
 export type {RoomView} from './roomView';
 export {memorySessionStore} from './stores';
 export {errorText} from './errorText';
+export {errorExperience, RECOVERY_LABEL, LOADING_COPY} from './experience';
+export type {ErrorExperience, ErrorKind, RecoveryAction, LoadingKind} from './experience';

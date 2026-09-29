@@ -69,6 +69,8 @@ export interface GameSession {
   createRoom(mysteryId: string): void;
   /** Close the hosted room and go back to local mode. */
   closeRoom(): void;
+  /** Retry the server connection now (RETRY on the connection screen). */
+  reconnect(): void;
 }
 
 const NO_SESSION: GameSession = {
@@ -83,6 +85,7 @@ const NO_SESSION: GameSession = {
   room: initialRoomView,
   createRoom: () => {},
   closeRoom: () => {},
+  reconnect: () => {},
 };
 
 const GameContext = createContext<GameSession>(NO_SESSION);
@@ -260,6 +263,8 @@ export const GameProvider = ({children, clock = Date.now, createSocket, serverUr
     render();
   }, []);
 
+  const reconnect = useCallback(() => clientRef.current?.reconnectNow(), []);
+
   useEffect(() => () => clientRef.current?.close(), []);
 
   // Local watchdog: the engine ends a game when time runs out, but only when
@@ -280,7 +285,7 @@ export const GameProvider = ({children, clock = Date.now, createSocket, serverUr
 
   const value = useMemo<GameSession>(() => {
     const room = roomView.current;
-    const shared = {start, dispatch, room, createRoom, closeRoom};
+    const shared = {start, dispatch, room, createRoom, closeRoom, reconnect};
     if (inRoom()) {
       const mysteryId = room.room?.mysteryId;
       return {
@@ -296,7 +301,7 @@ export const GameProvider = ({children, clock = Date.now, createSocket, serverUr
     return {...shared, mode: 'local', ...local.current, lastActor: null, now: clock};
     // `version` changes whenever a ref changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [version, clock, start, dispatch, createRoom, closeRoom, inRoom]);
+  }, [version, clock, start, dispatch, createRoom, closeRoom, reconnect, inRoom]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

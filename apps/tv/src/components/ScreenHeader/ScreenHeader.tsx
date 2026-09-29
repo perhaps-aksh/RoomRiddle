@@ -4,35 +4,32 @@ import {px, theme} from '../../theme/theme';
 
 export interface ScreenHeaderProps {
   title: string;
-  /** Small gold line above the title (e.g. the genre). */
+  /** Small line above the title (e.g. the genre). */
   eyebrow?: string;
   subtitle?: string;
   align?: 'left' | 'center';
+  /** File number shown before the eyebrow in the technical voice, e.g. "FILE 02". */
+  index?: string;
 }
 
-export const ScreenHeader = ({
-  title,
-  eyebrow,
-  subtitle,
-  align = 'left',
-}: ScreenHeaderProps) => {
+/**
+ * Screen title in the cinematic voice, with a case-file eyebrow and a brass
+ * rule. Every non-game screen opens with one.
+ */
+export const ScreenHeader = ({title, eyebrow, subtitle, align = 'left', index}: ScreenHeaderProps) => {
   const centered = align === 'center';
   return (
-    <View
-      style={[styles.container, centered && styles.centered]}
-      accessibilityRole="header">
-      {eyebrow !== undefined && (
-        <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>
+    <View style={[styles.container, centered && styles.centered]} accessibilityRole="header">
+      {(eyebrow !== undefined || index !== undefined) && (
+        <View style={styles.eyebrowRow}>
+          {index !== undefined && <Text style={styles.index}>{index.toUpperCase()}</Text>}
+          {index !== undefined && eyebrow !== undefined && <View style={styles.dash} />}
+          {eyebrow !== undefined && <Text style={styles.eyebrow}>{eyebrow.toUpperCase()}</Text>}
+        </View>
       )}
-      <Text style={[styles.title, centered && styles.textCenter]}>
-        {title.toUpperCase()}
-      </Text>
+      <Text style={[styles.title, centered && styles.textCenter]}>{title.toUpperCase()}</Text>
       <View style={styles.rule} />
-      {subtitle !== undefined && (
-        <Text style={[styles.subtitle, centered && styles.textCenter]}>
-          {subtitle}
-        </Text>
-      )}
+      {subtitle !== undefined && <Text style={[styles.subtitle, centered && styles.textCenter]}>{subtitle}</Text>}
     </View>
   );
 };
@@ -44,17 +41,31 @@ const styles = StyleSheet.create({
   centered: {
     alignItems: 'center',
   },
-  eyebrow: {
-    color: theme.colors.accent,
-    fontSize: theme.type.caption,
-    letterSpacing: px(6),
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: theme.spacing.sm,
   },
+  index: {
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
+  },
+  dash: {
+    width: px(28),
+    height: 1,
+    marginHorizontal: px(14),
+    backgroundColor: theme.colors.textMuted,
+  },
+  eyebrow: {
+    ...theme.text.label,
+    color: theme.colors.accent,
+  },
   title: {
-    color: theme.colors.text,
-    fontSize: theme.type.title,
-    fontWeight: '300',
-    letterSpacing: px(10),
+    ...theme.text.display,
+    fontSize: px(64),
+    lineHeight: px(78),
+    color: theme.colors.textPrimary,
   },
   rule: {
     width: px(72),
@@ -63,10 +74,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accent,
   },
   subtitle: {
+    ...theme.text.body,
     marginTop: theme.spacing.md,
-    color: theme.colors.mutedText,
-    fontSize: theme.type.body,
-    letterSpacing: 1,
+    color: theme.colors.textSecondary,
   },
   textCenter: {
     textAlign: 'center',

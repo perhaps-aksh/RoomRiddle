@@ -17,6 +17,8 @@ export const ConfirmPrompt = ({
   riskyLabel,
   onRisky,
   testIDPrefix,
+  safeTestID,
+  riskyTestID,
 }: {
   question: string;
   detail?: string;
@@ -25,6 +27,9 @@ export const ConfirmPrompt = ({
   riskyLabel: string;
   onRisky: () => void;
   testIDPrefix: string;
+  /** Override the default `${testIDPrefix}-safe` / `-risky` IDs. */
+  safeTestID?: string;
+  riskyTestID?: string;
 }) => (
   <Transition preset="slide" motion="modalEnter" style={styles.box}>
     <View style={styles.spine} />
@@ -33,8 +38,8 @@ export const ConfirmPrompt = ({
       <Text style={styles.question}>{question}</Text>
       {detail !== undefined && <Text style={styles.detail}>{detail}</Text>}
       <View style={styles.row}>
-        <TVButton variant="action" tone="primary" label={safeLabel} onPress={onSafe} preferredFocus testID={`${testIDPrefix}-safe`} />
-        <TVButton variant="action" tone="danger" label={riskyLabel} onPress={onRisky} testID={`${testIDPrefix}-risky`} />
+        <TVButton variant="action" tone="primary" label={safeLabel} onPress={onSafe} preferredFocus testID={safeTestID ?? `${testIDPrefix}-safe`} />
+        <TVButton variant="action" tone="danger" label={riskyLabel} onPress={onRisky} testID={riskyTestID ?? `${testIDPrefix}-risky`} />
       </View>
     </View>
   </Transition>

@@ -96,6 +96,10 @@ export const colors = {
   paper: palette.paper200,
   ink: palette.ink900,
 
+  // Machine-readable codes: pure black on white, whatever the theme.
+  qrLight: '#FFFFFF',
+  qrDark: '#000000',
+
   // Atmosphere (background light pools)
   glowWarm: palette.brass400,
   glowCool: palette.signal700,

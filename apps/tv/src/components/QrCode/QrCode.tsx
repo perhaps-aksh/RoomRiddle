@@ -1,6 +1,7 @@
 import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import type {QrMatrix} from '@roomriddle/shared-types';
+import {theme} from '../../theme/theme';
 
 /**
  * Draws a QR code from the server's module matrix (rows of '1'/'0') with
@@ -51,12 +52,12 @@ export function runs(row: string): [number, number][] {
 
 const styles = StyleSheet.create({
   box: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
+    backgroundColor: theme.colors.qrLight,
+    borderRadius: theme.radii.sm,
     overflow: 'hidden',
   },
   dark: {
     position: 'absolute',
-    backgroundColor: '#000000',
+    backgroundColor: theme.colors.qrDark,
   },
 });

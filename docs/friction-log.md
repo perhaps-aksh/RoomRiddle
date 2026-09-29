@@ -76,3 +76,13 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Severity:** Low. It only affects automated testing.
 - **Workaround:** Send the whole key sequence in one on-device command (`inputd-cli button_press A; sleep 0.9; inputd-cli button_press B; …`) inside a single `run-cmd`, which gave exact, repeatable navigation. Take the screenshot after the sequence, from a separate call.
 - **Suggestion:** A documented `vega device send-keys <k1> <k2> …` with a configurable delay, for remote-driven UI tests.
+
+## FL-008: VVD boot hangs when `/dev/kvm` loses its `kvm` group in WSL
+- **Date:** 2026-09-29
+- **Task:** Restart the VVD for the Phase 4 TV + phones test.
+- **Steps:** `vega virtual-device start --timeout 300` in WSL2 Ubuntu 24.04 (user in the `kvm` group).
+- **Expected:** The VVD boots in about a minute, as on earlier days.
+- **Actual:** "Deadline reached (300s) but virtual device unresponsive." `virtual_device.out` was full of `TCG doesn't support requested feature: CPUID.01H:ECX.tsc-deadline`, meaning the emulator had fallen back to software emulation. `/dev/kvm` was `root:render 660`, so the `kvm`-group user couldn't open it. `kvm-ok` still said "KVM acceleration can be used", which was misleading. Once, a running VVD also died at the moment `/dev/kvm` was recreated.
+- **Severity:** Medium for WSL users (unofficial, see FL-001). The CLI only reports a timeout.
+- **Workaround:** `wsl.exe -d Ubuntu-24.04 -u root -- bash -c 'chgrp kvm /dev/kvm; chmod 660 /dev/kvm'` before starting the VVD. It then booted normally.
+- **Suggestion:** Check that `/dev/kvm` can be opened before launching, and say "KVM not accessible, falling back to TCG" instead of timing out.

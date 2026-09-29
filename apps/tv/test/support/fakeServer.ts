@@ -10,8 +10,10 @@ import type {SocketLike} from '@roomriddle/client';
 import type {GameAction, GameState, Player, Room, ServerMessage} from '@roomriddle/shared-types';
 
 export class FakeServer {
-  socket: (SocketLike & {sent: any[]}) | null = null;
+  socket: (SocketLike & {sent: any[]; readyState: number}) | null = null;
   room: Room | null = null;
+  /** While true, new connections fail (the network is down). */
+  unreachable = false;
   private seq = 0;
   constructor(private readonly clock: () => number) {}
 
@@ -33,8 +35,13 @@ export class FakeServer {
       },
     };
     this.socket = socket;
-    // Open on the next tick, like a real socket.
+    // Open (or fail) on the next tick, like a real socket.
     setTimeout(() => {
+      if (this.unreachable) {
+        socket.readyState = 3;
+        socket.onclose?.({code: 1006});
+        return;
+      }
       socket.readyState = 1;
       socket.onopen?.({});
     }, 0);
@@ -97,6 +104,16 @@ export class FakeServer {
         this.emit({type: 'GAME_STARTED', requestId, room: this.snapshot(), gameState: entered.state, mystery: {}});
         return;
       }
+      case 'RECONNECT':
+        this.emit({
+          type: 'RECONNECT_SUCCESS',
+          requestId,
+          room: this.snapshot(),
+          session: {roomId: 'room-1', roomCode: '4827', playerId: message.playerId, role: 'host', sessionToken: message.sessionToken},
+          mystery: {},
+          qr: ['1'],
+        });
+        return;
       case 'LEAVE_ROOM':
         this.emit({type: 'LEFT_ROOM', requestId});
         return;
@@ -139,5 +156,20 @@ export class FakeServer {
 
   phoneActs(name: string, message: Record<string, unknown>) {
     this.act(message, name);
+  }
+
+  /** A phone's connection drops (its seat is held, as on the real server). */
+  phoneDrops(name: string) {
+    const p = this.room!.players.find(x => x.name === name)!;
+    p.connected = false;
+    this.emit({type: 'PLAYER_UPDATED', room: this.snapshot(), player: {...p}});
+  }
+
+  /** The TV's own connection drops, as if the network went away. */
+  dropTV() {
+    const socket = this.socket!;
+    this.socket = null;
+    socket.readyState = 3;
+    socket.onclose?.({code: 1006});
   }
 }

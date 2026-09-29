@@ -107,3 +107,59 @@ describe('TV hosting a room', () => {
     expect(screen.getByTestId('ending-title').props.children).toBe('THE TRUTH');
   });
 });
+
+describe('Room feedback (Phase 5)', () => {
+  function openLobby() {
+    const server = new FakeServer(() => 1_700_000_000_000);
+    const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" clock={() => 1_700_000_000_000} />);
+    press(screen, 'home-createRoom');
+    act(() => {
+      jest.advanceTimersByTime(10);
+    });
+    return {server, screen};
+  }
+
+  it('shows a toast and a filled seat when a phone joins, and marks a dropped phone offline', () => {
+    const {server, screen} = openLobby();
+    act(() => server.phoneJoins('Aksh'));
+    expect(screen.getByText('INVESTIGATOR CONNECTED')).toBeTruthy();
+    expect(screen.getByTestId('room-player-Aksh')).toBeTruthy();
+    expect(screen.getByText('CONNECTED')).toBeTruthy();
+
+    act(() => server.phoneDrops('Aksh'));
+    expect(screen.getByText('SIGNAL LOST')).toBeTruthy();
+    expect(screen.getByText('OFFLINE')).toBeTruthy();
+  });
+
+  it('a refused start is explained in plain words, not an error code', () => {
+    const {screen} = openLobby();
+    press(screen, 'room-start');
+    expect(screen.queryByText(/NOT_ENOUGH_PLAYERS/)).toBeNull();
+    expect(screen.getByTestId('room-notice')).toBeTruthy();
+  });
+
+  it('a dropped TV connection reconnects quietly, then offers Retry if it stays down', () => {
+    const {server, screen} = openLobby();
+    act(() => server.dropTV());
+    expect(screen.getByTestId('connection-reconnecting')).toBeTruthy();
+    expect(screen.queryByTestId('connection-interrupted')).toBeNull();
+
+    // The network stays down: after the quiet period the host is asked what to do.
+    server.unreachable = true;
+    act(() => {
+      jest.advanceTimersByTime(7000);
+    });
+    expect(screen.getByTestId('connection-interrupted')).toBeTruthy();
+    expect(screen.getByText('CONNECTION INTERRUPTED')).toBeTruthy();
+
+    // The network is back; Retry reconnects at once and the room carries on.
+    server.unreachable = false;
+    press(screen, 'connection-retry');
+    act(() => {
+      jest.advanceTimersByTime(10);
+    });
+    expect(screen.queryByTestId('connection-interrupted')).toBeNull();
+    expect(screen.getByText('CONNECTION RESTORED')).toBeTruthy();
+    expect(server.socket!.sent.map((m: {type: string}) => m.type)).toContain('RECONNECT');
+  });
+});

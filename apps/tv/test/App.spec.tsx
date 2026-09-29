@@ -117,10 +117,10 @@ describe('RoomRiddle TV shell', () => {
     ).toBeTruthy();
   });
 
-  it('Settings lists the four settings and Back', () => {
+  it('Settings lists the settings and Back', () => {
     const screen = render(<App />);
     fireEvent.press(screen.getByTestId('home-settings'));
-    for (const id of ['sound', 'music', 'display', 'controls', 'back']) {
+    for (const id of ['motion', 'sound', 'music', 'display', 'controls', 'back']) {
       expect(screen.getByTestId(`settings-${id}`)).toBeTruthy();
     }
     fireEvent.press(screen.getByTestId('settings-sound'));
@@ -190,5 +190,30 @@ describe('room code entry', () => {
     expect(applyKey('48', 'clear')).toBe('');
     expect(applyKey('', 'delete')).toBe('');
     expect(applyKey('12', 'x')).toBe('12');
+  });
+});
+
+describe('Phase 5 experience', () => {
+  it('Motion setting switches the whole app to reduced motion', () => {
+    const screen = render(<App />);
+    fireEvent.press(screen.getByTestId('home-settings'));
+    expect(screen.getByText('Full')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('settings-motion'));
+    expect(screen.getByText('Reduced')).toBeTruthy();
+    expect(screen.getByText('Applies immediately, for this session.')).toBeTruthy();
+    // The preference survives navigation (it lives above the navigator).
+    fireEvent.press(screen.getByTestId('settings-back'));
+    fireEvent.press(screen.getByTestId('home-settings'));
+    expect(screen.getByText('Reduced')).toBeTruthy();
+  });
+
+  it('the evidence board has a designed empty state', () => {
+    const screen = render(<App />);
+    fireEvent.press(screen.getByTestId('home-mysteries'));
+    fireEvent.press(screen.getByTestId('mystery-the-last-train'));
+    fireEvent.press(screen.getByTestId('details-select'));
+    fireEvent.press(screen.getByTestId('intro-begin'));
+    fireEvent.press(screen.getByTestId('scene-evidence'));
+    expect(screen.getByText('NO EVIDENCE YET')).toBeTruthy();
   });
 });

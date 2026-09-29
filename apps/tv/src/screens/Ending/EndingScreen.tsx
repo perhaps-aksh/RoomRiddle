@@ -1,10 +1,11 @@
-import React, {useEffect, useRef} from 'react';
-import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
+import React from 'react';
+import {StyleSheet, Text, View} from 'react-native';
 import {getGameSummary, formatClock} from '@roomriddle/game-engine';
 import {Narration} from '../../components/Narration/Narration';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {useGame} from '../../game/GameContext';
 import {px, theme} from '../../theme/theme';
+import {Transition} from '../../ui/Transition';
 import {ScreenProps} from '../types';
 
 /**
@@ -13,17 +14,6 @@ import {ScreenProps} from '../types';
  */
 export const EndingScreen = ({navigator}: ScreenProps) => {
   const {mystery, state, now, start, mode, closeRoom} = useGame();
-  const reveal = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    Animated.timing(reveal, {
-      toValue: 1,
-      duration: 1600,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-    }).start();
-  }, [reveal]);
-
   if (!mystery || !state || state.endingId === null) {
     return null;
   }
@@ -53,30 +43,35 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
 
   return (
     <View style={styles.screen}>
-      <Animated.View style={[styles.body, {opacity: reveal}]}>
-        <Text style={[styles.eyebrow, {color: toneColor}]}>
-          {mystery.summary.title.toUpperCase()} · ENDING
-        </Text>
-        <Text style={styles.title} testID="ending-title">
-          {ending.title.toUpperCase()}
-        </Text>
+      {/* The verdict arrives slowly (the one place the UI takes its time), then the story, then the numbers. */}
+      <View style={styles.body}>
+        <Transition preset="fade" style={styles.fileRow}>
+          <Text style={styles.fileNo}>CASE CLOSED</Text>
+          <View style={styles.fileDash} />
+          <Text style={[styles.eyebrow, {color: toneColor}]}>{mystery.summary.title.toUpperCase()} · ENDING</Text>
+        </Transition>
+        <Transition preset="cinematic" motion="endingReveal" delay={250}>
+          <Text style={styles.title} testID="ending-title">
+            {ending.title.toUpperCase()}
+          </Text>
+        </Transition>
         <View style={[styles.rule, {backgroundColor: toneColor}]} />
-        <View style={styles.story}>
+        <Transition preset="fade" motion="sceneReveal" delay={1100} style={styles.story}>
           <Narration lines={ending.narration} size="body" style={styles.narration} />
-        </View>
-      </Animated.View>
+        </Transition>
+      </View>
 
-      <View style={styles.stats}>
+      <Transition preset="rise" delay={1700} style={styles.stats}>
         <Stat label="Score" value={String(summary.score)} strong testID="ending-score" />
         <Stat label="Puzzles" value={`${summary.puzzlesSolved}/${summary.puzzlesTotal}`} />
         <Stat label="Key evidence" value={`${summary.majorCluesFound}/${summary.majorCluesTotal}`} />
         <Stat label="Hints" value={String(summary.hintsUsed)} />
         <Stat label="Wrong answers" value={String(summary.incorrectAttempts)} />
         {summary.elapsedMs !== null && <Stat label="Time" value={formatClock(summary.elapsedMs)} />}
-      </View>
+      </Transition>
 
       <View style={styles.actions}>
-        <TVButton variant="action" label="Play Again" onPress={playAgain} preferredFocus testID="ending-again" />
+        <TVButton variant="action" tone="primary" label="Play Again" onPress={playAgain} preferredFocus testID="ending-again" />
         <TVButton
           variant="action"
           label="Mysteries"
@@ -100,7 +95,7 @@ const Stat = ({
   strong?: boolean;
   testID?: string;
 }) => (
-  <View>
+  <View style={styles.stat}>
     <Text style={styles.statLabel}>{label.toUpperCase()}</Text>
     <Text style={[styles.statValue, strong && styles.statStrong]} testID={testID}>
       {value}
@@ -118,16 +113,28 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
   },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fileNo: {
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
+  },
+  fileDash: {
+    width: px(36),
+    height: 1,
+    marginHorizontal: theme.spacing.sm,
+    backgroundColor: theme.colors.textMuted,
+  },
   eyebrow: {
-    fontSize: theme.type.caption,
-    letterSpacing: px(6),
+    ...theme.text.label,
   },
   title: {
+    ...theme.text.display,
     marginTop: theme.spacing.sm,
-    color: theme.colors.text,
-    fontSize: theme.type.title,
-    fontWeight: '300',
-    letterSpacing: px(10),
+    color: theme.colors.textPrimary,
   },
   rule: {
     width: px(72),
@@ -139,24 +146,35 @@ const styles = StyleSheet.create({
     maxWidth: px(1300),
   },
   narration: {
-    color: theme.colors.text,
-    lineHeight: px(40),
+    ...theme.text.narration,
+    fontSize: px(32),
+    lineHeight: px(46),
+    color: theme.colors.textPrimary,
   },
+  // The night's numbers, as a ledger row: hairline-separated cells.
   stats: {
     flexDirection: 'row',
-    gap: theme.spacing.xl,
     marginBottom: theme.spacing.lg,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.hairline,
+  },
+  stat: {
+    paddingVertical: theme.spacing.sm,
+    paddingRight: theme.spacing.xl,
+    marginRight: theme.spacing.lg,
+    borderRightWidth: 1,
+    borderRightColor: theme.colors.hairline,
   },
   statLabel: {
-    color: theme.colors.faintText,
-    fontSize: px(20),
-    letterSpacing: px(4),
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
   },
   statValue: {
+    ...theme.text.monoLarge,
     marginTop: px(4),
-    color: theme.colors.text,
-    fontSize: theme.type.nav,
-    fontWeight: '300',
+    color: theme.colors.textPrimary,
   },
   statStrong: {
     color: theme.colors.focus,

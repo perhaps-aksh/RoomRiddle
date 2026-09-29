@@ -5,6 +5,8 @@ import {TVButton} from '../../components/TVButton/TVButton';
 import {findMystery, formatPlayers} from '../../data/mysteries';
 import {useGame} from '../../game/GameContext';
 import {px, theme} from '../../theme/theme';
+import {useReducedMotion} from '../../ui/motion';
+import {Transition} from '../../ui/Transition';
 import {ScreenProps} from '../types';
 
 export const MysteryDetailsScreen = ({
@@ -44,7 +46,7 @@ export const MysteryDetailsScreen = ({
 
       <ScreenHeader title={mystery.title} eyebrow={mystery.genre} />
 
-      <View style={styles.story}>
+      <Transition preset="fade" motion="sceneReveal" delay={120} style={styles.story}>
         {mystery.description.map((line, index) =>
           line === '' ? (
             <View key={index} style={styles.paragraphBreak} />
@@ -54,7 +56,7 @@ export const MysteryDetailsScreen = ({
             </Text>
           ),
         )}
-      </View>
+      </Transition>
 
       <View style={styles.metaRow}>
         <Meta label="Players" value={formatPlayers(mystery)} />
@@ -74,6 +76,7 @@ export const MysteryDetailsScreen = ({
           {available && (
             <TVButton
               variant="action"
+              tone="primary"
               label="Select Mystery"
               accessibilityHint="Selects this mystery and starts it"
               onPress={selectAndStart}
@@ -104,8 +107,13 @@ const Meta = ({label, value}: {label: string; value: string}) => (
 /** Huge, faint, slowly breathing background motif (e.g. "11:47"). */
 const Motif = ({text}: {text: string}) => {
   const breath = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
 
   useEffect(() => {
+    if (reduced) {
+      breath.setValue(0.5);
+      return;
+    }
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(breath, {
@@ -124,7 +132,7 @@ const Motif = ({text}: {text: string}) => {
     );
     loop.start();
     return () => loop.stop();
-  }, [breath]);
+  }, [breath, reduced]);
 
   return (
     <Animated.Text
@@ -152,8 +160,8 @@ const styles = StyleSheet.create({
     right: theme.spacing.screenX - px(20),
     top: px(250),
     color: theme.colors.accent,
+    fontFamily: theme.fonts.cinematic,
     fontSize: theme.type.motif,
-    fontWeight: '100',
     letterSpacing: px(8),
   },
   story: {
@@ -161,10 +169,10 @@ const styles = StyleSheet.create({
     maxWidth: px(1000),
   },
   storyLine: {
-    color: theme.colors.text,
+    ...theme.text.narration,
     fontSize: px(40),
     lineHeight: px(58),
-    fontWeight: '300',
+    color: theme.colors.textPrimary,
   },
   paragraphBreak: {
     height: theme.spacing.lg,
@@ -174,16 +182,23 @@ const styles = StyleSheet.create({
     gap: theme.spacing.xxl,
     marginTop: theme.spacing.xl,
   },
-  meta: {},
+  // Case facts in the technical voice, like a file's index card.
+  meta: {
+    paddingLeft: theme.spacing.sm,
+    borderLeftWidth: px(3),
+    borderLeftColor: theme.colors.accentSoft,
+  },
   metaLabel: {
-    color: theme.colors.faintText,
-    fontSize: theme.type.caption,
-    letterSpacing: px(4),
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
   },
   metaValue: {
+    ...theme.text.mono,
+    fontSize: px(32),
+    lineHeight: px(40),
     marginTop: theme.spacing.xs,
     color: theme.colors.accent,
-    fontSize: theme.type.nav,
   },
   actions: {
     flex: 1,
@@ -191,8 +206,8 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
   },
   status: {
-    color: theme.colors.mutedText,
-    fontSize: theme.type.caption,
+    ...theme.text.body,
+    color: theme.colors.textSecondary,
     marginBottom: theme.spacing.md,
   },
   actionRow: {

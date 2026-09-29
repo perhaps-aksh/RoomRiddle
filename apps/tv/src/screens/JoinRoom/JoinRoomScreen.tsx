@@ -87,6 +87,7 @@ export const JoinRoomScreen = ({navigator}: ScreenProps) => {
           <View style={styles.actionRow}>
             <TVButton
               variant="action"
+              tone="primary"
               label="Join"
               onPress={join}
               // Once the code is complete, focus jumps to Join so OK submits it.
@@ -145,32 +146,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.md,
   },
+  // Same counter-style wells as the puzzle keypad, in the technical voice.
   slot: {
     width: px(132),
     height: px(168),
-    borderRadius: theme.radii.md,
-    borderWidth: px(2),
+    borderRadius: theme.radii.sm,
+    borderWidth: 1,
+    borderBottomWidth: px(4),
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: theme.colors.surfaceSunken,
     alignItems: 'center',
     justifyContent: 'center',
   },
   slotFilled: {
-    borderColor: theme.colors.accentSoft,
+    borderColor: theme.colors.borderStrong,
+    borderBottomColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.surface,
   },
   slotActive: {
-    borderColor: theme.colors.accent,
+    borderBottomColor: theme.colors.focus,
   },
   slotText: {
-    color: theme.colors.focus,
+    ...theme.text.monoLarge,
     fontSize: px(104),
-    fontWeight: '200',
+    lineHeight: px(124),
+    color: theme.colors.focus,
   },
   notice: {
+    ...theme.text.body,
     marginTop: theme.spacing.lg,
     marginBottom: theme.spacing.md,
     color: theme.colors.accent,
-    fontSize: theme.type.caption,
   },
   actionRow: {
     flexDirection: 'row',
@@ -189,20 +195,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   keyText: {
-    color: theme.colors.mutedText,
+    ...theme.text.mono,
     fontSize: px(44),
-    fontWeight: '300',
+    lineHeight: px(52),
+    color: theme.colors.textSecondary,
   },
   keyTextSmall: {
-    fontSize: theme.type.caption,
-    letterSpacing: px(3),
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
   },
   keyTextFocused: {
     color: theme.colors.focus,
   },
   hint: {
-    color: theme.colors.faintText,
-    fontSize: theme.type.caption,
-    letterSpacing: 1,
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
   },
 });

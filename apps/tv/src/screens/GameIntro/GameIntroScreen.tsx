@@ -4,6 +4,7 @@ import {Narration} from '../../components/Narration/Narration';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {useGame} from '../../game/GameContext';
 import {px, theme} from '../../theme/theme';
+import {Transition} from '../../ui/Transition';
 import {ScreenProps} from '../types';
 
 /** Opening narration. "Begin" starts the clock and enters the first scene. */
@@ -30,20 +31,26 @@ export const GameIntroScreen = ({navigator}: ScreenProps) => {
           {mystery.summary.motif}
         </Text>
       )}
-      <Text style={styles.eyebrow}>{mystery.intro.title.toUpperCase()}</Text>
-      <Text style={styles.title}>{mystery.summary.title.toUpperCase()}</Text>
+      <Transition preset="fade" style={styles.fileRow}>
+        <Text style={styles.fileNo}>CASE FILE</Text>
+        <View style={styles.fileDash} />
+        <Text style={styles.eyebrow}>{mystery.intro.title.toUpperCase()}</Text>
+      </Transition>
+      <Transition preset="cinematic" delay={200}>
+        <Text style={styles.title}>{mystery.summary.title.toUpperCase()}</Text>
+      </Transition>
       <View style={styles.rule} />
-      <View style={styles.story}>
+      <Transition preset="fade" motion="sceneReveal" delay={600} style={styles.story}>
         <Narration lines={mystery.intro.narration} />
-      </View>
+      </Transition>
       <View style={styles.footer}>
         <View style={styles.row}>
-          <TVButton variant="action" label="Begin" onPress={begin} preferredFocus testID="intro-begin" />
+          <TVButton variant="action" tone="primary" label="Begin" onPress={begin} preferredFocus testID="intro-begin" />
           <TVButton variant="action" label="Back" onPress={() => navigator.back()} testID="intro-back" />
         </View>
         {minutes !== undefined && (
           <Text style={styles.note}>
-            The clock starts when you begin. You have {minutes} minutes.
+            ◷  The clock starts when you begin. You have {minutes} minutes.
           </Text>
         )}
       </View>
@@ -64,21 +71,33 @@ const styles = StyleSheet.create({
     top: px(260),
     color: theme.colors.accent,
     opacity: 0.07,
+    fontFamily: theme.fonts.cinematic,
     fontSize: theme.type.motif,
-    fontWeight: '100',
     letterSpacing: px(8),
   },
+  fileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  fileNo: {
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
+  },
+  fileDash: {
+    width: px(36),
+    height: 1,
+    marginHorizontal: theme.spacing.sm,
+    backgroundColor: theme.colors.textMuted,
+  },
   eyebrow: {
+    ...theme.text.label,
     color: theme.colors.accent,
-    fontSize: theme.type.caption,
-    letterSpacing: px(6),
   },
   title: {
+    ...theme.text.display,
     marginTop: theme.spacing.sm,
-    color: theme.colors.text,
-    fontSize: theme.type.title,
-    fontWeight: '300',
-    letterSpacing: px(10),
+    color: theme.colors.textPrimary,
   },
   rule: {
     width: px(72),
@@ -88,7 +107,7 @@ const styles = StyleSheet.create({
   },
   story: {
     marginTop: theme.spacing.lg,
-    maxWidth: px(1100),
+    maxWidth: theme.measure.narration,
   },
   footer: {
     flex: 1,
@@ -99,8 +118,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
   },
   note: {
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
     marginTop: theme.spacing.md,
-    color: theme.colors.faintText,
-    fontSize: theme.type.caption,
+    color: theme.colors.textSecondary,
   },
 });

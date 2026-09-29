@@ -5,6 +5,7 @@ import {ScreenHeader} from '../../components/ScreenHeader/ScreenHeader';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {mysteries} from '../../data/mysteries';
 import {px, theme} from '../../theme/theme';
+import {Transition} from '../../ui/Transition';
 import {ScreenProps} from '../types';
 
 export const MysteriesScreen = ({
@@ -19,11 +20,12 @@ export const MysteriesScreen = ({
       <ScreenHeader title="Choose Your Mystery" subtitle="Four stories. One room. Tonight, who will find the truth?" />
 
       <View style={styles.row}>
-        {mysteries.map(mystery => {
+        {mysteries.map((mystery, index) => {
           const key = `mystery-${mystery.id}`;
+          // Cards deal in one after another, like case files laid on a desk.
           return (
+            <Transition key={mystery.id} preset="rise" motion="listItemEnter" delay={index * theme.motion.stagger.duration * 1.5}>
             <MysteryCard
-              key={mystery.id}
               mystery={mystery}
               selected={mystery.id === selectedMysteryId}
               preferredFocus={key === focusKey}
@@ -32,6 +34,7 @@ export const MysteriesScreen = ({
               }
               testID={key}
             />
+            </Transition>
           );
         })}
       </View>
@@ -69,8 +72,9 @@ const styles = StyleSheet.create({
     gap: theme.spacing.lg,
   },
   hint: {
-    color: theme.colors.faintText,
-    fontSize: theme.type.caption,
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
     letterSpacing: px(2),
+    color: theme.colors.textMuted,
   },
 });

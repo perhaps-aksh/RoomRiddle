@@ -99,26 +99,32 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: theme.spacing.sm,
   },
+  // Code slots read like a mechanical counter: sunken wells, a brass underline
+  // on the slot being typed into, digits in the technical (mono) voice.
   slot: {
     width: px(104),
     height: px(136),
-    borderRadius: theme.radii.md,
-    borderWidth: px(2),
+    borderRadius: theme.radii.sm,
+    borderWidth: 1,
     borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomWidth: px(4),
+    backgroundColor: theme.colors.surfaceSunken,
     alignItems: 'center',
     justifyContent: 'center',
   },
   slotFilled: {
-    borderColor: theme.colors.accentSoft,
+    borderColor: theme.colors.borderStrong,
+    borderBottomColor: theme.colors.accentSoft,
+    backgroundColor: theme.colors.surface,
   },
   slotActive: {
-    borderColor: theme.colors.accent,
+    borderBottomColor: theme.colors.focus,
   },
   slotText: {
-    color: theme.colors.focus,
+    ...theme.text.monoLarge,
     fontSize: px(84),
-    fontWeight: '200',
+    lineHeight: px(100),
+    color: theme.colors.focus,
   },
   keypad: {
     width: KEY_W * 3 + theme.spacing.sm * 2,
@@ -133,13 +139,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   keyText: {
-    color: theme.colors.mutedText,
+    ...theme.text.mono,
     fontSize: px(40),
-    fontWeight: '300',
+    lineHeight: px(48),
+    color: theme.colors.textSecondary,
   },
   keyTextSmall: {
-    fontSize: theme.type.caption,
-    letterSpacing: px(3),
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
   },
   keyTextFocused: {
     color: theme.colors.focus,

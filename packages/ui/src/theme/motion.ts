@@ -49,6 +49,8 @@ export const motion = {
   modalEnter: {duration: durations.normal, easing: 'cinematic'},
   modalExit: {duration: 160, easing: 'exit'},
   sceneReveal: {duration: durations.cinematic, easing: 'cinematic'},
+  /** The ending verdict: the one deliberately slow moment in the game. */
+  endingReveal: {duration: 1600, easing: 'cinematic'},
   discovery: {duration: 620, easing: 'cinematic'},
   success: {duration: durations.slow, easing: 'cinematic'},
   failure: {duration: 360, easing: 'standard'},

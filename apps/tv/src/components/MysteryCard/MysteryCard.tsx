@@ -3,6 +3,7 @@ import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
 import {FocusableCard} from '../FocusableCard/FocusableCard';
 import {formatPlayers, TVMystery} from '../../data/mysteries';
 import {px, theme} from '../../theme/theme';
+import {useReducedMotion} from '../../ui/motion';
 
 export interface MysteryCardProps {
   mystery: TVMystery;
@@ -78,14 +79,15 @@ const Meta = ({label, value}: {label: string; value: string}) => (
 const CardAtmosphere = ({active}: {active: boolean}) => {
   const drift = useRef(new Animated.Value(0)).current;
   const presence = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     Animated.timing(presence, {
       toValue: active ? 1 : 0,
-      duration: 500,
+      duration: reduced ? 120 : theme.motion.success.duration,
       useNativeDriver: true,
     }).start();
-    if (!active) {
+    if (!active || reduced) {
       return;
     }
     const loop = Animated.loop(
@@ -106,7 +108,7 @@ const CardAtmosphere = ({active}: {active: boolean}) => {
     );
     loop.start();
     return () => loop.stop();
-  }, [active, drift, presence]);
+  }, [active, drift, presence, reduced]);
 
   return (
     <Animated.View
@@ -141,43 +143,45 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   genre: {
+    ...theme.text.label,
     color: theme.colors.accent,
-    fontSize: theme.type.caption,
-    letterSpacing: px(5),
   },
   soonTag: {
-    color: theme.colors.faintText,
-    fontSize: px(20),
-    letterSpacing: px(4),
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.textMuted,
   },
   selectedTag: {
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
     color: theme.colors.success,
-    fontSize: px(20),
-    letterSpacing: px(4),
   },
   title: {
+    ...theme.text.h1,
+    fontSize: px(44),
+    lineHeight: px(52),
+    letterSpacing: 0,
+    textTransform: 'none',
     marginTop: theme.spacing.md,
-    color: theme.colors.text,
-    fontSize: px(42),
-    lineHeight: px(50),
-    fontWeight: '300',
+    color: theme.colors.textPrimary,
   },
   titleFocused: {
     color: theme.colors.focus,
   },
   description: {
+    ...theme.text.body,
     marginTop: theme.spacing.sm,
-    color: theme.colors.mutedText,
-    fontSize: theme.type.body,
-    lineHeight: px(38),
+    color: theme.colors.textSecondary,
   },
   spacer: {
     flex: 1,
   },
   atmosphere: {
-    color: theme.colors.faintText,
-    fontSize: theme.type.caption,
+    ...theme.text.narration,
+    fontSize: px(24),
     lineHeight: px(32),
+    fontStyle: 'italic',
+    color: theme.colors.textMuted,
   },
   divider: {
     height: 1,
@@ -189,14 +193,15 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   metaLabel: {
-    color: theme.colors.faintText,
-    fontSize: px(18),
-    letterSpacing: px(3),
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    fontSize: px(20),
+    color: theme.colors.textMuted,
   },
   metaValue: {
+    ...theme.text.mono,
     marginTop: px(4),
-    color: theme.colors.text,
-    fontSize: theme.type.body,
+    color: theme.colors.textPrimary,
   },
   atmosphereGlow: {
     position: 'absolute',

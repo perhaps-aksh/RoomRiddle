@@ -16,7 +16,7 @@ import {ScreenProps} from '../types';
  * Back asks before leaving the mystery.
  */
 export const SceneScreen = ({navigator, initialFocusKey}: ScreenProps) => {
-  const {mystery, state, dispatch} = useGame();
+  const {mystery, state, dispatch, mode, closeRoom} = useGame();
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -52,14 +52,15 @@ export const SceneScreen = ({navigator, initialFocusKey}: ScreenProps) => {
       : initialFocusKey;
 
   const continueStory = () => {
-    const events = dispatch({type: 'ADVANCE_SCENE'});
-    if (events.some(e => e.type === 'mystery-completed')) {
-      navigator.reset([{name: 'ending'}]);
-    } else if (events.some(e => e.type === 'scene-entered')) {
-      navigator.replace({name: 'scene'});
-    } else {
-      setNotice('Solve this scene\'s puzzle before moving on.');
-    }
+    dispatch({type: 'ADVANCE_SCENE'}, events => {
+      if (events.some(e => e.type === 'mystery-completed')) {
+        navigator.reset([{name: 'ending'}]);
+      } else if (events.some(e => e.type === 'scene-entered')) {
+        navigator.replace({name: 'scene'});
+      } else {
+        setNotice('Solve this scene\'s puzzle before moving on.');
+      }
+    });
   };
 
   const openPuzzleScreen = (puzzleId: string, locked: boolean) => {
@@ -92,7 +93,12 @@ export const SceneScreen = ({navigator, initialFocusKey}: ScreenProps) => {
           safeLabel="Keep Playing"
           onSafe={() => setConfirmLeave(false)}
           riskyLabel="Leave"
-          onRisky={() => navigator.reset([{name: 'mysteries'}])}
+          onRisky={() => {
+            if (mode === 'room') {
+              closeRoom();
+            }
+            navigator.reset([{name: 'mysteries'}]);
+          }}
           testIDPrefix="scene-leave"
         />
       ) : (

@@ -3,7 +3,7 @@ import {BackHandler, StyleSheet, View} from 'react-native';
 import {Background} from './components/Background/Background';
 import {ScreenTransition} from './components/Background/ScreenTransition';
 import {DEFAULT_MYSTERY_ID} from './data/mysteries';
-import {GameProvider, useGame} from './game/GameContext';
+import {GameProvider, GameProviderProps, useGame} from './game/GameContext';
 import {
   BackInterceptorContext,
   BackInterceptorRegistry,
@@ -29,15 +29,25 @@ import {SettingsScreen} from './screens/Settings/SettingsScreen';
 import {ScreenProps} from './screens/types';
 
 /**
- * RoomRiddle TV app. The shell (Phase 2) plus local play of the mystery engine
- * (Phase 3). No networking and no AI: every game rule lives in
- * `@roomriddle/game-engine`, and the content in `@roomriddle/mystery-data`.
+ * RoomRiddle TV app. The shell (Phase 2), local play of the mystery engine
+ * (Phase 3), and hosting a multiplayer room on the RoomRiddle server
+ * (Phase 4). No AI: every game rule lives in `@roomriddle/game-engine` (run by
+ * the server in a room), and the content in `@roomriddle/mystery-data`.
  *
  * Replaces the Vega helloWorld template screen. The template's own files
  * (components/Tile.tsx, data/tiles.tsx, assets/) are left in place untouched.
  */
-export const App = ({clock}: {clock?: () => number}) => (
-  <GameProvider clock={clock}>
+export const App = ({
+  clock,
+  createSocket,
+  serverUrl,
+}: {
+  clock?: () => number;
+  /** Tests inject a fake WebSocket and URL. */
+  createSocket?: GameProviderProps['createSocket'];
+  serverUrl?: string;
+}) => (
+  <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
     <Shell />
   </GameProvider>
 );
@@ -89,16 +99,19 @@ const Shell = () => {
   const onSelectMystery = useCallback((id: string) => setSelectedMysteryId(id), []);
 
   // A game can end away from a puzzle's result panel: the clock runs out, or
-  // too many wrong answers. Whenever the engine says so, show the ending.
-  const {state: game} = useGame();
+  // too many wrong answers, or (in a room) a phone solves the last puzzle.
+  // Whenever the engine says so, show the ending.
+  const {state: game, mode} = useGame();
   const lostReason =
     game?.status === 'completed' &&
-    (game.completionReason === 'time-expired' || game.completionReason === 'too-many-attempts');
+    (mode === 'room' || game.completionReason === 'time-expired' || game.completionReason === 'too-many-attempts');
   useEffect(() => {
-    if (lostReason && currentEntry(stackRef.current).route.name !== 'ending') {
+    const here = currentEntry(stackRef.current).route.name;
+    // In a room the TV's own last answer shows its result panel first.
+    if (lostReason && here !== 'ending' && !(mode === 'room' && here === 'puzzle')) {
       dispatch({type: 'reset', routes: [{name: 'ending'}]});
     }
-  }, [lostReason]);
+  }, [lostReason, mode]);
 
   const entry = currentEntry(stack);
   const props: ScreenProps = {

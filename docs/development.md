@@ -8,8 +8,17 @@ The repo lives on the Windows drive at `D:\RoomRiddle`. In WSL it's `/mnt/d/Room
 npm install
 npm run check        # typecheck + tests (run before every commit)
 npm run dev:server   # watch mode, http://127.0.0.1:4000/health
+npm run serve        # build the phone app, then start the server for LAN play
 ```
 Requires Node.js ≥ 22.
+
+## Playing multiplayer on the LAN (Phase 4)
+1. `npm run serve`. The server listens on `0.0.0.0:4000` and prints the phone URL (`http://<LAN IP>:4000/join/<code>`). Override it with `PUBLIC_URL=http://…:4000`. Other settings: `PORT`, `HOST`, `ROOM_MIN_PLAYERS` (default 2), `ROOM_MAX_PLAYERS` (6).
+2. TV: set `apps/tv/src/config/server.ts` to `ws://<LAN IP>:4000/ws`, build, and run. Then choose **Create Room**. The TV shows the code and QR code.
+3. Phones (same Wi-Fi): scan the QR code or open `http://<LAN IP>:4000` and enter the code and a name. Windows may ask to allow Node through the firewall on private networks.
+4. TV: **Start**.
+
+Without a TV, `npm run fake-tv -w @roomriddle/server` creates a room from the command line (it logs every event and starts when 2 phones are in). `npm run play-bots -w @roomriddle/server -- <code>` plays The Last Train with two scripted phones, including a mid-game disconnect and resume.
 
 ## TV app: Vega SDK setup
 The Vega Developer Tools (Vega CLI, SDK, Vega Studio, Vega Virtual Device) officially support **Ubuntu 20.04+ and macOS 10.15+ only**. Windows and WSL aren't supported, and the VVD needs hardware virtualization (KVM or Hypervisor.framework).

@@ -12,7 +12,7 @@ import {ScreenProps} from '../types';
  * Nothing here decides the outcome: it is read from state.endingId.
  */
 export const EndingScreen = ({navigator}: ScreenProps) => {
-  const {mystery, state, now, start} = useGame();
+  const {mystery, state, now, start, mode, closeRoom} = useGame();
   const reveal = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -42,6 +42,13 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
   const playAgain = () => {
     start(mystery.summary.id);
     navigator.reset([{name: 'mysteries'}, {name: 'gameIntro'}]);
+  };
+  // Leaving the ending of a room game closes the room (phones are told).
+  const leave = (routes?: Parameters<typeof navigator.reset>[0]) => {
+    if (mode === 'room') {
+      closeRoom();
+    }
+    navigator.reset(routes);
   };
 
   return (
@@ -73,10 +80,10 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
         <TVButton
           variant="action"
           label="Mysteries"
-          onPress={() => navigator.reset([{name: 'mysteries'}])}
+          onPress={() => leave([{name: 'mysteries'}])}
           testID="ending-mysteries"
         />
-        <TVButton variant="action" label="Home" onPress={() => navigator.reset()} testID="ending-home" />
+        <TVButton variant="action" label="Home" onPress={() => leave()} testID="ending-home" />
       </View>
     </View>
   );

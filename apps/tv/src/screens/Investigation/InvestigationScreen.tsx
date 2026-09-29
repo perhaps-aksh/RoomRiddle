@@ -44,16 +44,17 @@ export const InvestigationScreen = ({navigator}: ScreenProps) => {
       setAnnouncement(null);
       return;
     }
-    const events = dispatch({type: 'DISCOVER_CLUE', clueId: clue.id});
-    const unlocked = events.filter(e => e.type === 'puzzle-unlocked');
-    if (unlocked.length > 0) {
-      const titles = unlocked
-        .map(e => (e.type === 'puzzle-unlocked' ? mystery.puzzles.find(p => p.id === e.puzzleId)?.title : ''))
-        .join(', ');
-      setAnnouncement(`New puzzle unlocked: ${titles}`);
-    } else {
-      setAnnouncement(null);
-    }
+    dispatch({type: 'DISCOVER_CLUE', clueId: clue.id}, events => {
+      const unlocked = events.filter(e => e.type === 'puzzle-unlocked');
+      if (unlocked.length > 0) {
+        const titles = unlocked
+          .map(e => (e.type === 'puzzle-unlocked' ? mystery.puzzles.find(p => p.id === e.puzzleId)?.title : ''))
+          .join(', ');
+        setAnnouncement(`New puzzle unlocked: ${titles}`);
+      } else {
+        setAnnouncement(null);
+      }
+    });
   };
 
   const shown = view.clues.find(c => c.clue.id === shownClueId)?.clue;

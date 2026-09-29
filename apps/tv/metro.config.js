@@ -22,6 +22,7 @@ const config = {
       '@roomriddle/shared-types': sharedPackage('shared-types'),
       '@roomriddle/game-engine': sharedPackage('game-engine'),
       '@roomriddle/mystery-data': sharedPackage('mystery-data'),
+      '@roomriddle/client': sharedPackage('client'),
     },
     // Shared packages have no node_modules of their own: resolve everything from the TV app.
     nodeModulesPaths: [path.resolve(__dirname, 'node_modules')],

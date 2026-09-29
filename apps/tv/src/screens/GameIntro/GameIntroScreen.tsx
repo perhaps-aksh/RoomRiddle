@@ -15,7 +15,11 @@ export const GameIntroScreen = ({navigator}: ScreenProps) => {
   const minutes = mystery.failure?.timeLimitMinutes;
 
   const begin = () => {
-    dispatch({type: 'ADVANCE_SCENE'});
+    // Local play enters the first scene here. In a room the server has
+    // already done so when the host started the game.
+    if (state.status === 'intro') {
+      dispatch({type: 'ADVANCE_SCENE'});
+    }
     navigator.replace({name: 'scene'});
   };
 

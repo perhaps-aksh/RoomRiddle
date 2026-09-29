@@ -3,6 +3,7 @@ import * as React from 'react';
 import {act, fireEvent, render} from '@testing-library/react-native';
 
 import {mockBackHandler, pressBack} from './support/backHandler';
+import {FakeServer} from './support/fakeServer';
 import {App} from '../src/App';
 import {applyKey} from '../src/screens/JoinRoom/JoinRoomScreen';
 import {mysteries} from '../src/data/mysteries';
@@ -26,11 +27,25 @@ describe('RoomRiddle TV shell', () => {
     }
   });
 
-  it('opens Create Room, shows the mock code, and asks before closing the room', () => {
-    const screen = render(<App />);
+  it('opens Create Room: the server room code, live players, and asks before closing', () => {
+    const server = new FakeServer(Date.now);
+    const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" />);
     fireEvent.press(screen.getByTestId('home-createRoom'));
-    expect(screen.getByText('4827')).toBeTruthy();
-    expect(screen.getByText('0 Players')).toBeTruthy();
+    act(() => {
+      jest.advanceTimersByTime(10);
+    });
+    expect(server.socket!.sent[0].type).toBe('CREATE_ROOM');
+    expect(screen.getByTestId('room-code').props.children).toBe('4827');
+    expect(screen.getByTestId('room-qr')).toBeTruthy();
+    expect(screen.getByText('0 PLAYERS')).toBeTruthy();
+
+    // Starting too early: the server says no, the TV shows why.
+    fireEvent.press(screen.getByTestId('room-start'));
+    expect(screen.getByText('Waiting for more players to join.')).toBeTruthy();
+
+    act(() => server.phoneJoins('Aksh'));
+    expect(screen.getByText('1 PLAYER')).toBeTruthy();
+    expect(screen.getByTestId('room-player-Aksh')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('room-back'));
     expect(screen.getByText('Close this room?')).toBeTruthy();
@@ -39,6 +54,7 @@ describe('RoomRiddle TV shell', () => {
 
     fireEvent.press(screen.getByTestId('room-back'));
     fireEvent.press(screen.getByTestId('room-close'));
+    expect(server.socket!.sent.some((m: {type: string}) => m.type === 'LEAVE_ROOM')).toBe(true);
     expect(screen.getByTestId('home-createRoom')).toBeTruthy();
   });
 
@@ -134,8 +150,12 @@ describe('remote Back button', () => {
   });
 
   it('never closes a room without confirmation', () => {
-    const screen = render(<App />);
+    const server = new FakeServer(Date.now);
+    const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" />);
     fireEvent.press(screen.getByTestId('home-createRoom'));
+    act(() => {
+      jest.advanceTimersByTime(10);
+    });
     expect(back()).toBe(true);
     expect(screen.getByText('Close this room?')).toBeTruthy();
     expect(screen.getByText('4827')).toBeTruthy();

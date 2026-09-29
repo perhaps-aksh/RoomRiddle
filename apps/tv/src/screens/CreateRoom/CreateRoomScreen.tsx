@@ -1,22 +1,52 @@
-import React, {useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
+import {errorText} from '@roomriddle/client';
+import {QrCode} from '../../components/QrCode/QrCode';
 import {ScreenHeader} from '../../components/ScreenHeader/ScreenHeader';
 import {TVButton} from '../../components/TVButton/TVButton';
-import {MOCK_ROOM} from '../../data/mockRoom';
 import {findMystery} from '../../data/mysteries';
+import {useGame} from '../../game/GameContext';
 import {useBackInterceptor} from '../../navigation/useBackInterceptor';
 import {px, theme} from '../../theme/theme';
 import {ScreenProps} from '../types';
 
 /**
- * Create Room: UI PROTOTYPE. The room code is static mock data and nobody can join
- * yet; real rooms, QR joining and player lists arrive with multiplayer (Phase 4).
+ * Create Room (Phase 4, functional; the designed lobby is Phase 5).
+ *
+ * On entry the TV asks the server for a room and becomes its host. It shows
+ * the server's room code and QR code, lists phones as they join (live), and
+ * starts the mystery with START_GAME. The server decides who may start and
+ * when; this screen only shows its answer.
  */
 export const CreateRoomScreen = ({navigator, selectedMysteryId}: ScreenProps) => {
+  const {room: view, createRoom, closeRoom, start, state} = useGame();
   const [confirmClose, setConfirmClose] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const room = MOCK_ROOM;
   const mystery = findMystery(selectedMysteryId);
+  const requested = useRef(false);
+
+  // One room per visit. Opening the screen creates it; leaving closes it.
+  useEffect(() => {
+    if (!requested.current) {
+      requested.current = true;
+      createRoom(selectedMysteryId);
+    }
+  }, [createRoom, selectedMysteryId]);
+
+  // The server started the game (our START_GAME, or a replay): go play.
+  const started = view.room?.status === 'playing' && state !== null;
+  useEffect(() => {
+    if (started) {
+      navigator.replace({name: 'gameIntro'});
+    }
+  }, [started, navigator]);
+
+  // Errors from the server (e.g. not enough players) show as a notice.
+  useEffect(() => {
+    if (view.error) {
+      setNotice(errorText(view.error.code));
+    }
+  }, [view.error]);
 
   // A room must never be closed by an accidental Back press.
   useBackInterceptor(() => {
@@ -25,33 +55,59 @@ export const CreateRoomScreen = ({navigator, selectedMysteryId}: ScreenProps) =>
     return true;
   });
 
-  const players = room.playerCount === 1 ? '1 Player' : `${room.playerCount} Players`;
+  const room = view.room;
+  const players = room?.players.filter(p => p.role === 'player') ?? [];
+  const online = players.filter(p => p.connected).length;
+  const enough = room !== null && online >= room.minPlayers;
+  const offline = view.connection === 'reconnecting' || view.connection === 'closed';
+
+  const close = () => {
+    closeRoom();
+    navigator.back();
+  };
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader
-        title="Create Room"
-        eyebrow={mystery?.title}
-        subtitle="Your room is ready."
-      />
+      <ScreenHeader title="Join the Investigation" eyebrow={mystery?.title} subtitle={subtitleFor(view.connection, room !== null)} />
 
       <View style={styles.body}>
         <View style={styles.codeColumn}>
           <Text style={styles.label}>ROOM CODE</Text>
           <Text
             style={styles.code}
-            accessibilityLabel={`Room code ${room.code.split('').join(' ')}`}>
-            {room.code}
+            testID="room-code"
+            accessibilityLabel={room ? `Room code ${room.code.split('').join(' ')}` : 'Creating room'}>
+            {room?.code ?? '····'}
+          </Text>
+          <Text style={styles.joinHint}>Scan the QR code or enter the code at</Text>
+          <Text style={styles.joinUrl} testID="room-join-url">
+            {room ? room.joinUrl.replace(/\/join\/\d+$/, '') : ' '}
           </Text>
           <View style={styles.waiting}>
-            <View style={styles.pulseDot} />
-            <Text style={styles.waitingText}>Waiting for players…</Text>
+            <View style={[styles.pulseDot, offline && styles.dotOffline]} />
+            <Text style={styles.waitingText}>
+              {offline ? 'Reconnecting to the server…' : enough ? 'Ready when you are.' : 'Waiting for players…'}
+            </Text>
           </View>
-          <Text style={styles.players}>{players}</Text>
+          <Text style={styles.players} testID="room-player-count">
+            {players.length === 1 ? '1 PLAYER' : `${players.length} PLAYERS`}
+          </Text>
+          <View style={styles.playerList}>
+            {players.map(p => (
+              <Text key={p.id} style={[styles.playerName, !p.connected && styles.playerOffline]} testID={`room-player-${p.name}`}>
+                {p.name}
+                {p.connected ? '' : ' (offline)'}
+              </Text>
+            ))}
+          </View>
         </View>
 
         <View style={styles.qrColumn}>
-          <QrPlaceholder />
+          {view.qr ? (
+            <QrCode matrix={view.qr} size={QR} testID="room-qr" />
+          ) : (
+            <View style={[styles.qrPending, {width: QR, height: QR}]} />
+          )}
           <Text style={styles.qrCaption}>Scan to join</Text>
         </View>
       </View>
@@ -68,29 +124,27 @@ export const CreateRoomScreen = ({navigator, selectedMysteryId}: ScreenProps) =>
                 preferredFocus
                 testID="room-keep"
               />
-              <TVButton
-                variant="action"
-                label="Close Room"
-                onPress={() => navigator.back()}
-                testID="room-close"
-              />
+              <TVButton variant="action" label="Close Room" onPress={close} testID="room-close" />
             </View>
           </>
         ) : (
           <>
-            <Text style={styles.notice}>{notice ?? ' '}</Text>
+            <Text style={styles.notice} testID="room-notice">
+              {notice ?? (room ? `At least ${room.minPlayers} players are needed to start.` : ' ')}
+            </Text>
             <View style={styles.actionRow}>
               <TVButton
                 variant="action"
                 label="Start"
                 accessibilityHint="Starts the mystery once players have joined"
-                onPress={() =>
-                  setNotice(
-                    room.playerCount < 2
-                      ? 'At least 2 players are needed. Joining arrives in the multiplayer phase.'
-                      : 'Gameplay arrives after the game engine phase.',
-                  )
-                }
+                onPress={() => {
+                  if (!room) {
+                    setNotice('Still connecting to the server…');
+                    return;
+                  }
+                  setNotice(null);
+                  start(selectedMysteryId);
+                }}
                 preferredFocus
                 testID="room-start"
               />
@@ -111,27 +165,16 @@ export const CreateRoomScreen = ({navigator, selectedMysteryId}: ScreenProps) =>
   );
 };
 
-/**
- * PLACEHOLDER, not a scannable code. Three finder squares and a label so it can't be
- * mistaken for a real QR code. The real one is generated from the room URL in Phase 4.
- */
-const QrPlaceholder = () => (
-  <View style={styles.qr} accessibilityLabel="QR code placeholder">
-    <Finder style={styles.finderTL} />
-    <Finder style={styles.finderTR} />
-    <Finder style={styles.finderBL} />
-    <Text style={styles.qrPlaceholderText}>QR CODE{'\n'}PLACEHOLDER</Text>
-  </View>
-);
+function subtitleFor(connection: string, hasRoom: boolean): string {
+  if (hasRoom) {
+    return 'Your room is open.';
+  }
+  return connection === 'reconnecting' || connection === 'closed'
+    ? 'Cannot reach the game server. Retrying…'
+    : 'Opening a room…';
+}
 
-const Finder = ({style}: {style: object}) => (
-  <View style={[styles.finder, style]}>
-    <View style={styles.finderCore} />
-  </View>
-);
-
-const QR = px(300);
-const FINDER = px(72);
+const QR = px(340);
 
 const styles = StyleSheet.create({
   screen: {
@@ -161,6 +204,15 @@ const styles = StyleSheet.create({
     fontWeight: '200',
     letterSpacing: px(36),
   },
+  joinHint: {
+    color: theme.colors.mutedText,
+    fontSize: theme.type.caption,
+  },
+  joinUrl: {
+    color: theme.colors.text,
+    fontSize: theme.type.body,
+    letterSpacing: px(1),
+  },
   waiting: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -173,6 +225,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.accent,
     marginRight: theme.spacing.sm,
   },
+  dotOffline: {
+    backgroundColor: theme.colors.danger,
+  },
   waitingText: {
     color: theme.colors.mutedText,
     fontSize: theme.type.body,
@@ -182,41 +237,28 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: theme.type.heading,
     fontWeight: '300',
+    letterSpacing: px(4),
+  },
+  playerList: {
+    marginTop: theme.spacing.xs,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    maxWidth: px(900),
+    gap: theme.spacing.md,
+  },
+  playerName: {
+    color: theme.colors.accent,
+    fontSize: theme.type.body,
+  },
+  playerOffline: {
+    color: theme.colors.faintText,
   },
   qrColumn: {
     alignItems: 'center',
   },
-  qr: {
-    width: QR,
-    height: QR,
+  qrPending: {
     borderRadius: theme.radii.md,
-    backgroundColor: theme.colors.text,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  finder: {
-    position: 'absolute',
-    width: FINDER,
-    height: FINDER,
-    borderWidth: px(10),
-    borderColor: theme.colors.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  finderCore: {
-    width: px(26),
-    height: px(26),
-    backgroundColor: theme.colors.background,
-  },
-  finderTL: {top: px(22), left: px(22)},
-  finderTR: {top: px(22), right: px(22)},
-  finderBL: {bottom: px(22), left: px(22)},
-  qrPlaceholderText: {
-    color: theme.colors.background,
-    fontSize: px(22),
-    letterSpacing: px(3),
-    textAlign: 'center',
-    fontWeight: '600',
+    backgroundColor: theme.colors.surface,
   },
   qrCaption: {
     marginTop: theme.spacing.md,

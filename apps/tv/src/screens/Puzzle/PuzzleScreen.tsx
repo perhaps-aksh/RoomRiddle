@@ -36,8 +36,7 @@ export const PuzzleScreen = ({navigator, route}: ScreenProps & {route: {puzzleId
   const {puzzle} = view;
 
   const submit = () => {
-    const events = dispatch({type: 'SUBMIT_ANSWER', puzzleId: puzzle.id, answer: toAnswer(puzzle, entry)});
-    handleSubmitEvents(events);
+    dispatch({type: 'SUBMIT_ANSWER', puzzleId: puzzle.id, answer: toAnswer(puzzle, entry)}, handleSubmitEvents);
   };
 
   const handleSubmitEvents = (events: readonly GameEvent[]) => {
@@ -57,20 +56,30 @@ export const PuzzleScreen = ({navigator, route}: ScreenProps & {route: {puzzleId
   };
 
   const hint = () => {
-    const events = dispatch({type: 'REQUEST_HINT', puzzleId: puzzle.id});
-    const revealed = events.find(e => e.type === 'hint-revealed');
-    setFeedback(
-      revealed && revealed.type === 'hint-revealed'
-        ? {kind: 'info', text: `Hint ${revealed.hintNumber} revealed. This puzzle is now worth ${view.currentValue.awarded - revealed.penalty}.`}
-        : {kind: 'info', text: 'No more hints for this puzzle.'},
-    );
+    const worth = view.currentValue.awarded;
+    dispatch({type: 'REQUEST_HINT', puzzleId: puzzle.id}, events => {
+      const revealed = events.find(e => e.type === 'hint-revealed');
+      setFeedback(
+        revealed && revealed.type === 'hint-revealed'
+          ? {kind: 'info', text: `Hint ${revealed.hintNumber} revealed. This puzzle is now worth ${worth - revealed.penalty}.`}
+          : {kind: 'info', text: 'No more hints for this puzzle.'},
+      );
+    });
   };
 
+  // Solved by someone else (a phone, in a room): show the same result panel.
+  const shownResult: ScoreBreakdown | null =
+    result ??
+    (view.status === 'solved'
+      ? {base: state.puzzlePoints[puzzle.id] ?? 0, hintDeduction: 0, awarded: state.puzzlePoints[puzzle.id] ?? 0}
+      : null);
+  const isCompleted = completed || state.status === 'completed';
+
   // ── Puzzle Result ────────────────────────────────────────────────
-  if (result) {
+  if (shownResult) {
     const scene = getSceneView(mystery, state);
     const next = () => {
-      if (completed) {
+      if (isCompleted) {
         navigator.reset([{name: 'ending'}]);
       } else {
         navigator.back();
@@ -87,15 +96,15 @@ export const PuzzleScreen = ({navigator, route}: ScreenProps & {route: {puzzleId
             <Narration lines={puzzle.solvedText} />
           </View>
           <View style={styles.pointsRow} testID="puzzle-result">
-            <Points label="Puzzle" value={`${result.base}`} />
-            {result.hintDeduction > 0 && <Points label="Hints" value={`−${result.hintDeduction}`} />}
-            <Points label="Awarded" value={`+${result.awarded}`} strong />
+            <Points label="Puzzle" value={`${shownResult.base}`} />
+            {shownResult.hintDeduction > 0 && <Points label="Hints" value={`−${shownResult.hintDeduction}`} />}
+            <Points label="Awarded" value={`+${shownResult.awarded}`} strong />
           </View>
         </View>
         <View style={styles.footerRow}>
           <TVButton
             variant="action"
-            label={completed ? 'See the ending' : scene?.complete ? 'Continue' : 'Back to scene'}
+            label={isCompleted ? 'See the ending' : scene?.complete ? 'Continue' : 'Back to scene'}
             onPress={next}
             preferredFocus
             testID="puzzle-result-continue"

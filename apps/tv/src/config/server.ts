@@ -6,4 +6,4 @@
  * host at its LAN IP. When that IP changes (DHCP), update this line and
  * rebuild the TV app.
  */
-export const SERVER_URL = 'ws://10.2.0.13:4000/ws';
+export const SERVER_URL = 'ws://10.2.2.70:4000/ws';

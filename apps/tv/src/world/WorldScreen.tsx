@@ -11,6 +11,7 @@ import {
   dialogueFor,
   focusable,
   frameShot,
+  lookShot,
   centerOf,
   objectBounds,
   objectViews,
@@ -44,7 +45,13 @@ import {useWorldSession} from './WorldSession';
 
 const W = ds.worldColors;
 /** Inspected objects are parked here (design px), left of the information panel. */
-const INSPECT_SPOT = {x: 560, y: 500};
+const INSPECT_SPOT = {x: 560, y: 440};
+/**
+ * Where a focused object must sit on screen (design px): clear of the header
+ * + its name tag above, and of the action bar below. Focus nudges the camera
+ * just enough to keep it there.
+ */
+const LOOK_SAFE = {top: 250, bottom: 820, left: 200, right: 1720};
 
 interface Inspecting {
   objectId: string;
@@ -290,6 +297,25 @@ const WorldView = ({
 
   // ── Inspection ───────────────────────────────────────────────────────
   const inspectView = inspecting ? views.find(v => v.object.id === inspecting.objectId) : undefined;
+  // The resting shot while investigating: the set's shot, nudged by focus.
+  const lookRef = useRef<{setId: string; shot: typeof set.camera} | null>(null);
+  if (lookRef.current && lookRef.current.setId !== set.id) {
+    lookRef.current = null;
+  }
+  const lookAt = (view: ObjectView) => {
+    const node = setNodes.get(view.object.nodeId);
+    if (!node || s.mode !== 'investigation' || inspecting) {
+      return;
+    }
+    const shot = lookShot(objectBounds(view.object, node), node.depth, set.camera, LOOK_SAFE);
+    const prev = lookRef.current?.shot ?? set.camera;
+    if (shot.x === prev.x && shot.y === prev.y && shot.zoom === prev.zoom) {
+      return;
+    }
+    lookRef.current = {setId: set.id, shot};
+    director.camera.moveTo(shot, reduced ? 0 : 520, 'standard', Date.now());
+    kick();
+  };
   const openInspection = (view: ObjectView) => {
     const node = setNodes.get(view.object.nodeId);
     if (!node) {
@@ -306,7 +332,7 @@ const WorldView = ({
   const closeInspection = () => {
     setInspecting(null);
     director.setMode('investigation');
-    director.camera.moveTo(set.camera, reduced ? 0 : 700, 'standard', Date.now());
+    director.camera.moveTo(lookRef.current?.shot ?? set.camera, reduced ? 0 : 700, 'standard', Date.now());
     bump();
     kick();
   };
@@ -370,7 +396,10 @@ const WorldView = ({
         }
         return (
           <Plane key={v.object.id} cam={cam} depth={node.depth}>
-            <Hotspot view={v} node={node} preferredFocus={v.object.id === hotspotFocus} onFocus={() => session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id)} onSelect={() => openInspection(v)} />
+            <Hotspot view={v} node={node} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
+                session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id);
+                lookAt(v);
+              }} onSelect={() => openInspection(v)} />
           </Plane>
         );
       })
@@ -414,7 +443,7 @@ const WorldView = ({
         </View>
       )}
 
-      {s.mode === 'dialogue' && line && <DialogueBox key={line.id} speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''} text={line.text} onNext={advance} />}
+      {s.mode === 'dialogue' && line && <DialogueBox key={line.id} speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''} text={line.text} onNext={advance} aside={inspectView !== undefined} />}
 
       {/* The inspection stays up while the detective reacts to what was found. */}
       {inspectView && (s.mode === 'inspection' || s.dialogue?.resume === 'inspection') && (
@@ -439,11 +468,11 @@ const WorldView = ({
   );
 };
 
-const DialogueBox = ({speaker, text, onNext}: {speaker: string; text: string; onNext: () => void}) => (
-  <View style={styles.dialogue} testID="world-dialogue">
+const DialogueBox = ({speaker, text, onNext, aside}: {speaker: string; text: string; onNext: () => void; aside: boolean}) => (
+  <View style={[styles.dialogue, aside && styles.dialogueAside]} testID="world-dialogue">
     <Pressable onPress={onNext} hasTVPreferredFocus accessibilityRole="button" accessibilityLabel={`${speaker}: ${text} Continue.`} testID="world-dialogue-next" style={styles.dialogueInner}>
       <Text style={styles.speaker}>{speaker.toUpperCase()}</Text>
-      <Text style={styles.line}>{text}</Text>
+      <Text style={[styles.line, aside && styles.lineAside]}>{text}</Text>
       <Text style={styles.next}>OK ▸</Text>
     </Pressable>
   </View>
@@ -547,6 +576,12 @@ const styles = StyleSheet.create({
     right: px(260),
     bottom: px(90),
   },
+  // Beside the inspection panel (which holds the right column), under the object.
+  dialogueAside: {
+    left: px(96),
+    right: px(96 + 760 + 48),
+    bottom: px(64),
+  },
   dialogueInner: {
     backgroundColor: theme.colors.overlay,
     borderLeftWidth: theme.borders.heavy,
@@ -562,6 +597,10 @@ const styles = StyleSheet.create({
   line: {
     ...theme.text.h1,
     color: theme.colors.textPrimary,
+  },
+  // Beside an inspected object the line steps down a tier so it stays short.
+  lineAside: {
+    ...theme.text.h2,
   },
   next: {
     ...theme.text.mono,

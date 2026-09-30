@@ -17,8 +17,10 @@ import {
   focusShot,
   frameShot,
   layerTransform,
+  lookShot,
   objectViews,
   placeSet,
+  projectBox,
   projectPoint,
   SceneDirector,
   shakeOffset,
@@ -136,6 +138,39 @@ test('camera: frameShot parks a point anywhere on screen', () => {
   const shot = frameShot(target, 0.3, 1.9, {x: 600, y: 520});
   const p = projectPoint(target, 0.3, shot);
   assert.ok(Math.abs(p.x - 600) < 1e-6 && Math.abs(p.y - 520) < 1e-6);
+});
+
+test('camera: lookShot nudges only as far as needed to keep a focused box in the safe frame', () => {
+  const safe = {top: 200, bottom: 820, left: 100, right: 1820};
+  const rest = {x: 0, y: 90, zoom: 1};
+  // Already inside: no drift.
+  assert.equal(lookShot({x: 900, y: 500, width: 100, height: 100}, 0.5, rest, safe), rest);
+  // Below the bar on a near plane: the camera moves down just enough.
+  const low = {x: 300, y: 900, width: 170, height: 120};
+  const shot = lookShot(low, 0.78, rest, safe);
+  const b = projectBox(low, 0.78, shot);
+  assert.ok(Math.abs(b.y + b.height - 820) < 1e-6, `bottom ${b.y + b.height}`);
+  assert.equal(shot.zoom, 1);
+  // Above the header on a far plane: moves up; parallax means a bigger camera move.
+  const high = {x: 220, y: 200, width: 200, height: 200};
+  const up = lookShot(high, 0.3, rest, safe);
+  assert.ok(Math.abs(projectBox(high, 0.3, up).y - 200) < 1e-6);
+  assert.ok(up.y < rest.y);
+});
+
+test('world: at every resting shot, each object sits clear of the header and the action bar', () => {
+  // Header ends ~150, the action bar starts ~850 (design px). Objects must be reachable by eye and remote.
+  const reg = new AssetRegistry([lastTrainWorld.manifest]);
+  for (const scene of lastTrainWorld.scenes) {
+    for (const set of scene.sets) {
+      const placed = placeSet(set, reg);
+      for (const o of set.objects) {
+        const n = placed.get(o.nodeId)!;
+        const b = projectBox(o.bounds ?? n, n.depth, set.camera);
+        assert.ok(b.y >= 100 && b.y + b.height <= 850, `${set.id}/${o.id} spans ${b.y.toFixed(0)}..${(b.y + b.height).toFixed(0)}`);
+      }
+    }
+  }
 });
 
 test('camera: moves ease, interrupt smoothly, follow and shake settle', () => {

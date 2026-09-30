@@ -139,6 +139,39 @@ export function shakeOffset(elapsed: number, duration: number, intensity: number
   };
 }
 
+/**
+ * "Look at" for focus: the smallest camera nudge from `shot` that brings a
+ * box (on a plane at `depth`) inside the safe frame. Zoom is unchanged;
+ * a box that already fits returns `shot` itself, so resting focus doesn't
+ * drift the camera. Boxes taller/wider than the frame align to its top/left.
+ */
+export function lookShot(
+  box: {x: number; y: number; width: number; height: number},
+  depth: number,
+  shot: CameraShot,
+  safe: {top: number; bottom: number; left: number; right: number},
+): CameraShot {
+  const d = Math.max(depth, 0.05);
+  const s = layerTransform(shot, d).scale;
+  const b = projectBox(box, d, shot);
+  const need = (lo: number, hi: number, a: number, size: number): number => {
+    if (a < lo || size > hi - lo) {
+      return lo - a;
+    }
+    if (a + size > hi) {
+      return hi - (a + size);
+    }
+    return 0;
+  };
+  // Screen moves by −s·d per unit of camera, so camera moves by −Δscreen/(s·d).
+  const dx = need(safe.left, safe.right, b.x, b.width);
+  const dy = need(safe.top, safe.bottom, b.y, b.height);
+  if (dx === 0 && dy === 0) {
+    return shot;
+  }
+  return {x: shot.x - dx / (s * d), y: shot.y - dy / (s * d), zoom: shot.zoom};
+}
+
 interface CameraMove {
   from: CameraShot;
   to: CameraShot;

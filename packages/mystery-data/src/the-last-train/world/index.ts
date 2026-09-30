@@ -54,7 +54,7 @@ const DETECTIVE_ON_PLATFORM: WorldNode = {id: 'detective-spot', assetId: 'last-t
  * Where the camera rests when players have control: lifted a little, so
  * objects on the platform sit clear of the action bar at the bottom.
  */
-const REST = {x: 0, y: 90, zoom: 1};
+const REST = {x: 0, y: 220, zoom: 1};
 
 // ── Train ──────────────────────────────────────────────────────────────
 
@@ -165,7 +165,7 @@ const trainSet: WorldSet = {
   nodes: [
     ...STATION_BACKDROP,
     TRAIN_NODE,
-    {id: 'departure-board', assetId: 'last-train.departure-board', x: 1320, y: 190},
+    {id: 'departure-board', assetId: 'last-train.departure-board', x: 1320, y: 260},
     {id: 'carriage-plan', assetId: 'last-train.carriage-plan', x: TRAIN_STOP_X + BOARDING_DOOR.x + 140, y: TRAIN_Y + 130, depth: TRAIN_DEPTH, z: 2},
     {id: 'ticket', assetId: 'last-train.ticket', x: 1180, y: 940},
     DETECTIVE_ON_PLATFORM,

@@ -14,6 +14,7 @@ export {
   projectBox,
   focusShot,
   frameShot,
+  lookShot,
   ease,
   lerp,
   lerpShot,

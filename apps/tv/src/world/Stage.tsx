@@ -223,8 +223,8 @@ const styles = StyleSheet.create({
   tag: {
     position: 'absolute',
     bottom: '100%',
-    left: -px(40),
-    right: -px(40),
+    left: -px(200),
+    right: -px(200),
     marginBottom: px(18),
     alignItems: 'center',
   },

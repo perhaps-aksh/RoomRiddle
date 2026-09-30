@@ -13,6 +13,7 @@ export {
   projectPoint,
   projectBox,
   focusShot,
+  frameShot,
   ease,
   lerp,
   lerpShot,

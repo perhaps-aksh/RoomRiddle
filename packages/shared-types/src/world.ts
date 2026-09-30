@@ -111,6 +111,8 @@ export interface AssetDefinition {
   preload?: boolean;
   /** Procedural stand-in, drawn when no final art is available. */
   placeholder?: PlaceholderShape[];
+  /** Light this asset casts (a glow pool drawn above the night overlay), in its own box. */
+  light?: {x: number; y: number; radius: number; color: 'lampGlow' | 'windowGlow' | 'headlight'; strength?: number; flicker?: boolean};
   description: string;
 }
 
@@ -206,7 +208,7 @@ export interface TrainDefinition {
   durations: Record<TrainState, number>;
   easing: Partial<Record<TrainState, CameraEasing>>;
   /** Parts that belong to the train, drawn with it. */
-  parts: {doorsAssetId: string; windowsAssetId: string; headlightsAssetId: string};
+  parts: {doorsAssetId: string; windowsAssetId: string; headlightsAssetId: string; doorwayAssetId: string};
 }
 
 // ── Characters & dialogue ──────────────────────────────────────────────
@@ -249,6 +251,7 @@ export type TimelineAction =
   | {type: 'camera.follow'; target: 'train'; duration: number}
   | {type: 'camera.release'}
   | {type: 'camera.shake'; intensity: number; duration: number}
+  /** Ease back to the current set's resting shot. */
   | {type: 'camera.reset'; duration: number}
   | {type: 'train.state'; state: TrainState}
   | {type: 'effect'; effect: EffectId; on: boolean}

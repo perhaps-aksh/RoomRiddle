@@ -72,6 +72,21 @@ export function focusShot(point: {x: number; y: number}, depth: number, zoom = 1
   return {x: (point.x - VIEW_CENTER.x) / d, y: (point.y - VIEW_CENTER.y) / d, zoom};
 }
 
+/**
+ * The shot that puts `point` (on a plane at `depth`) at `screen` (default:
+ * the centre) at `zoom`. Used by inspection to park an object beside the
+ * information panel.
+ */
+export function frameShot(point: {x: number; y: number}, depth: number, zoom: number, screen: {x: number; y: number} = VIEW_CENTER): CameraShot {
+  const d = Math.max(depth, 0.05);
+  const s = 1 + (zoom - 1) * d;
+  return {
+    x: (point.x - VIEW_CENTER.x - (screen.x - VIEW_CENTER.x) / s) / d,
+    y: (point.y - VIEW_CENTER.y - (screen.y - VIEW_CENTER.y) / s) / d,
+    zoom,
+  };
+}
+
 /** Cubic-bezier easing, solved for x with Newton + bisection (same curve as CSS / RN Easing.bezier). */
 export function ease(name: CameraEasing, t: number): number {
   const [x1, y1, x2, y2] = CAMERA_EASINGS[name];
@@ -211,6 +226,11 @@ export class CameraController {
 
   get isMoving(): boolean {
     return this.move !== null || this.follow !== null;
+  }
+
+  /** Moving, following or shaking at `now`: the renderer needs frames. */
+  isActive(now: number): boolean {
+    return this.isMoving || (this.shake !== null && now - this.shake.start < this.shake.duration);
   }
 
   /** The camera at `now` (with shake unless `withShake` is false). */

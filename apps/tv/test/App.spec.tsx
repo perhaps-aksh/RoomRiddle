@@ -120,7 +120,7 @@ describe('RoomRiddle TV shell', () => {
   it('Settings lists the settings and Back', () => {
     const screen = render(<App />);
     fireEvent.press(screen.getByTestId('home-settings'));
-    for (const id of ['motion', 'sound', 'music', 'display', 'controls', 'back']) {
+    for (const id of ['motion', 'world', 'sound', 'music', 'display', 'controls', 'back']) {
       expect(screen.getByTestId(`settings-${id}`)).toBeTruthy();
     }
     fireEvent.press(screen.getByTestId('settings-sound'));
@@ -208,7 +208,7 @@ describe('Phase 5 experience', () => {
   });
 
   it('the evidence board has a designed empty state', () => {
-    const screen = render(<App />);
+    const screen = render(<App cinematicWorld={false} />);
     fireEvent.press(screen.getByTestId('home-mysteries'));
     fireEvent.press(screen.getByTestId('mystery-the-last-train'));
     fireEvent.press(screen.getByTestId('details-select'));

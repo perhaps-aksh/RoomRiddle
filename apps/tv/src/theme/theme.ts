@@ -27,6 +27,9 @@ function computeScale(): number {
 
 const SCALE = computeScale();
 
+/** Design px → layout units, unrounded. For Animated values (camera, parallax) that move continuously. */
+export const PX_SCALE = SCALE;
+
 /** Convert a 1920×1080 design-pixel value to layout units for this screen. */
 export function px(designPixels: number): number {
   return PixelRatio.roundToNearestPixel(designPixels * SCALE);

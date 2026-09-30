@@ -28,7 +28,8 @@ import {JoinRoomScreen} from './screens/JoinRoom/JoinRoomScreen';
 import {MysteriesScreen} from './screens/Mysteries/MysteriesScreen';
 import {MysteryDetailsScreen} from './screens/MysteryDetails/MysteryDetailsScreen';
 import {PuzzleScreen} from './screens/Puzzle/PuzzleScreen';
-import {SceneScreen} from './screens/Scene/SceneScreen';
+import {SceneRoute} from './world/SceneRoute';
+import {WorldSessionProvider} from './world/WorldSession';
 import {SettingsScreen} from './screens/Settings/SettingsScreen';
 import {ScreenProps} from './screens/types';
 
@@ -47,6 +48,7 @@ export const App = ({
   createSocket,
   serverUrl,
   reducedMotion,
+  cinematicWorld = true,
 }: {
   clock?: () => number;
   /** Tests inject a fake WebSocket and URL. */
@@ -54,13 +56,17 @@ export const App = ({
   serverUrl?: string;
   /** Start with reduced motion (also switchable in Settings). */
   reducedMotion?: boolean;
+  /** Scenes as the 2.5D world (default) or as P5 case files (also switchable in Settings). */
+  cinematicWorld?: boolean;
 }) => (
   <MotionProvider initialReduced={reducedMotion}>
-    <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
-      <ToastProvider>
-        <Shell />
-      </ToastProvider>
-    </GameProvider>
+    <WorldSessionProvider initialEnabled={cinematicWorld}>
+      <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
+        <ToastProvider>
+          <Shell />
+        </ToastProvider>
+      </GameProvider>
+    </WorldSessionProvider>
   </MotionProvider>
 );
 
@@ -212,7 +218,7 @@ function renderScreen(route: Route, props: ScreenProps) {
     case 'gameIntro':
       return <GameIntroScreen {...props} />;
     case 'scene':
-      return <SceneScreen {...props} />;
+      return <SceneRoute {...props} />;
     case 'investigation':
       return <InvestigationScreen {...props} />;
     case 'evidence':

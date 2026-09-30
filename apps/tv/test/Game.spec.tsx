@@ -24,7 +24,7 @@ const T0 = 1_700_000_000_000;
 function setup() {
   let time = T0;
   const clock = () => time;
-  const screen = render(<App clock={clock} />);
+  const screen = render(<App clock={clock} cinematicWorld={false} />);
   /** Jump the clock forward, then let one second of timers run (countdown + watchdog). */
   const advance = (ms: number) => {
     time += ms;

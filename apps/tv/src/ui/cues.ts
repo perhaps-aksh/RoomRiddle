@@ -37,3 +37,32 @@ export function cue(name: Cue): void {
     // A cue must never break interaction.
   }
 }
+
+/**
+ * World audio hook (Phase 7): named moments from scene timelines, e.g.
+ * {name: 'audio.cue', payload: {cue: 'train-brake'}}, and dialogue lines with
+ * an audioId. Nothing plays yet; the audio phase registers a handler.
+ */
+export interface WorldAudioEvent {
+  name: string;
+  payload?: Record<string, unknown>;
+}
+
+let worldHandler: ((event: WorldAudioEvent) => void) | null = null;
+
+export function setWorldAudioHandler(next: ((event: WorldAudioEvent) => void) | null): () => void {
+  worldHandler = next;
+  return () => {
+    if (worldHandler === next) {
+      worldHandler = null;
+    }
+  };
+}
+
+export function worldAudio(event: WorldAudioEvent): void {
+  try {
+    worldHandler?.(event);
+  } catch {
+    // Audio must never break the game.
+  }
+}

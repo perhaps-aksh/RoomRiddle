@@ -15,6 +15,7 @@ import {
   doorsOpen,
   ease,
   focusShot,
+  frameShot,
   layerTransform,
   objectViews,
   placeSet,
@@ -130,6 +131,13 @@ test('camera: focus centres a point of any plane', () => {
   }
 });
 
+test('camera: frameShot parks a point anywhere on screen', () => {
+  const target = {x: 320, y: 300};
+  const shot = frameShot(target, 0.3, 1.9, {x: 600, y: 520});
+  const p = projectPoint(target, 0.3, shot);
+  assert.ok(Math.abs(p.x - 600) < 1e-6 && Math.abs(p.y - 520) < 1e-6);
+});
+
 test('camera: moves ease, interrupt smoothly, follow and shake settle', () => {
   assert.ok(Math.abs(ease('linear', 0.25) - 0.25) < 1e-4);
   assert.ok(ease('cinematic', 0.5) > 0.8, 'cinematic front-loads motion');
@@ -220,6 +228,7 @@ test('director: the train arrival plays as data, pauses for dialogue, hands cont
 
   d.update(9000);
   assert.equal(d.state.train?.to, 'arriving');
+  assert.equal(d.trainCenter(8000)!.x, world.train!.positions.approaching + 1300, 'legs chain without a pause');
   const camA = d.camera.sample(9500, false).x;
   d.update(10500);
   const camB = d.camera.sample(10500, false).x;
@@ -253,6 +262,20 @@ test('director: the train arrival plays as data, pauses for dialogue, hands cont
   assert.equal(d.playing, null);
   assert.ok(fired.includes('custom'), 'P7 audio hooks fire as custom events');
   assert.ok(d.state.customEvents.some(e => e.payload?.['cue'] === 'train-approach'));
+});
+
+test('director: a reaction interrupts investigation, then the detective leaves and control returns', () => {
+  const sw = world.scenes.find(s => s.sceneId === 'station')!;
+  const d = directorFor(sw);
+  assert.equal(d.state.mode, 'investigation');
+  d.setMode('inspection');
+  d.say(['react-clock'], 'detective', 100, {nodeId: 'detective-spot', exitAfter: true});
+  assert.equal(d.state.mode, 'dialogue');
+  assert.equal(d.state.characters.detective?.state, 'react');
+  assert.equal(d.state.characters.detective?.nodeId, 'detective-spot');
+  assert.equal(d.advanceDialogue(200), false);
+  assert.equal(d.state.mode, 'inspection', 'back to where the players were');
+  assert.equal(d.state.characters.detective?.state, 'exit');
 });
 
 test('director: skipping lands in the same end state without dialogue', () => {

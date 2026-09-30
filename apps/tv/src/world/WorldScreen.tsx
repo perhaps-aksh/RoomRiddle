@@ -1,0 +1,601 @@
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {Animated, Pressable, StyleSheet, Text, View} from 'react-native';
+import type {GameState, MysteryDefinition, MysteryWorld, SceneWorld, WorldSet} from '@roomriddle/shared-types';
+import {
+  CameraController,
+  MODE_POLICY,
+  SceneDirector,
+  actionFor,
+  assetsForSet,
+  diffEvents,
+  dialogueFor,
+  focusable,
+  frameShot,
+  centerOf,
+  objectBounds,
+  objectViews,
+  placeSet,
+  trainX,
+  doorsOpen,
+  tweenValue,
+  verbFor,
+  type ObjectView,
+  type PlacedNode,
+} from '@roomriddle/scene';
+import {theme as ds} from '@roomriddle/ui';
+import {ClueCard} from '../components/ClueCard/ClueCard';
+import {GameHeader} from '../components/GameHeader/GameHeader';
+import {SceneActions} from '../components/SceneActions/SceneActions';
+import {TVButton} from '../components/TVButton/TVButton';
+import {useGame} from '../game/GameContext';
+import {useSceneHub} from '../game/useSceneHub';
+import type {Navigator} from '../navigation/TVNavigation';
+import {useBackInterceptor} from '../navigation/useBackInterceptor';
+import {px, theme} from '../theme/theme';
+import {cue, worldAudio} from '../ui/cues';
+import {Feedback} from '../ui/Feedback';
+import {LoadingState} from '../ui/LoadingState';
+import {useReducedMotion} from '../ui/motion';
+import {RRPanel} from '../ui/RRPanel';
+import {WorldCaption} from './Actors';
+import {assetLoader, assetRegistry} from './art';
+import {Hotspot, Plane, Stage, type CameraValues} from './Stage';
+import {useWorldSession} from './WorldSession';
+
+const W = ds.worldColors;
+/** Inspected objects are parked here (design px), left of the information panel. */
+const INSPECT_SPOT = {x: 560, y: 500};
+
+interface Inspecting {
+  objectId: string;
+  fresh: boolean;
+  unlocked: string | null;
+}
+
+/**
+ * The 2.5D scene: the P6 world for scenes that have one.
+ *
+ * Game flow is exactly the P5 scene hub's (useSceneHub + SceneActions); this
+ * screen adds the world: the director plays authored timelines, the camera
+ * drives every depth plane, and objects in the world are how players
+ * examine things. Examining sends the ordinary engine action; the world
+ * reacts to GameState changes (whoever caused them), never the other way round.
+ */
+export const WorldScreen = ({
+  navigator,
+  initialFocusKey,
+  world,
+  scene,
+}: {
+  navigator: Navigator;
+  initialFocusKey?: string;
+  world: MysteryWorld;
+  scene: SceneWorld;
+}) => {
+  const {mystery, state} = useGame();
+  const hub = useSceneHub(navigator);
+  const [ready, setReady] = useState(false);
+
+  // Load this scene's assets (placeholders resolve at once); release them on the way out.
+  useEffect(() => {
+    let live = true;
+    const ids = sceneAssets(world, scene);
+    assetLoader.preload(ids).then(() => live && setReady(true));
+    return () => {
+      live = false;
+      assetLoader.unload(ids);
+    };
+  }, [world, scene]);
+
+  if (!hub || !state || !mystery) {
+    return null;
+  }
+  if (!ready) {
+    return (
+      <View style={styles.loading}>
+        <LoadingState kind="preparing" testID="world-loading" />
+      </View>
+    );
+  }
+  return <WorldView navigator={navigator} initialFocusKey={initialFocusKey} world={world} scene={scene} mystery={mystery} state={state} hub={hub} />;
+};
+
+function sceneAssets(world: MysteryWorld, scene: SceneWorld): string[] {
+  const extra = [...world.characters.map(c => c.assetId)];
+  if (world.train) {
+    extra.push(world.train.assetId, ...Object.values(world.train.parts));
+  }
+  return [...new Set(scene.sets.flatMap(s => assetsForSet(s, extra)))];
+}
+
+const WorldView = ({
+  navigator,
+  initialFocusKey,
+  world,
+  scene,
+  mystery,
+  state,
+  hub,
+}: {
+  navigator: Navigator;
+  initialFocusKey?: string;
+  world: MysteryWorld;
+  scene: SceneWorld;
+  mystery: MysteryDefinition;
+  state: GameState;
+  hub: NonNullable<ReturnType<typeof useSceneHub>>;
+}) => {
+  const {dispatch} = useGame();
+  const session = useWorldSession();
+  const reduced = useReducedMotion();
+  const gameKey = `${mystery.summary.id}:${state.startedAt ?? 0}`;
+
+  // ── The director and its camera (one per scene) ──────────────────────
+  const placed = useMemo(() => new Map(scene.sets.map(s => [s.id, placeSet(s, assetRegistry)])), [scene]);
+  const director = useMemo(() => {
+    const now = Date.now();
+    return new SceneDirector({
+      world: scene,
+      camera: new CameraController(),
+      train: world.train,
+      nodeOf: (setId, nodeId) => placed.get(setId)?.get(nodeId),
+      now,
+    });
+  }, [scene, world, placed]);
+
+  const [cam] = useState<CameraValues>(() => ({x: new Animated.Value(0), y: new Animated.Value(0), zoom: new Animated.Value(1)}));
+  const [trainXV] = useState(() => new Animated.Value(0));
+  const [doorsV] = useState(() => new Animated.Value(0));
+  const [fadeV] = useState(() => new Animated.Value(0));
+  const [darkV] = useState(() => new Animated.Value(0));
+  const [, setVersion] = useState(0);
+  const bump = useCallback(() => setVersion(v => v + 1), []);
+
+  // ── Frame loop: runs only while something moves ──────────────────────
+  const frame = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
+  const apply = useCallback(
+    (now: number) => {
+      const shot = director.camera.sample(now);
+      cam.x.setValue(shot.x);
+      cam.y.setValue(shot.y);
+      cam.zoom.setValue(shot.zoom);
+      const s = director.state;
+      if (world.train && s.train) {
+        trainXV.setValue(trainX(world.train, s.train, now));
+        doorsV.setValue(doorsOpen(world.train, s.train, now));
+      }
+      fadeV.setValue(tweenValue(s.fade, now));
+      darkV.setValue(tweenValue(s.darkness, now));
+    },
+    [director, cam, world.train, trainXV, doorsV, fadeV, darkV],
+  );
+  const busy = useCallback(
+    (now: number) => {
+      const s = director.state;
+      const trainMoving = world.train && s.train ? now - s.train.startedAt < world.train.durations[s.train.to] + 50 : false;
+      const tweening = now < s.fade.start + s.fade.duration || now < s.darkness.start + s.darkness.duration;
+      return (director.playing !== null && !s.dialogue) || director.camera.isActive(now) || trainMoving || tweening || s.caption !== null || s.setChange !== null;
+    },
+    [director, world.train],
+  );
+  const tick = useCallback(() => {
+    frame.current = null;
+    const now = Date.now();
+    const before = director.state;
+    director.update(now);
+    apply(now);
+    if (director.state !== before) {
+      bump();
+    }
+    if (busy(now)) {
+      frame.current = requestAnimationFrame(tick);
+    }
+  }, [director, apply, busy, bump]);
+  const kick = useCallback(() => {
+    if (frame.current === null) {
+      frame.current = requestAnimationFrame(tick);
+    }
+  }, [tick]);
+  useEffect(
+    () => () => {
+      if (frame.current !== null) {
+        cancelAnimationFrame(frame.current);
+      }
+    },
+    [],
+  );
+
+  // Timeline moments with names (audio.cue …) go to the Phase 7 hook.
+  useEffect(
+    () =>
+      director.subscribe(fired => {
+        for (const ev of fired) {
+          if (ev.type === 'custom') {
+            worldAudio({name: ev.name, payload: ev.payload});
+          }
+        }
+      }),
+    [director],
+  );
+
+  // First visit plays the scene's entry cinematic; returning (from a puzzle) doesn't.
+  useEffect(() => {
+    const id = scene.entryTimelineId;
+    const key = `${gameKey}:${id}`;
+    if (id && !session.played.has(key)) {
+      session.played.add(key);
+      director.play(id, Date.now());
+    }
+    apply(Date.now());
+    bump();
+    kick();
+  }, [director, scene, gameKey, session, apply, bump, kick]);
+
+  // ── The world reacts to authoritative state (anyone's action) ────────
+  const prevState = useRef<GameState | null>(state);
+  useEffect(() => {
+    const events = diffEvents(prevState.current, state);
+    prevState.current = state;
+    const played = new Set([...session.played].filter(k => k.startsWith(`${gameKey}:line:`)).map(k => k.slice(`${gameKey}:line:`.length)));
+    const lines = dialogueFor(events, world.dialogue, played);
+    if (lines.length > 0) {
+      lines.forEach(l => session.played.add(`${gameKey}:line:${l.id}`));
+      const who = lines[0]!.characterId;
+      director.say(
+        lines.map(l => l.id),
+        who,
+        Date.now(),
+        {nodeId: 'detective-spot', exitAfter: true},
+      );
+      bump();
+    }
+  }, [state, director, world.dialogue, session, gameKey, bump]);
+
+  const s = director.state;
+  const policy = MODE_POLICY[s.mode];
+  const set = scene.sets.find(x => x.id === s.setId)!;
+  const setNodes = placed.get(set.id)!;
+  const views = useMemo(() => objectViews(set, mystery, state), [set, mystery, state]);
+  const [inspecting, setInspecting] = useState<Inspecting | null>(null);
+  const lastFocus = session.lastFocus.get(`${gameKey}:${set.id}`);
+
+  // Dialogue: the current line goes to the audio hook as it appears.
+  const line = s.dialogue ? world.dialogue.find(l => l.id === s.dialogue!.lineIds[s.dialogue!.index]) : undefined;
+  useEffect(() => {
+    if (line?.audioId) {
+      worldAudio({name: 'dialogue', payload: {audioId: line.audioId, lineId: line.id}});
+    }
+  }, [line]);
+
+  // ── Set transitions (push / pull / depth / fade / crossfade) ─────────
+  const [veil] = useState(() => new Animated.Value(0));
+  const [stageScale] = useState(() => new Animated.Value(1));
+  const changeKey = s.setChange ? `${s.setChange.to}@${s.setChange.start}` : null;
+  useEffect(() => {
+    const c = director.state.setChange;
+    if (!c) {
+      return;
+    }
+    const from = reduced ? 1 : c.transition === 'push' ? 1.22 : c.transition === 'pull' ? 0.86 : c.transition === 'depth' ? 1.1 : 1;
+    const veilFrom = c.transition === 'crossfade' ? 0.6 : c.transition === 'fade' ? 1 : 0.9;
+    stageScale.setValue(from);
+    veil.setValue(veilFrom);
+    const a = Animated.parallel([
+      Animated.timing(stageScale, {toValue: 1, duration: c.duration, useNativeDriver: true}),
+      Animated.timing(veil, {toValue: 0, duration: c.duration, useNativeDriver: true}),
+    ]);
+    a.start();
+    return () => a.stop();
+  }, [changeKey, director, reduced, stageScale, veil]);
+
+  // ── Inspection ───────────────────────────────────────────────────────
+  const inspectView = inspecting ? views.find(v => v.object.id === inspecting.objectId) : undefined;
+  const openInspection = (view: ObjectView) => {
+    const node = setNodes.get(view.object.nodeId);
+    if (!node) {
+      return;
+    }
+    session.lastFocus.set(`${gameKey}:${set.id}`, view.object.id);
+    setInspecting({objectId: view.object.id, fresh: false, unlocked: null});
+    director.setMode('inspection');
+    const target = centerOf(objectBounds(view.object, node));
+    director.camera.moveTo(frameShot(target, node.depth, view.object.inspectZoom ?? 1.6, INSPECT_SPOT), reduced ? 0 : 900, 'cinematic', Date.now());
+    bump();
+    kick();
+  };
+  const closeInspection = () => {
+    setInspecting(null);
+    director.setMode('investigation');
+    director.camera.moveTo(set.camera, reduced ? 0 : 700, 'standard', Date.now());
+    bump();
+    kick();
+  };
+  const examine = (view: ObjectView) => {
+    const action = actionFor(view);
+    if (!action) {
+      return;
+    }
+    dispatch(action, events => {
+      if (events.some(e => e.type === 'clue-discovered')) {
+        cue('discovery');
+        director.camera.startShake(reduced ? 0 : 2, 260, Date.now());
+        kick();
+      }
+      const unlocked = events.filter(e => e.type === 'puzzle-unlocked');
+      const titles = unlocked.map(e => (e.type === 'puzzle-unlocked' ? mystery.puzzles.find(p => p.id === e.puzzleId)?.title : '')).join(', ');
+      setInspecting(cur => (cur ? {...cur, fresh: events.some(e => e.type === 'clue-discovered'), unlocked: unlocked.length > 0 ? `New puzzle unlocked: ${titles}` : null} : cur));
+    });
+  };
+
+  // ── Remote / Back ────────────────────────────────────────────────────
+  const skip = () => {
+    director.skip(Date.now());
+    apply(Date.now());
+    bump();
+    kick();
+  };
+  const advance = () => {
+    director.advanceDialogue(Date.now());
+    bump();
+    kick();
+  };
+  useBackInterceptor(() => {
+    if (hub.confirmLeave) {
+      hub.setConfirmLeave(false);
+    } else if (s.mode === 'cinematic') {
+      skip();
+    } else if (s.mode === 'dialogue') {
+      advance();
+    } else if (s.mode === 'inspection') {
+      closeInspection();
+    } else {
+      hub.setConfirmLeave(true);
+    }
+    return true;
+  });
+
+  // ── Focus ────────────────────────────────────────────────────────────
+  const targets = focusable(views);
+  const firstNew = targets.find(v => v.status === 'available');
+  const returning = initialFocusKey !== undefined && initialFocusKey !== 'investigate';
+  const hotspotFocus = returning ? undefined : lastFocus ?? firstNew?.object.id;
+  const barFocus = hotspotFocus === undefined ? (returning ? initialFocusKey : hub.suggestedFocus) : undefined;
+
+  const showObjects = policy.focusObjects && !hub.confirmLeave;
+  const hotspots = showObjects
+    ? targets.map(v => {
+        const node = setNodes.get(v.object.nodeId);
+        if (!node) {
+          return null;
+        }
+        return (
+          <Plane key={v.object.id} cam={cam} depth={node.depth}>
+            <Hotspot view={v} node={node} preferredFocus={v.object.id === hotspotFocus} onFocus={() => session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id)} onSelect={() => openInspection(v)} />
+          </Plane>
+        );
+      })
+    : null;
+
+  const trainMotion = s.train;
+  const found = views.filter(v => v.status === 'examined').length;
+  const clueObjects = views.filter(v => v.object.clueId !== undefined).length;
+
+  return (
+    <View style={styles.screen} testID={`world-${scene.sceneId}`}>
+      <Animated.View style={[StyleSheet.absoluteFill, {transform: [{scale: stageScale}]}]}>
+        <Stage
+          world={world}
+          set={set}
+          placed={setNodes}
+          cam={cam}
+          train={trainMotion ? {x: trainXV, doors: doorsV, state: trainMotion.to} : null}
+          effects={s.effects}
+          characters={s.characters}
+          nodeOpacity={(n: PlacedNode) => director.nodeVisible(n.id, n.visible, Date.now()) * n.opacity}
+          reduced={reduced}
+          night={<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.night, {opacity: darkV}]} />}
+          hotspots={hotspots}
+        />
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.black, {opacity: veil}]} />
+      <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.black, {opacity: fadeV}]} testID="world-fade" />
+      {s.caption && <WorldCaption key={`${s.caption.text}@${s.caption.start}`} text={s.caption.text} style={s.caption.style} />}
+
+      {/* ── UI layer: separate from the world, P5 design language ── */}
+      {policy.showHud && (
+        <View pointerEvents="box-none" style={styles.header}>
+          <GameHeader context={`${hub.view.scene.title} · ${found}/${clueObjects} examined`} />
+        </View>
+      )}
+
+      {s.mode === 'cinematic' && (
+        <View style={styles.skip}>
+          <TVButton variant="action" label="Skip ▸" onPress={skip} preferredFocus testID="world-skip" />
+        </View>
+      )}
+
+      {s.mode === 'dialogue' && line && <DialogueBox key={line.id} speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''} text={line.text} onNext={advance} />}
+
+      {/* The inspection stays up while the detective reacts to what was found. */}
+      {inspectView && (s.mode === 'inspection' || s.dialogue?.resume === 'inspection') && (
+        <InspectionPanel
+          view={inspectView}
+          inspecting={inspecting!}
+          index={inspectView.clue ? state.discoveredClueIds.indexOf(inspectView.clue.id) + 1 : 0}
+          actions={s.mode === 'inspection'}
+          onExamine={() => examine(inspectView)}
+          onBack={closeInspection}
+        />
+      )}
+
+      {(s.mode === 'investigation' || s.mode === 'exploration' || hub.confirmLeave) && (
+        <View pointerEvents="box-none" style={styles.bar}>
+          <View style={styles.barInner}>
+            <SceneActions hub={hub} navigator={navigator} focusKey={barFocus} investigateLabel="Clue list" evidenceCount={state.discoveredClueIds.length} compact />
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+const DialogueBox = ({speaker, text, onNext}: {speaker: string; text: string; onNext: () => void}) => (
+  <View style={styles.dialogue} testID="world-dialogue">
+    <Pressable onPress={onNext} hasTVPreferredFocus accessibilityRole="button" accessibilityLabel={`${speaker}: ${text} Continue.`} testID="world-dialogue-next" style={styles.dialogueInner}>
+      <Text style={styles.speaker}>{speaker.toUpperCase()}</Text>
+      <Text style={styles.line}>{text}</Text>
+      <Text style={styles.next}>OK ▸</Text>
+    </Pressable>
+  </View>
+);
+
+const InspectionPanel = ({
+  view,
+  inspecting,
+  index,
+  actions,
+  onExamine,
+  onBack,
+}: {
+  view: ObjectView;
+  inspecting: Inspecting;
+  index: number;
+  actions: boolean;
+  onExamine: () => void;
+  onBack: () => void;
+}) => {
+  const available = view.status === 'available';
+  return (
+    <View style={styles.inspect} testID="world-inspection">
+      <RRPanel variant="elevated" tab={verbFor(view.object).toUpperCase()} meta={view.status === 'examined' ? 'IN EVIDENCE' : undefined}>
+        <Text style={styles.inspectName}>{view.object.name}</Text>
+        {view.status === 'examined' && view.clue ? (
+          <ClueCard key={view.clue.id} clue={view.clue} index={index || undefined} fresh={inspecting.fresh} testID="world-clue" />
+        ) : view.status === 'scenery' ? (
+          (view.object.flavor ?? []).map((f, i) => (
+            <Text key={i} style={styles.inspectText}>
+              {f}
+            </Text>
+          ))
+        ) : (
+          <Text style={styles.inspectText}>{view.prompt}</Text>
+        )}
+        {inspecting.unlocked !== null && (
+          <View style={styles.inspectGap} testID="world-unlocked">
+            <Feedback kind="success" title="Lead unlocked" detail={inspecting.unlocked} playKey={inspecting.unlocked} />
+          </View>
+        )}
+        <View style={[styles.inspectActions, !actions && styles.hidden]}>
+          {actions && available && <TVButton variant="action" tone="primary" label={verbFor(view.object)} onPress={onExamine} preferredFocus testID="world-examine" />}
+          {actions && <TVButton key={`back-${view.status}`} variant="action" label="Back" onPress={onBack} preferredFocus={!available} testID="world-inspect-back" />}
+        </View>
+      </RRPanel>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: W.black,
+    overflow: 'hidden',
+  },
+  loading: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  night: {
+    backgroundColor: W.black,
+  },
+  black: {
+    backgroundColor: W.black,
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: theme.spacing.xxl,
+    paddingTop: theme.spacing.lg,
+  },
+  bar: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: theme.spacing.xxl,
+    paddingBottom: theme.spacing.lg,
+  },
+  barInner: {
+    backgroundColor: theme.colors.overlay,
+    paddingHorizontal: theme.spacing.lg,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.xs,
+    borderTopWidth: theme.borders.hairline,
+    borderColor: theme.colors.border,
+  },
+  skip: {
+    position: 'absolute',
+    right: theme.spacing.xxl,
+    bottom: theme.spacing.xl,
+    opacity: 0.8,
+  },
+  dialogue: {
+    position: 'absolute',
+    left: px(260),
+    right: px(260),
+    bottom: px(90),
+  },
+  dialogueInner: {
+    backgroundColor: theme.colors.overlay,
+    borderLeftWidth: theme.borders.heavy,
+    borderColor: theme.colors.accent,
+    paddingHorizontal: theme.spacing.xl,
+    paddingVertical: theme.spacing.lg,
+  },
+  speaker: {
+    ...theme.text.label,
+    color: theme.colors.accentStrong,
+    marginBottom: theme.spacing.xs,
+  },
+  line: {
+    ...theme.text.h1,
+    color: theme.colors.textPrimary,
+  },
+  next: {
+    ...theme.text.mono,
+    color: theme.colors.textSecondary,
+    alignSelf: 'flex-end',
+    marginTop: theme.spacing.sm,
+  },
+  inspect: {
+    position: 'absolute',
+    right: px(96),
+    top: px(150),
+    width: px(760),
+  },
+  inspectName: {
+    ...theme.text.h1,
+    color: theme.colors.textPrimary,
+    marginBottom: theme.spacing.md,
+  },
+  inspectText: {
+    ...theme.text.body,
+    color: theme.colors.textSecondary,
+    marginBottom: theme.spacing.sm,
+  },
+  hidden: {
+    opacity: 0,
+  },
+  inspectGap: {
+    marginTop: theme.spacing.md,
+  },
+  inspectActions: {
+    flexDirection: 'row',
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+  },
+});
+
+export type {WorldSet};

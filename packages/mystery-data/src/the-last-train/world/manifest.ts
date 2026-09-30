@@ -131,6 +131,7 @@ const LAMP = asset({
   animation: 'triggered',
   animationNote: 'Lamp head glow flickers (effect: flicker). Final art: lamp without glow; glow stays procedural.',
   description: 'Cast-iron platform gas lamp.',
+  light: {x: 45, y: 50, radius: 170, color: 'lampGlow', strength: 0.14, flicker: true},
   placeholder: [r(38, 60, 14, 500, 'iron'), r(20, 20, 50, 60, 'ironLight', {radius: 8}), r(28, 30, 34, 40, 'lamp', {radius: 6, role: 'lamp-head'})],
 });
 

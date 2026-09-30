@@ -4,6 +4,7 @@ import {ScreenHeader} from '../../components/ScreenHeader/ScreenHeader';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {px, theme} from '../../theme/theme';
 import {useMotionPrefs} from '../../ui/motion';
+import {useWorldSession} from '../../world/WorldSession';
 import {RRBadge} from '../../ui/RRBadge';
 import {ScreenProps} from '../types';
 
@@ -18,6 +19,13 @@ interface SettingItem {
 
 const SETTINGS: readonly SettingItem[] = [
   {key: 'motion', label: 'Motion', options: ['Full', 'Reduced'], description: 'Reduced removes movement and zoom from focus, transitions and reveals. Fades stay short and gentle.', live: true},
+  {
+    key: 'world',
+    label: 'Scenes',
+    options: ['Cinematic', 'Case file'],
+    description: 'Cinematic plays each scene as a 2.5D world you explore with the remote. Case file shows the same scene as a written case file.',
+    live: true,
+  },
   {key: 'sound', label: 'Sound', options: ['On', 'Off'], description: 'Sound effects for clues, answers and timers.', live: false},
   {key: 'music', label: 'Music', options: ['On', 'Off'], description: 'Atmospheric music during a mystery.', live: false},
   {key: 'display', label: 'Display', options: ['Standard', 'Large Text'], description: 'Text size for the room and story screens.', live: false},
@@ -25,20 +33,25 @@ const SETTINGS: readonly SettingItem[] = [
 ];
 
 /**
- * Settings. Motion is live (reduced-motion preference for the whole app, for
- * this session). The rest cycle on OK as previews; sound and music arrive with
+ * Settings. Motion (reduced-motion preference for the whole app) and Scenes
+ * (2.5D world or case file) are live for this session. The rest cycle on OK as previews; sound and music arrive with
  * the audio phase.
  */
 export const SettingsScreen = ({navigator}: ScreenProps) => {
   const {reduced, setReduced} = useMotionPrefs();
+  const world = useWorldSession();
   const [values, setValues] = useState<Record<string, number>>({});
   const [focusedKey, setFocusedKey] = useState(SETTINGS[0]?.key ?? 'back');
   const focused = SETTINGS.find(s => s.key === focusedKey);
 
-  const valueOf = (item: SettingItem) => (item.key === 'motion' ? (reduced ? 1 : 0) : values[item.key] ?? 0);
+  const valueOf = (item: SettingItem) => (item.key === 'motion' ? (reduced ? 1 : 0) : item.key === 'world' ? (world.enabled ? 0 : 1) : values[item.key] ?? 0);
   const cycle = (item: SettingItem) => {
     if (item.key === 'motion') {
       setReduced(!reduced);
+      return;
+    }
+    if (item.key === 'world') {
+      world.setEnabled(!world.enabled);
       return;
     }
     setValues(current => ({...current, [item.key]: ((current[item.key] ?? 0) + 1) % item.options.length}));

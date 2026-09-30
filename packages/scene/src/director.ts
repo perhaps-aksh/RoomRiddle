@@ -61,6 +61,8 @@ export interface DialogueRun {
   index: number;
   /** Mode to return to when the dialogue ends. */
   resume: SceneMode;
+  /** Character that leaves when the dialogue ends (reactions). */
+  exitAfter?: string;
 }
 
 export interface SetChange {
@@ -235,13 +237,14 @@ export class SceneDirector {
   }
 
   /** Show dialogue outside a timeline (e.g. the detective reacting to a clue). */
-  say(lineIds: readonly string[], characterId: string | undefined, now: number): void {
+  say(lineIds: readonly string[], characterId: string | undefined, now: number, opts: {nodeId?: string; exitAfter?: boolean} = {}): void {
     if (lineIds.length === 0) {
       return;
     }
     const resume = this.s.dialogue?.resume ?? this.s.mode;
-    const characters = characterId ? {...this.s.characters, [characterId]: this.presence(characterId, 'react', now)} : this.s.characters;
-    this.s = {...this.s, characters, dialogue: {lineIds: [...lineIds], index: 0, resume}, mode: 'dialogue'};
+    const characters = characterId ? {...this.s.characters, [characterId]: this.presence(characterId, 'react', now, opts.nodeId)} : this.s.characters;
+    const exitAfter = opts.exitAfter && characterId ? characterId : undefined;
+    this.s = {...this.s, characters, dialogue: {lineIds: [...lineIds], index: 0, resume, exitAfter}, mode: 'dialogue'};
   }
 
   /** OK during dialogue. Returns false once the dialogue is over. */
@@ -256,7 +259,10 @@ export class SceneDirector {
     }
     // Dialogue over: the speaker settles back to idle.
     const characters = Object.fromEntries(
-      Object.entries(this.s.characters).map(([id, c]) => [id, c.state === 'talk' || c.state === 'react' ? {...c, state: 'idle' as const, since: now} : c]),
+      Object.entries(this.s.characters).map(([id, c]) => [
+        id,
+        id === d.exitAfter ? {...c, state: 'exit' as const, since: now} : c.state === 'talk' || c.state === 'react' ? {...c, state: 'idle' as const, since: now} : c,
+      ]),
     );
     this.s = {...this.s, dialogue: null, characters, mode: this.timeline ? 'cinematic' : d.resume};
     this.lastNow = now;
@@ -357,7 +363,8 @@ export class SceneDirector {
         }
         break;
       case 'camera.reset':
-        this.camera.reset(d(a.duration), at);
+        // Back to the current set's resting shot (where players get control).
+        this.camera.moveTo(this.setById(this.s.setId).camera, d(a.duration), 'standard', at);
         break;
       case 'train.state':
         this.setTrain(a.state, at, instant);

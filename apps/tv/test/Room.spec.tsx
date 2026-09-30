@@ -25,7 +25,7 @@ const press = (screen: RenderAPI, testID: string) => fireEvent.press(screen.getB
 
 function hostWithTwoPhones() {
   const server = new FakeServer(() => 1_700_000_000_000);
-  const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" clock={() => 1_700_000_000_000} />);
+  const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" clock={() => 1_700_000_000_000} cinematicWorld={false} />);
   press(screen, 'home-createRoom');
   act(() => {
     jest.advanceTimersByTime(10);
@@ -111,7 +111,7 @@ describe('TV hosting a room', () => {
 describe('Room feedback (Phase 5)', () => {
   function openLobby() {
     const server = new FakeServer(() => 1_700_000_000_000);
-    const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" clock={() => 1_700_000_000_000} />);
+    const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" clock={() => 1_700_000_000_000} cinematicWorld={false} />);
     press(screen, 'home-createRoom');
     act(() => {
       jest.advanceTimersByTime(10);

@@ -28,6 +28,8 @@ const DOOR_NODE: WorldNode = {
   x: TRAIN_STOP_X + BOARDING_DOOR.x,
   y: TRAIN_Y + BOARDING_DOOR.y,
   z: -1,
+  // A camera target only: the train draws its own doorway as the doors open.
+  visible: false,
 };
 
 const TRAIN_NODE: WorldNode = {id: 'train', assetId: 'last-train.train', x: TRAIN_STOP_X, y: TRAIN_Y, z: 0};
@@ -37,8 +39,8 @@ const STATION_BACKDROP: WorldNode[] = [
   {id: 'sky', assetId: 'last-train.sky', x: -340, y: -60},
   {id: 'city', assetId: 'last-train.city', x: -740, y: 430},
   {id: 'station', assetId: 'last-train.station.background', x: -40, y: 120},
-  {id: 'tracks', assetId: 'last-train.tracks', x: -1840, y: 960},
-  {id: 'platform', assetId: 'last-train.station.platform', x: -1840, y: 990},
+  {id: 'tracks', assetId: 'last-train.tracks', x: -1840, y: 960, z: -2},
+  {id: 'platform', assetId: 'last-train.station.platform', x: -1840, y: 990, z: 1},
   {id: 'lamp-1', assetId: 'last-train.station.lights', x: 180, y: 440, z: 2},
   {id: 'lamp-2', assetId: 'last-train.station.lights', x: 1320, y: 440, z: 2},
   {id: 'lamp-3', assetId: 'last-train.station.lights', x: 2420, y: 440, z: 2},
@@ -48,15 +50,21 @@ const STATION_BACKDROP: WorldNode[] = [
 
 const DETECTIVE_ON_PLATFORM: WorldNode = {id: 'detective-spot', assetId: 'last-train.detective', x: 1560, y: 560, depth: 0.82, z: 4};
 
+/**
+ * Where the camera rests when players have control: lifted a little, so
+ * objects on the platform sit clear of the action bar at the bottom.
+ */
+const REST = {x: 0, y: 90, zoom: 1};
+
 // ── Train ──────────────────────────────────────────────────────────────
 
 export const lastTrainTrain: TrainDefinition = {
   assetId: 'last-train.train',
   depth: TRAIN_DEPTH,
   positions: {
-    far: -4400,
-    approaching: -2700,
-    arriving: -420,
+    far: -5200,
+    approaching: -3000,
+    arriving: -250,
     stopped: TRAIN_STOP_X,
     'doors-opening': TRAIN_STOP_X,
     boarding: TRAIN_STOP_X,
@@ -64,18 +72,20 @@ export const lastTrainTrain: TrainDefinition = {
   },
   durations: {
     far: 0,
-    approaching: 3000,
+    approaching: 2400,
     arriving: 3000,
     stopped: 2000,
     'doors-opening': 1200,
     boarding: 0,
     departing: 6000,
   },
+  // Constant speed in, then braking whose initial speed matches (enter starts at 5× average).
   easing: {approaching: 'linear', arriving: 'linear', stopped: 'enter', departing: 'exit'},
   parts: {
     doorsAssetId: 'last-train.train.doors',
     windowsAssetId: 'last-train.train.windows',
     headlightsAssetId: 'last-train.train.headlights',
+    doorwayAssetId: 'last-train.train.doorway',
   },
 };
 
@@ -130,7 +140,7 @@ const stationSet: WorldSet = {
       inspectZoom: 1.8,
     },
   ],
-  camera: {x: 0, y: 0, zoom: 1},
+  camera: REST,
   effects: ['rain', 'fog', 'flicker'],
   darkness: 0.18,
   train: {y: TRAIN_Y, state: 'boarding'},
@@ -155,7 +165,7 @@ const trainSet: WorldSet = {
   nodes: [
     ...STATION_BACKDROP,
     TRAIN_NODE,
-    {id: 'departure-board', assetId: 'last-train.departure-board', x: 1320, y: 150},
+    {id: 'departure-board', assetId: 'last-train.departure-board', x: 1320, y: 190},
     {id: 'carriage-plan', assetId: 'last-train.carriage-plan', x: TRAIN_STOP_X + BOARDING_DOOR.x + 140, y: TRAIN_Y + 130, depth: TRAIN_DEPTH, z: 2},
     {id: 'ticket', assetId: 'last-train.ticket', x: 1180, y: 940},
     DETECTIVE_ON_PLATFORM,
@@ -165,7 +175,7 @@ const trainSet: WorldSet = {
     {id: 'obj-board', nodeId: 'departure-board', name: 'Departure board', interaction: 'read', clueId: 'departure-board', inspectZoom: 1.8},
     {id: 'obj-plan', nodeId: 'carriage-plan', name: 'Carriage plan', interaction: 'read', clueId: 'carriage-plan', inspectZoom: 2.2},
   ],
-  camera: {x: 0, y: 0, zoom: 1},
+  camera: REST,
   effects: ['rain', 'fog', 'flicker', 'steam'],
   darkness: 0.2,
   train: {y: TRAIN_Y, state: 'stopped'},
@@ -190,7 +200,7 @@ const corridorSet: WorldSet = {
     {id: 'obj-seat-card', nodeId: 'seat-card', name: 'Seat eight', interaction: 'read', clueId: 'seat-eight-card', inspectZoom: 2.2},
     {id: 'obj-brake', nodeId: 'brake', name: 'Emergency brake', interaction: 'activate', clueId: 'wired-brake', inspectZoom: 1.8},
   ],
-  camera: {x: 0, y: 0, zoom: 1},
+  camera: REST,
   effects: ['rain', 'flicker'],
   darkness: 0.12,
 };
@@ -208,7 +218,7 @@ const signalBoxSet: WorldSet = {
     {id: 'obj-levers', nodeId: 'lever-frame', name: 'Lever frame', interaction: 'inspect', clueId: 'blackwater-lever', inspectZoom: 1.5},
     {id: 'obj-lamp-room', nodeId: 'lamp-room-door', name: 'Lamp room door', interaction: 'open', clueId: 'lamp-room-door', inspectZoom: 1.6},
   ],
-  camera: {x: 0, y: 0, zoom: 1},
+  camera: REST,
   effects: ['rain', 'flicker'],
   darkness: 0.25,
 };
@@ -238,10 +248,10 @@ export const trainArrival: SceneTimeline = {
     ev(5600, {type: 'train.state', state: 'approaching'}),
     ev(5600, {type: 'camera.move', shot: {x: -380, y: 0, zoom: 1.02}, duration: 2800, easing: 'standard'}),
     ev(5600, {type: 'custom', name: 'audio.cue', payload: {cue: 'train-approach'}}),
-    ev(8600, {type: 'train.state', state: 'arriving'}),
-    ev(8600, {type: 'camera.follow', target: 'train', duration: 3000}),
-    ev(9400, {type: 'effect', effect: 'steam', on: true}),
-    ev(11600, {type: 'train.state', state: 'stopped'}),
+    ev(8000, {type: 'train.state', state: 'arriving'}),
+    ev(8000, {type: 'camera.follow', target: 'train', duration: 3000}),
+    ev(8800, {type: 'effect', effect: 'steam', on: true}),
+    ev(11000, {type: 'train.state', state: 'stopped'}),
     ev(12800, {type: 'camera.shake', intensity: 7, duration: 450}),
     ev(12800, {type: 'custom', name: 'audio.cue', payload: {cue: 'train-brake'}}),
     ev(13600, {type: 'camera.release'}),
@@ -260,7 +270,7 @@ export const trainArrival: SceneTimeline = {
     ev(20100, {type: 'character', characterId: 'detective', state: 'exit'}),
     ev(20700, {type: 'set', setId: 'platform', transition: 'pull', duration: 1000}),
     ev(20700, {type: 'camera.cut', shot: {x: 120, y: -20, zoom: 1.12}}),
-    ev(20750, {type: 'camera.move', shot: {x: 0, y: 0, zoom: 1}, duration: 1600, easing: 'cinematic'}),
+    ev(20750, {type: 'camera.reset', duration: 1600}),
     ev(22400, {type: 'mode', mode: 'investigation'}),
     ev(22400, {type: 'interaction', enabled: true}),
   ],
@@ -274,7 +284,7 @@ const trainEntry: SceneTimeline = {
     ev(0, {type: 'fade', to: 1, duration: 0}),
     ev(0, {type: 'camera.cut', shot: {x: 900, y: 0, zoom: 1.1}}),
     ev(200, {type: 'fade', to: 0, duration: 1200}),
-    ev(200, {type: 'camera.move', shot: {x: 0, y: 0, zoom: 1}, duration: 4200, easing: 'standard'}),
+    ev(200, {type: 'camera.reset', duration: 4200}),
     ev(900, {type: 'caption', text: 'The Northern Star · held at platform two', style: 'place', duration: 2800}),
     ev(3600, {type: 'character', characterId: 'detective', state: 'enter', nodeId: 'detective-spot'}),
     ev(4400, {type: 'character', characterId: 'detective', state: 'talk'}),
@@ -296,7 +306,7 @@ const carriageEntry: SceneTimeline = {
     ev(300, {type: 'camera.focus', nodeId: 'doorway', zoom: 3.2, duration: 2200, easing: 'exit'}),
     ev(2400, {type: 'set', setId: 'corridor', transition: 'push', duration: 900}),
     ev(2400, {type: 'camera.cut', shot: {x: -140, y: 0, zoom: 1.12}}),
-    ev(2450, {type: 'camera.move', shot: {x: 0, y: 0, zoom: 1}, duration: 2600, easing: 'cinematic'}),
+    ev(2450, {type: 'camera.reset', duration: 2600}),
     ev(2900, {type: 'caption', text: 'Carriage C · the sleeper', style: 'place', duration: 2600}),
     ev(3400, {type: 'effect', effect: 'lightning', on: true}),
     ev(3400, {type: 'custom', name: 'audio.cue', payload: {cue: 'thunder'}}),
@@ -319,7 +329,7 @@ const signalBoxEntry: SceneTimeline = {
     ev(300, {type: 'effect', effect: 'lightning', on: true}),
     ev(500, {type: 'effect', effect: 'lightning', on: false}),
     ev(500, {type: 'fade', to: 0, duration: 1400}),
-    ev(500, {type: 'camera.move', shot: {x: 0, y: 0, zoom: 1}, duration: 3600, easing: 'standard'}),
+    ev(500, {type: 'camera.reset', duration: 3600}),
     ev(1200, {type: 'caption', text: '11:58 PM', style: 'time', duration: 2400}),
     ev(3600, {type: 'character', characterId: 'detective', state: 'enter', nodeId: 'detective-spot'}),
     ev(4400, {type: 'character', characterId: 'detective', state: 'talk'}),

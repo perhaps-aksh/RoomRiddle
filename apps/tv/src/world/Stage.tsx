@@ -150,7 +150,7 @@ export const Stage = ({world, set, placed, cam, train, effects, characters, node
       {night}
       {lights.map(({n, light}, i) => (
         <Plane key={`light-${n.id}`} cam={cam} depth={n.depth}>
-          <Glow x={n.x + light.x} y={n.y + light.y} radius={light.radius} color={light.color} strength={light.strength} flicker={(light.flicker ?? false) && effects.flicker === true} reduced={reduced} seed={i % 4} />
+          <Glow x={n.x + light.x} y={n.y + light.y} radius={light.radius} color={light.color} strength={(light.strength ?? 0.16) * Math.min(1, nodeOpacity(n))} flicker={(light.flicker ?? false) && effects.flicker === true} reduced={reduced} seed={i % 4} />
         </Plane>
       ))}
       <Fog on={effects.fog === true} reduced={reduced} />
@@ -170,12 +170,15 @@ export const Stage = ({world, set, placed, cam, train, effects, characters, node
 export const Hotspot = ({
   view,
   node,
+  tagBelow = false,
   preferredFocus,
   onFocus,
   onSelect,
 }: {
   view: ObjectView;
   node: PlacedNode;
+  /** Put the name tag under the object (for objects near the top of the screen). */
+  tagBelow?: boolean;
   preferredFocus: boolean;
   onFocus: () => void;
   onSelect: () => void;
@@ -204,7 +207,7 @@ export const Hotspot = ({
         testID={`world-object-${view.object.id}`}>
         <FocusFrame progress={progress} radius={theme.radii.sm} />
       </Pressable>
-      <Animated.View pointerEvents="none" style={[styles.tag, {opacity: progress, transform: [{translateY: progress.interpolate({inputRange: [0, 1], outputRange: [px(8), 0]})}]}]}>
+      <Animated.View pointerEvents="none" style={[styles.tag, tagBelow && styles.tagBelow, {opacity: progress, transform: [{translateY: progress.interpolate({inputRange: [0, 1], outputRange: [px(tagBelow ? -8 : 8), 0]})}]}]}>
         <Text style={styles.tagName} numberOfLines={1}>
           {examined ? `✓ ${view.object.name.toUpperCase()}` : view.object.name.toUpperCase()}
         </Text>
@@ -227,6 +230,12 @@ const styles = StyleSheet.create({
     right: -px(200),
     marginBottom: px(18),
     alignItems: 'center',
+  },
+  tagBelow: {
+    bottom: undefined,
+    top: '100%',
+    marginBottom: 0,
+    marginTop: px(18),
   },
   tagName: {
     ...theme.text.label,

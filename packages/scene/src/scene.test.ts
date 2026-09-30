@@ -19,6 +19,7 @@ import {
   layerTransform,
   lookShot,
   objectViews,
+  occluders,
   placeSet,
   projectBox,
   projectPoint,
@@ -171,6 +172,18 @@ test('world: at every resting shot, each object sits clear of the header and the
       }
     }
   }
+});
+
+test('camera: occluders finds nearer scenery covering an inspected object, never farther planes', () => {
+  const shot = {x: 0, y: 0, zoom: 1};
+  const subject = {id: 'clock', depth: 0.3, box: {x: 800, y: 400, width: 100, height: 100}};
+  const nodes = [
+    {id: 'clock', depth: 0.3, x: 800, y: 400, width: 100, height: 100},
+    {id: 'lamp', depth: 0.5, x: 820, y: 300, width: 40, height: 400}, // nearer and in front
+    {id: 'sky', depth: 0.05, x: 0, y: 0, width: 1920, height: 1080}, // farther: never hidden
+    {id: 'pole', depth: 0.9, x: 1500, y: 0, width: 40, height: 1080}, // nearer but elsewhere
+  ];
+  assert.deepEqual(occluders(subject, nodes, shot), ['lamp']);
 });
 
 test('camera: moves ease, interrupt smoothly, follow and shake settle', () => {

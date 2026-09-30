@@ -12,6 +12,8 @@ import {
   focusable,
   frameShot,
   lookShot,
+  occluders,
+  projectBox,
   centerOf,
   objectBounds,
   objectViews,
@@ -51,10 +53,14 @@ const INSPECT_SPOT = {x: 560, y: 440};
  * + its name tag above, and of the action bar below. Focus nudges the camera
  * just enough to keep it there.
  */
-const LOOK_SAFE = {top: 250, bottom: 820, left: 200, right: 1720};
+const LOOK_SAFE = {top: 150, bottom: 820, left: 200, right: 1720};
+/** Objects whose top is above this (on screen) show their focus tag below them, clear of the header. */
+const TAG_FLIP_Y = 300;
 
 interface Inspecting {
   objectId: string;
+  /** Nearer nodes faded out so they don't cover the object. */
+  hidden: string[];
   fresh: boolean;
   unlocked: string | null;
 }
@@ -322,10 +328,14 @@ const WorldView = ({
       return;
     }
     session.lastFocus.set(`${gameKey}:${set.id}`, view.object.id);
-    setInspecting({objectId: view.object.id, fresh: false, unlocked: null});
+    const bounds = objectBounds(view.object, node);
+    const shot = frameShot(centerOf(bounds), node.depth, view.object.inspectZoom ?? 1.6, INSPECT_SPOT);
+    // Never hide the train or characters: only scenery nodes on nearer planes.
+    const scenery = [...setNodes.values()].filter(n => n.layer !== 'character' && n.layer !== 'effects');
+    const hidden = occluders({id: node.id, depth: node.depth, box: bounds}, scenery, shot);
+    setInspecting({objectId: view.object.id, hidden, fresh: false, unlocked: null});
     director.setMode('inspection');
-    const target = centerOf(objectBounds(view.object, node));
-    director.camera.moveTo(frameShot(target, node.depth, view.object.inspectZoom ?? 1.6, INSPECT_SPOT), reduced ? 0 : 900, 'cinematic', Date.now());
+    director.camera.moveTo(shot, reduced ? 0 : 900, 'cinematic', Date.now());
     bump();
     kick();
   };
@@ -396,7 +406,7 @@ const WorldView = ({
         }
         return (
           <Plane key={v.object.id} cam={cam} depth={node.depth}>
-            <Hotspot view={v} node={node} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
+            <Hotspot view={v} node={node} tagBelow={projectBox(objectBounds(v.object, node), node.depth, set.camera).y < TAG_FLIP_Y} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
                 session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id);
                 lookAt(v);
               }} onSelect={() => openInspection(v)} />
@@ -420,7 +430,7 @@ const WorldView = ({
           train={trainMotion ? {x: trainXV, doors: doorsV, state: trainMotion.to} : null}
           effects={s.effects}
           characters={s.characters}
-          nodeOpacity={(n: PlacedNode) => director.nodeVisible(n.id, n.visible, Date.now()) * n.opacity}
+          nodeOpacity={(n: PlacedNode) => (inspecting?.hidden.includes(n.id) ? 0.12 : 1) * director.nodeVisible(n.id, n.visible, Date.now()) * n.opacity}
           reduced={reduced}
           night={<Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.night, {opacity: darkV}]} />}
           hotspots={hotspots}

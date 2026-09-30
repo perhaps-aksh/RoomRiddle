@@ -15,6 +15,7 @@ export {
   focusShot,
   frameShot,
   lookShot,
+  occluders,
   ease,
   lerp,
   lerpShot,

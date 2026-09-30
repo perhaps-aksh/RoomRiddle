@@ -172,6 +172,32 @@ export function lookShot(
   return {x: shot.x - dx / (s * d), y: shot.y - dy / (s * d), zoom: shot.zoom};
 }
 
+/**
+ * Nodes on nearer planes that would cover `subject` on screen at `shot`
+ * (a lamp post in front of the clock you're inspecting). The TV fades them
+ * out while inspecting, like a focus pull. Pure; works for any set.
+ */
+export function occluders<N extends {id: string; depth: number; x: number; y: number; width: number; height: number}>(
+  subject: {id: string; depth: number; box: {x: number; y: number; width: number; height: number}},
+  nodes: Iterable<N>,
+  shot: CameraShot,
+  pad = 24,
+): string[] {
+  const t = projectBox(subject.box, subject.depth, shot);
+  const out: string[] = [];
+  for (const n of nodes) {
+    if (n.id === subject.id || n.depth <= subject.depth + 0.01) {
+      continue;
+    }
+    const b = projectBox(n, n.depth, shot);
+    const overlaps = b.x < t.x + t.width + pad && b.x + b.width > t.x - pad && b.y < t.y + t.height + pad && b.y + b.height > t.y - pad;
+    if (overlaps) {
+      out.push(n.id);
+    }
+  }
+  return out;
+}
+
 interface CameraMove {
   from: CameraShot;
   to: CameraShot;

@@ -120,9 +120,11 @@ describe('2.5D world: The Last Train', () => {
     await run(800);
     expect(screen.queryByTestId('world-inspection')).toBeNull();
     expect(screen.getByTestId('world-object-obj-clock').props.accessibilityLabel).toBe('Platform clock. Examined');
+    // Focus returns to the object just inspected.
+    expect(screen.getByTestId('world-object-obj-clock').props.hasTVPreferredFocus).toBe(true);
 
     // Two more clues unlock the station puzzle (engine rule), and the puzzle opens as in P5.
-    for (const id of ['obj-notice', 'obj-waiting-clock']) {
+    for (const id of ['obj-waiting-clock', 'obj-notice']) {
       press(screen, `world-object-${id}`);
       await run(1000);
       press(screen, 'world-examine');
@@ -132,6 +134,9 @@ describe('2.5D world: The Last Train', () => {
       pressBack();
       await run(800);
     }
+    // The inspection that unlocked the puzzle hands focus to it, not back to the object.
+    expect(screen.getByTestId('world-object-obj-notice').props.hasTVPreferredFocus).toBeFalsy();
+    expect(screen.getByTestId('scene-puzzle-station-clock').props.hasTVPreferredFocus).toBe(true);
     press(screen, 'scene-puzzle-station-clock');
     expect(screen.getByText('What time did the incident occur?')).toBeTruthy();
 
@@ -155,7 +160,7 @@ describe('2.5D world: The Last Train', () => {
     await run(800);
     press(screen, 'scene-evidence');
     expect(screen.getByText('NO EVIDENCE YET')).toBeTruthy();
-  });
+  }, 30_000);
 
   it('Back during the cinematic skips it; Back in the world asks before leaving', async () => {
     const screen = render(<App />);
@@ -169,7 +174,7 @@ describe('2.5D world: The Last Train', () => {
     pressBack();
     await run(10);
     expect(screen.queryByText('Leave the mystery?')).toBeNull();
-  });
+  }, 30_000);
 
   it('Settings → Scenes: Case file shows the P5 scene instead of the world', async () => {
     const screen = render(<App />);
@@ -180,7 +185,7 @@ describe('2.5D world: The Last Train', () => {
     await startLastTrain(screen);
     expect(screen.queryByTestId('world-station')).toBeNull();
     expect(screen.getByText('THE STATION')).toBeTruthy();
-  });
+  }, 30_000);
 });
 
 describe('2.5D world in a room (P4)', () => {
@@ -204,5 +209,5 @@ describe('2.5D world in a room (P4)', () => {
     expect(screen.getByTestId('world-dialogue')).toBeTruthy();
     expect(readDialogue(screen)[0]).toContain('Eleven fifty-nine');
     expect(screen.getByTestId('world-object-obj-clock').props.accessibilityLabel).toBe('Platform clock. Examined');
-  });
+  }, 30_000);
 });

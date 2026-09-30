@@ -270,6 +270,9 @@ const WorldView = ({
   const setNodes = placed.get(set.id)!;
   const views = useMemo(() => objectViews(set, mystery, state), [set, mystery, state]);
   const [inspecting, setInspecting] = useState<Inspecting | null>(null);
+  const [returnTo, setReturnTo] = useState<'object' | 'bar' | null>(null);
+  // Bumped when inspection closes so hotspots/bar remount and preferred focus is honoured.
+  const [focusEpoch, setFocusEpoch] = useState(0);
   const lastFocus = session.lastFocus.get(`${gameKey}:${set.id}`);
 
   // Dialogue: the current line goes to the audio hook as it appears.
@@ -340,6 +343,9 @@ const WorldView = ({
     kick();
   };
   const closeInspection = () => {
+    // Return focus to the object, or to the puzzle this inspection just unlocked.
+    setReturnTo(inspecting?.unlocked ? 'bar' : 'object');
+    setFocusEpoch(e => e + 1);
     setInspecting(null);
     director.setMode('investigation');
     director.camera.moveTo(lookRef.current?.shot ?? set.camera, reduced ? 0 : 700, 'standard', Date.now());
@@ -394,7 +400,7 @@ const WorldView = ({
   const targets = focusable(views);
   const firstNew = targets.find(v => v.status === 'available');
   const returning = initialFocusKey !== undefined && initialFocusKey !== 'investigate';
-  const hotspotFocus = returning ? undefined : lastFocus ?? firstNew?.object.id;
+  const hotspotFocus = returning || returnTo === 'bar' ? undefined : lastFocus ?? firstNew?.object.id;
   const barFocus = hotspotFocus === undefined ? (returning ? initialFocusKey : hub.suggestedFocus) : undefined;
 
   const showObjects = policy.focusObjects && !hub.confirmLeave;
@@ -405,7 +411,7 @@ const WorldView = ({
           return null;
         }
         return (
-          <Plane key={v.object.id} cam={cam} depth={node.depth}>
+          <Plane key={`${v.object.id}-${focusEpoch}`} cam={cam} depth={node.depth}>
             <Hotspot view={v} node={node} tagBelow={projectBox(objectBounds(v.object, node), node.depth, set.camera).y < TAG_FLIP_Y} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
                 session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id);
                 lookAt(v);
@@ -470,7 +476,7 @@ const WorldView = ({
       {(s.mode === 'investigation' || s.mode === 'exploration' || hub.confirmLeave) && (
         <View pointerEvents="box-none" style={styles.bar}>
           <View style={styles.barInner}>
-            <SceneActions hub={hub} navigator={navigator} focusKey={barFocus} investigateLabel="Clue list" evidenceCount={state.discoveredClueIds.length} compact />
+            <SceneActions key={focusEpoch} hub={hub} navigator={navigator} focusKey={barFocus} investigateLabel="Clue list" evidenceCount={state.discoveredClueIds.length} compact />
           </View>
         </View>
       )}

@@ -145,6 +145,18 @@ describe('2.5D world: The Last Train', () => {
     await run(100);
     expect(screen.getByTestId('world-station')).toBeTruthy();
     expect(screen.queryByTestId('world-skip')).toBeNull();
+
+    // Solve it: back in the world, Continue takes focus (not the solved puzzle).
+    press(screen, 'scene-puzzle-station-clock');
+    for (const d of '1147') {
+      press(screen, `puzzle-key-${d}`);
+    }
+    press(screen, 'puzzle-submit');
+    expect(screen.getByText('SOLVED')).toBeTruthy();
+    press(screen, 'puzzle-result-continue');
+    await run(100);
+    expect(screen.getByTestId('scene-continue').props.hasTVPreferredFocus).toBe(true);
+    expect(screen.getByTestId('scene-puzzle-station-clock').props.hasTVPreferredFocus).toBeFalsy();
   }, 60_000);
 
   it('scenery objects have flavour text and send nothing to the engine', async () => {

@@ -416,9 +416,11 @@ const styles = StyleSheet.create({
     fontFamily: theme.fonts.technical,
     color: theme.colors.accentStrong,
   },
+  // Anchored under the question: centring let a tall keypad ride up over it.
   inputArea: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+    paddingTop: theme.spacing.lg,
   },
   choiceList: {
     gap: theme.spacing.sm,

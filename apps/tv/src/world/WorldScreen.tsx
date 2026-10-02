@@ -400,8 +400,9 @@ const WorldView = ({
   const targets = focusable(views);
   const firstNew = targets.find(v => v.status === 'available');
   const returning = initialFocusKey !== undefined && initialFocusKey !== 'investigate';
-  const hotspotFocus = returning || returnTo === 'bar' ? undefined : lastFocus ?? firstNew?.object.id;
-  const barFocus = hotspotFocus === undefined ? (returning ? initialFocusKey : hub.suggestedFocus) : undefined;
+  const hotspotFocus = returning || returnTo === 'bar' || hub.suggestedFocus === 'continue' ? undefined : lastFocus ?? firstNew?.object.id;
+  // As in the P5 scene: once the scene is complete, Continue wins over wherever the player came back from.
+  const barFocus = hotspotFocus === undefined ? (returning && hub.suggestedFocus !== 'continue' ? initialFocusKey : hub.suggestedFocus) : undefined;
 
   const showObjects = policy.focusObjects && !hub.confirmLeave;
   const hotspots = showObjects

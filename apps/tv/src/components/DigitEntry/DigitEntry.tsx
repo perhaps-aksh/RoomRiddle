@@ -87,7 +87,7 @@ export const DigitEntry = ({
 };
 
 const KEY_W = px(120);
-const KEY_H = px(84);
+const KEY_H = px(72);
 
 const styles = StyleSheet.create({
   row: {

@@ -53,6 +53,20 @@ function setup(initial: SessionInfo | null = null) {
 }
 
 describe('RoomClient', () => {
+  test('a message delivered in pieces (Vega WebSocket) is reassembled, not dropped', () => {
+    const {client, sockets} = setup();
+    const got: string[] = [];
+    client.onMessage(m => got.push(m.type));
+    client.connect();
+    const s = sockets[0]!;
+    s.open();
+    const text = JSON.stringify({type: 'PLAYER_JOINED', serverTime: 1, room: {code: '4827', note: 'a "quoted" }brace{'}});
+    s.onmessage?.({data: text.slice(0, 677 % text.length)});
+    assert.deepEqual(got, [], 'half a message is held, not parsed');
+    s.onmessage?.({data: text.slice(677 % text.length)});
+    assert.deepEqual(got, ['PLAYER_JOINED']);
+  });
+
   test('queues messages until open, then sends them in order', () => {
     const {client, sockets} = setup();
     client.send({type: 'JOIN_ROOM', roomCode: '4827', playerName: 'Aksh'});

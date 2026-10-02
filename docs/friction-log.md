@@ -97,3 +97,24 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Workaround:** Avoid `export * as` in any package the TV consumes. A comment in `packages/ui/src/index.ts` explains why.
 - **Suggestion:** Enable the namespace-export transform in the Vega RN Babel preset, or document which ES syntax shared workspace code may use.
 
+## FL-010: The VVD can't reach the Windows host at a stable address, and dies with WSL restarts
+- **Date:** 2026-10-02
+- **Task:** Phase 6 on-device checks of the 2.5D world against the local server.
+- **Steps:** The TV app's `SERVER_URL` pointed at the laptop's LAN IP. Across three days the IP changed three times with DHCP (10.2.0.13 → 10.2.2.70 → 10.2.3.184 → 10.2.0.2). Each time the TV app had to be edited and rebuilt. The VVD also stopped twice between sessions when WSL restarted (`/dev/kvm` was recreated; see FL-008), and `vega device shell` then failed with "Cannot find an instance of Vega Virtual Device".
+- **Expected:** A fixed alias for the host, as in the Android emulator (10.0.2.2 → the machine running the emulator).
+- **Actual:** From inside the VVD, `10.0.2.2` reaches WSL's own loopback, not Windows. `curl http://10.0.2.2:4000` failed until something in WSL listened on :4000.
+- **Severity:** Low–Medium. It costs a rebuild and reinstall (several minutes) for every IP change.
+- **Workaround:** `apps/tv/scripts/vvd-bridge.js`, a dependency-free Node TCP forwarder run inside WSL. It listens on WSL :4000 and forwards to the Windows host (WSL's default gateway). The TV now uses `ws://10.0.2.2:4000/ws` permanently. Verified: `curl` from the VVD shell to `10.0.2.2:4000` returned 200 with the server on Windows.
+- **Suggestion:** Document the VVD's network topology, and offer a host alias (or `vega device reverse tcp:4000`, like `adb reverse`) that reaches the developer machine.
+
+## FL-011: Vega's WebSocket client can deliver one text message in pieces
+- **Date:** 2026-10-02
+- **Task:** Phase 6 on-device room play (TV hosts; phones play).
+- **Steps:** The TV created a room, two phones joined, and the TV pressed Start. The server logged "game started" at once, and the phones were already playing.
+- **Expected:** One `onmessage` event per WebSocket text message, as in browsers and Node `ws`.
+- **Actual:** The TV stayed in the lobby for 20–30 s, and the player list sometimes lagged a join behind. An on-screen probe of `onmessage` showed an 889-byte `PLAYER_JOINED` arriving as two events (677 + 212 bytes). The 9 KB `GAME_STARTED` also arrived in pieces. Each piece failed `JSON.parse` and was dropped. The TV caught up only when a later message carried the whole room. A TCP relay showed every byte reaching the device within milliseconds.
+- **Things that did not help:** server-side RFC 6455 fragmentation into ≤4 KB frames, paced 25–60 ms apart; a server-side chunking protocol with complete ~3 KB messages paced 150 ms apart (the pieces still reached `onmessage` split); `setNoDelay` on the relay.
+- **Severity:** High for multiplayer. The host screen misses game start and joins.
+- **Workaround:** `packages/client/src/assembler.ts`. `RoomClient` treats incoming text as a stream and emits each complete top-level JSON object, tracking strings and escapes. Whole messages pass straight through, so phones and Node are unaffected. Covered by client tests that split messages at every byte position. Verified on the VVD: the intro appears within 2 s of Start.
+- **Suggestion:** Fix the Vega RN WebSocket bridge to deliver whole messages, or document that `onmessage` may receive partial frames.
+

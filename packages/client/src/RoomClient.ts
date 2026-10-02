@@ -4,6 +4,7 @@ import type {
   ServerMessage,
   SessionInfo,
 } from '@roomriddle/shared-types';
+import {MessageAssembler} from './assembler';
 
 /**
  * A reconnecting WebSocket client for the RoomRiddle protocol. Framework-free
@@ -139,6 +140,8 @@ export class RoomClient {
       return;
     }
     this.socket = socket;
+    // Some clients (Vega) deliver one message in pieces: rebuild whole ones.
+    const assembler = new MessageAssembler();
     socket.onopen = () => {
       this.attempts = 0;
       this.setStatus('open');
@@ -162,15 +165,17 @@ export class RoomClient {
     };
     socket.onmessage = event => {
       if (typeof event.data !== 'string') return;
-      let message: ServerMessage;
-      try {
-        message = JSON.parse(event.data) as ServerMessage;
-      } catch {
-        return;
+      for (const text of assembler.push(event.data)) {
+        let message: ServerMessage;
+        try {
+          message = JSON.parse(text) as ServerMessage;
+        } catch {
+          continue;
+        }
+        this.clockOffset = message.serverTime - Date.now();
+        this.track(message);
+        for (const listener of this.messageListeners) listener(message);
       }
-      this.clockOffset = message.serverTime - Date.now();
-      this.track(message);
-      for (const listener of this.messageListeners) listener(message);
     };
     socket.onclose = event => {
       if (this.socket !== socket) return;

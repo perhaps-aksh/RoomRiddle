@@ -222,4 +222,28 @@ describe('2.5D world in a room (P4)', () => {
     expect(readDialogue(screen)[0]).toContain('Eleven fifty-nine');
     expect(screen.getByTestId('world-object-obj-clock').props.accessibilityLabel).toBe('Platform clock. Examined');
   }, 30_000);
+
+  it("a teammate's discovery during the arrival cinematic waits until the cinematic is over", async () => {
+    const server = new FakeServer(() => 1_700_000_000_000);
+    const screen = render(<App createSocket={server.createSocket} serverUrl="ws://test/ws" clock={() => 1_700_000_000_000} />);
+    press(screen, 'home-createRoom');
+    await run(10);
+    act(() => server.phoneJoins('Aksh'));
+    act(() => server.phoneJoins('Grace'));
+    press(screen, 'room-start');
+    press(screen, 'intro-begin');
+    await run(2_000);
+    expect(screen.getByTestId('world-skip')).toBeTruthy();
+
+    act(() => server.phoneActs('Aksh', {type: 'DISCOVER_CLUE', clueId: 'platform-clock'}));
+    await run(500);
+    // Still the cinematic: no reaction line cut into it.
+    expect(screen.getByTestId('world-skip')).toBeTruthy();
+    expect(readDialogue(screen).join(' ')).not.toContain('Eleven fifty-nine');
+
+    press(screen, 'world-skip');
+    await run(200);
+    // Now the stage is free: the queued reaction plays.
+    expect(readDialogue(screen)[0]).toContain('Eleven fifty-nine');
+  }, 30_000);
 });

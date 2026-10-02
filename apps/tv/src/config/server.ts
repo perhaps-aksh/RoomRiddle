@@ -1,9 +1,11 @@
 /**
  * Where the TV finds the RoomRiddle server (Phase 4).
  *
- * The server runs on the laptop on the same network (`npm run serve` at the
- * repo root prints the address). The Vega Virtual Device reaches the Windows
- * host at its LAN IP. When that IP changes (DHCP), update this line and
- * rebuild the TV app.
+ * The server runs on the laptop (`npm run serve` at the repo root). The Vega
+ * Virtual Device runs inside WSL2 and sees WSL as 10.0.2.2; the dev bridge
+ * (`apps/tv/scripts/vvd-bridge.js`, run inside WSL) forwards that to the
+ * Windows host, so this address survives DHCP changes and the TV app doesn't
+ * need rebuilding when the laptop's LAN IP moves (FL-010). A real Fire TV on
+ * the LAN would use the laptop's LAN IP here instead.
  */
-export const SERVER_URL = 'ws://10.2.3.184:4000/ws';
+export const SERVER_URL = 'ws://10.0.2.2:4000/ws';

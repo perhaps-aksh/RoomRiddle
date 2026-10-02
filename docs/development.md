@@ -14,7 +14,8 @@ Requires Node.js ≥ 22.
 
 ## Playing multiplayer on the LAN (Phase 4)
 1. `npm run serve`. The server listens on `0.0.0.0:4000` and prints the phone URL (`http://<LAN IP>:4000/join/<code>`). Override it with `PUBLIC_URL=http://…:4000`. Other settings: `PORT`, `HOST`, `ROOM_MIN_PLAYERS` (default 2), `ROOM_MAX_PLAYERS` (6).
-2. TV: set `apps/tv/src/config/server.ts` to `ws://<LAN IP>:4000/ws`, build, and run. Then choose **Create Room**. The TV shows the code and QR code.
+2. TV (Vega Virtual Device): start the bridge inside WSL, `wsl.exe -d Ubuntu-24.04 -- node /mnt/d/RoomRiddle/apps/tv/scripts/vvd-bridge.js`. The TV app connects to `ws://10.0.2.2:4000/ws`, which the bridge forwards to Windows, so a DHCP change needs no rebuild (FL-010). Build and run (`wsl-build.sh`, then `wsl-install.sh`), then choose **Create Room**. The TV shows the code and QR code. A physical Fire TV needs `apps/tv/src/config/server.ts` set to `ws://<LAN IP>:4000/ws` instead.
+   - On-device screenshots: `wsl.exe -d Ubuntu-24.04 -- bash /mnt/d/RoomRiddle/apps/tv/scripts/vvd-shot.sh <name> KEY_DOWN KEY_ENTER 2 …` presses remote keys (a bare number sleeps) and saves a PNG through the emulator console into the vault `Assets/`.
 3. Phones (same Wi-Fi): scan the QR code or open `http://<LAN IP>:4000` and enter the code and a name. Windows may ask to allow Node through the firewall on private networks.
 4. TV: **Start**.
 

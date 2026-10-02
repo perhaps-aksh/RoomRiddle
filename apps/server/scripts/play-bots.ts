@@ -3,6 +3,7 @@
  * Last Train to an ending, alternating actions, using the same
  * @roomriddle/client the phone app uses. One phone drops and resumes midway.
  *   npx tsx apps/server/scripts/play-bots.ts <roomCode> [ws://host:4000/ws]
+ *   BOT_STEP_MS=4000 paces each action (to watch the TV react).
  */
 import {WebSocket} from 'ws';
 import {RoomClient, initialRoomView, memorySessionStore, reduceRoomView, type RoomView, type SocketLike} from '@roomriddle/client';
@@ -78,6 +79,8 @@ for (const scene of plan) {
       const [puzzleId, answer] = arg.split(/:(.*)/s) as [string, string];
       message = {type, puzzleId, answer};
     } else message = {type: 'ADVANCE_SCENE'};
+    // BOT_STEP_MS paces the bots so the TV's reactions can be watched (default: as fast as possible).
+    await sleep(Number(process.env.BOT_STEP_MS ?? 0));
     const reply = await bot.do(message);
     const s = bot.state;
     const events = reply.type === 'GAME_STATE_UPDATED' ? reply.update.events.map(e => e.type).join(',') : reply.type === 'ERROR' ? `ERROR ${reply.code}` : reply.type;

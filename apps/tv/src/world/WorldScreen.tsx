@@ -246,6 +246,7 @@ const WorldView = ({
 
   // ── The world reacts to authoritative state (anyone's action) ────────
   const prevState = useRef<GameState | null>(state);
+  const pendingLines = useRef<{id: string; characterId?: string}[]>([]);
   useEffect(() => {
     const events = diffEvents(prevState.current, state);
     prevState.current = state;
@@ -253,16 +254,26 @@ const WorldView = ({
     const lines = dialogueFor(events, world.dialogue, played);
     if (lines.length > 0) {
       lines.forEach(l => session.played.add(`${gameKey}:line:${l.id}`));
-      const who = lines[0]!.characterId;
-      director.say(
-        lines.map(l => l.id),
-        who,
-        Date.now(),
-        {nodeId: 'detective-spot', exitAfter: true},
-      );
+      // A teammate's discovery must not cut into a cinematic or a line already
+      // on screen: queue it and deliver it once the stage is free.
+      pendingLines.current.push(...lines);
       bump();
     }
   }, [state, director, world.dialogue, session, gameKey, bump]);
+  useEffect(() => {
+    if (pendingLines.current.length === 0 || director.playing !== null || director.state.dialogue) {
+      return;
+    }
+    const lines = pendingLines.current;
+    pendingLines.current = [];
+    director.say(
+      lines.map(l => l.id),
+      lines[0]!.characterId,
+      Date.now(),
+      {nodeId: 'detective-spot', exitAfter: true},
+    );
+    bump();
+  });
 
   const s = director.state;
   const policy = MODE_POLICY[s.mode];

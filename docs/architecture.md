@@ -159,7 +159,7 @@ Scenes can now be played as a 2.5D world (default) instead of as P5 case files. 
   - The P5 specs pin the case-file view.
 - **Performance on the VVD.** The VVD has 4 vCPUs and software rendering. CPU is system-wide busy %, measured with `apps/tv/scripts/vvd-load.sh`.
   - The idle VVD runs at about 13%. A static screen with Motion: Reduced is 5%.
-  - The app-wide backdrop drift costs about 45% by itself. It now stops while the world covers the screen.
+  - The app-wide backdrop drift costs about 45% by itself on Home. It now stops while the world covers the screen. The gain under the world was 51% in a probe build against 56–62% after the change, which is within VVD noise, so treat it as small.
   - World exploration: 56–62%. The arrival cinematic: about 75%. Memory stays near 600 MB used out of 3.9 GB.
   - Every loop uses the native driver, and the frame loop only runs while something moves.
   - These figures come from an emulator. Real Fire TV hardware composites on the GPU and needs its own measurement.

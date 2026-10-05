@@ -143,7 +143,7 @@ const Shell = () => {
 
   const entry = currentEntry(stack);
   // The 2.5D world paints the whole screen: animating the backdrop under it
-  // only costs frames (measured ~10% CPU on the VVD).
+  // only costs frames (on its own the drift measured ~45% VVD CPU on Home).
   const {enabled: worldOn} = useWorldSession();
   const covered = worldOn && entry.route.name === 'scene';
   const props: ScreenProps = {

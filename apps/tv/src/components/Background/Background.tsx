@@ -13,14 +13,15 @@ export type BackgroundMood = 'default' | 'warm' | 'cool' | 'dim';
  * No images or gradient libraries: each glow is a stack of concentric,
  * low-opacity circles, which reads as a soft radial light on a TV. Only
  * transform animations with the native driver, so it's cheap. With reduced
- * motion the lights hold still.
+ * motion the lights hold still, and they also hold still when `still` is set
+ * (a full-screen scene covers the backdrop).
  */
-export const Background = ({mood = 'default'}: {mood?: BackgroundMood}) => {
+export const Background = ({mood = 'default', still = false}: {mood?: BackgroundMood; still?: boolean}) => {
   const drift = useRef(new Animated.Value(0)).current;
   const reduced = useReducedMotion();
 
   useEffect(() => {
-    if (reduced) {
+    if (reduced || still) {
       return;
     }
     const half = (to: number) =>
@@ -28,7 +29,7 @@ export const Background = ({mood = 'default'}: {mood?: BackgroundMood}) => {
     const loop = Animated.loop(Animated.sequence([half(1), half(0)]));
     loop.start();
     return () => loop.stop();
-  }, [drift, reduced]);
+  }, [drift, reduced, still]);
 
   const shift = (x: number, y: number) => ({
     transform: [

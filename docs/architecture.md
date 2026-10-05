@@ -128,5 +128,42 @@ Direction: **Cinematic Investigation Interface**. Cinema, a detective's case fil
   - `main.ts`: state and events only.
   - `app.css`: uses tokens only, with no raw colours. Layout is responsive (small phones, larger phones, landscape), touch targets are at least 48 px, and it honours `prefers-reduced-motion`.
 
+## 2.5D cinematic world (Phase 6)
+Scenes can now be played as a 2.5D world (default) instead of as P5 case files. It is 2D art in depth layers with a camera, not a 3D game. The world is presentation only: every action still goes through the engine or the server, as before.
+
+- **Layers of responsibility:**
+  - `packages/shared-types/world.ts`: world types (assets, depth planes, sets, cinematics, dialogue). Presentation only.
+  - `packages/scene`: pure, framework-free logic, tested with node:test.
+    - `assets`: a registry that resolves final art → fallback → procedural placeholder.
+    - `camera`: shots, smooth moves, shake, `frameShot`, `lookShot` (keep a focused object in the safe frame), `occluders` (nearer scenery that covers a subject) and `projectBox`.
+    - `layout`: places set nodes on planes.
+    - `director`: modes, the cinematic timeline, dialogue, characters, train state and fades.
+    - `modes`: a per-mode input policy (cinematic disables controls).
+    - `train`: movement curves.
+    - `interactions`: the only world → game bridge. Objects map to engine clues and dispatch normal `GameAction`s.
+    - `validate`: broken references, oversized shapes, and objects under the header or the action bar.
+  - `packages/mystery-data/the-last-train/world/`: the manifest (stable ids, `last-train.*`), sets, camera shots, the arrival cinematic and dialogue. No mystery logic lives in components.
+  - `apps/tv/src/world/`: rendering only.
+    - `Stage` draws the planes.
+    - `AssetView`, `Actors` and `Effects` handle art, characters, rain, fog, steam, lights and lightning.
+    - `WorldScreen` runs the director, frame loop, hotspots, inspection panel, dialogue and the P5 action bar.
+    - `WorldSession` keeps the per-session state: which cinematics have played and where focus was last.
+- **Parallax** is one rule for every layer: translate = −camera × depth. There is no per-layer animation code.
+- **Assets:** swapping a placeholder for final art is a change to the `art.ts` map only. Scene and game logic never know which one is drawn.
+- **The world reacts to authoritative state, not to its own input.**
+  - `diffEvents(previous, next)` turns any state change, including a phone's action in a room, into reactions such as dialogue.
+  - Reactions queue while a cinematic or another line is on screen, then play when the stage is free.
+- **P5 compatibility:**
+  - `useSceneHub` and `SceneActions` are shared by both views.
+  - **Settings → Scenes** (`cinematicWorld` prop) switches between them.
+  - The P5 specs pin the case-file view.
+- **Performance on the VVD.** The VVD has 4 vCPUs and software rendering. CPU is system-wide busy %, measured with `apps/tv/scripts/vvd-load.sh`.
+  - The idle VVD runs at about 13%. A static screen with Motion: Reduced is 5%.
+  - The app-wide backdrop drift costs about 45% by itself. It now stops while the world covers the screen.
+  - World exploration: 56–62%. The arrival cinematic: about 75%. Memory stays near 600 MB used out of 3.9 GB.
+  - Every loop uses the native driver, and the frame loop only runs while something moves.
+  - These figures come from an emulator. Real Fire TV hardware composites on the GPU and needs its own measurement.
+- **Transport robustness.** The Vega WebSocket client can split one text message across several `onmessage` events (FL-011). `RoomClient` rebuilds whole JSON messages (`client/assembler.ts`), so other clients are unaffected.
+
 ## Future AI extension point (not implemented)
 `AI Service → Game Engine`. Any AI would only *propose* text (hint phrasing, narration) and never own game truth. The deterministic engine and the authored hints stay authoritative. Nothing in the current architecture depends on this.

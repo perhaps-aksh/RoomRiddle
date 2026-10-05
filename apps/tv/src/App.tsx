@@ -29,7 +29,7 @@ import {MysteriesScreen} from './screens/Mysteries/MysteriesScreen';
 import {MysteryDetailsScreen} from './screens/MysteryDetails/MysteryDetailsScreen';
 import {PuzzleScreen} from './screens/Puzzle/PuzzleScreen';
 import {SceneRoute} from './world/SceneRoute';
-import {WorldSessionProvider} from './world/WorldSession';
+import {useWorldSession, WorldSessionProvider} from './world/WorldSession';
 import {SettingsScreen} from './screens/Settings/SettingsScreen';
 import {ScreenProps} from './screens/types';
 
@@ -142,6 +142,10 @@ const Shell = () => {
   const returnHome = useCallback(() => dispatch({type: 'reset'}), []);
 
   const entry = currentEntry(stack);
+  // The 2.5D world paints the whole screen: animating the backdrop under it
+  // only costs frames (measured ~10% CPU on the VVD).
+  const {enabled: worldOn} = useWorldSession();
+  const covered = worldOn && entry.route.name === 'scene';
   const props: ScreenProps = {
     navigator,
     initialFocusKey: entry.focusKey,
@@ -152,7 +156,7 @@ const Shell = () => {
   return (
     <BackInterceptorContext.Provider value={registry}>
       <View style={styles.root}>
-        <Background mood={moodFor(entry.route)} />
+        <Background mood={moodFor(entry.route)} still={covered} />
         {/* Hidden (not unmounted) behind a blocking connection error: keeps the
             players' entry, and display:none takes it out of D-pad focus. */}
         <View style={[styles.root, blocked && styles.hidden]}>

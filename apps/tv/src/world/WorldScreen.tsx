@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState, useLayoutEffect} from 'react';
 import {Animated, Pressable, StyleSheet, Text, View} from 'react-native';
 import type {GameState, MysteryDefinition, MysteryWorld, SceneWorld, WorldSet} from '@roomriddle/shared-types';
 import {
@@ -292,7 +292,7 @@ const WorldView = ({
   const [focusEpoch, setFocusEpoch] = useState(0);
   // Second render after mount, so neighbour refs exist.
   const [, setRefsReady] = useState(0);
-  useEffect(() => {
+  useLayoutEffect(() => {
     setRefsReady(n => n + 1);
   }, [set.id, focusEpoch]);
   const lastFocus = session.lastFocus.get(`${gameKey}:${set.id}`);

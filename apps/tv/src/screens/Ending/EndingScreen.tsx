@@ -1,10 +1,12 @@
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import {StyleSheet, Text, View} from 'react-native';
 import {getGameSummary, formatClock} from '@roomriddle/game-engine';
+import {errorExperience} from '@roomriddle/client';
 import {Narration} from '../../components/Narration/Narration';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {useGame} from '../../game/GameContext';
 import {px, theme} from '../../theme/theme';
+import {Feedback} from '../../ui/Feedback';
 import {Transition} from '../../ui/Transition';
 import {ScreenProps} from '../types';
 
@@ -13,7 +15,24 @@ import {ScreenProps} from '../types';
  * Nothing here decides the outcome: it is read from state.endingId.
  */
 export const EndingScreen = ({navigator}: ScreenProps) => {
-  const {mystery, state, now, start, mode, closeRoom} = useGame();
+  const {mystery, state, now, start, mode, closeRoom, room: roomView} = useGame();
+  // In a room, Play Again is a request: the server starts the new game (or refuses, e.g. the phones have left).
+  const [replaying, setReplaying] = useState(false);
+  const [refusal, setRefusal] = useState<{title: string; detail: string; key: number} | null>(null);
+  const restarted = replaying && state !== null && state.endingId === null;
+  useEffect(() => {
+    if (restarted) {
+      navigator.reset([{name: 'mysteries'}, {name: 'gameIntro'}]);
+    }
+  }, [restarted, navigator]);
+  const roomError = roomView.error;
+  useEffect(() => {
+    if (replaying && roomError) {
+      const x = errorExperience(roomError.code);
+      setReplaying(false);
+      setRefusal(current => ({title: x.title, detail: x.message, key: (current?.key ?? 0) + 1}));
+    }
+  }, [replaying, roomError]);
   if (!mystery || !state || state.endingId === null) {
     return null;
   }
@@ -31,6 +50,11 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
 
   const playAgain = () => {
     start(mystery.summary.id);
+    if (mode === 'room') {
+      setRefusal(null);
+      setReplaying(true);
+      return;
+    }
     navigator.reset([{name: 'mysteries'}, {name: 'gameIntro'}]);
   };
   // Leaving the ending of a room game closes the room (phones are told).
@@ -70,6 +94,11 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
         {summary.elapsedMs !== null && <Stat label="Time" value={formatClock(summary.elapsedMs)} />}
       </Transition>
 
+      {refusal && (
+        <View style={styles.refusal}>
+          <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} />
+        </View>
+      )}
       <View style={styles.actions}>
         <TVButton variant="action" tone="primary" label="Play Again" onPress={playAgain} preferredFocus testID="ending-again" />
         <TVButton
@@ -104,6 +133,10 @@ const Stat = ({
 );
 
 const styles = StyleSheet.create({
+  refusal: {
+    marginBottom: theme.spacing.md,
+    maxWidth: px(900),
+  },
   screen: {
     flex: 1,
     paddingHorizontal: theme.spacing.screenX,

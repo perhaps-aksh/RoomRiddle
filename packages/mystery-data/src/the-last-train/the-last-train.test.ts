@@ -9,6 +9,7 @@ import {
   validateMysteryDefinition,
 } from '@roomriddle/game-engine';
 import {theLastTrainMystery as LT} from './index';
+import {lastTrainWorld} from './world';
 
 const T0 = 1_700_000_000_000;
 
@@ -127,5 +128,18 @@ describe('The Last Train', () => {
 
   test('a fresh game state is independent of the mystery', () => {
     assert.equal(createInitialGameState(LT.summary.id).status, 'not-started');
+  });
+});
+
+describe('The Last Train world', () => {
+  test('rain falls only where the sky is: no weather inside the train or the signal box', () => {
+    const indoors = ['vestibule', 'corridor', 'signal-box'];
+    const sets = lastTrainWorld.scenes.flatMap(sc => sc.sets);
+    for (const id of indoors) {
+      const set = sets.find(st => st.id === id);
+      assert.ok(set, id);
+      assert.ok(!set.effects.includes('rain'), `${id} has rain`);
+      assert.ok(!set.effects.includes('fog'), `${id} has fog`);
+    }
   });
 });

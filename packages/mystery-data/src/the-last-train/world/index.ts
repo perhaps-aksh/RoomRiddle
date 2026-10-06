@@ -155,7 +155,7 @@ const vestibuleSet: WorldSet = {
   ],
   objects: [],
   camera: {x: 0, y: 0, zoom: 1},
-  effects: ['rain'],
+  effects: [],
   darkness: 0.1,
 };
 
@@ -201,7 +201,7 @@ const corridorSet: WorldSet = {
     {id: 'obj-brake', nodeId: 'brake', name: 'Emergency brake', interaction: 'activate', clueId: 'wired-brake', inspectZoom: 1.8},
   ],
   camera: REST,
-  effects: ['rain', 'flicker'],
+  effects: ['flicker'],
   darkness: 0.12,
 };
 
@@ -219,7 +219,7 @@ const signalBoxSet: WorldSet = {
     {id: 'obj-lamp-room', nodeId: 'lamp-room-door', name: 'Lamp room door', interaction: 'open', clueId: 'lamp-room-door', inspectZoom: 1.6},
   ],
   camera: REST,
-  effects: ['rain', 'flicker'],
+  effects: ['flicker'],
   darkness: 0.25,
 };
 

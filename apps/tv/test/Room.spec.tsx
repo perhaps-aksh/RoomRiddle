@@ -37,6 +37,21 @@ function hostWithTwoPhones() {
   return {server, screen};
 }
 
+/** Phones play the whole mystery to its best ending. */
+function finishGame(server: FakeServer) {
+  const script: [string, Record<string, unknown>][] = [
+    ['DISCOVER_CLUE', {clueId: 'platform-clock'}], ['DISCOVER_CLUE', {clueId: 'company-notice'}], ['DISCOVER_CLUE', {clueId: 'waiting-room-clock'}],
+    ['SUBMIT_ANSWER', {puzzleId: 'station-clock', answer: '1147'}], ['ADVANCE_SCENE', {}],
+    ['DISCOVER_CLUE', {clueId: 'torn-ticket'}], ['DISCOVER_CLUE', {clueId: 'departure-board'}], ['DISCOVER_CLUE', {clueId: 'carriage-plan'}],
+    ['SUBMIT_ANSWER', {puzzleId: 'torn-ticket', answer: '207|c|7'}], ['ADVANCE_SCENE', {}],
+    ['DISCOVER_CLUE', {clueId: 'pocket-watch'}], ['DISCOVER_CLUE', {clueId: 'conductors-ledger'}], ['DISCOVER_CLUE', {clueId: 'seat-eight-card'}], ['DISCOVER_CLUE', {clueId: 'wired-brake'}],
+    ['SUBMIT_ANSWER', {puzzleId: 'conductors-ledger', answer: 'voss|carriage-c|1147'}], ['ADVANCE_SCENE', {}],
+    ['DISCOVER_CLUE', {clueId: 'blackwater-lever'}], ['DISCOVER_CLUE', {clueId: 'lamp-room-door'}],
+    ['SUBMIT_ANSWER', {puzzleId: 'final-signal', answer: 'voss-sabotage'}],
+  ];
+  script.forEach(([type, args], i) => act(() => server.phoneActs(i % 2 ? 'Grace' : 'Aksh', {type, ...args})));
+}
+
 describe('TV hosting a room', () => {
   it('Start asks the server; the game begins in the first scene for everyone', () => {
     const {server, screen} = hostWithTwoPhones();
@@ -93,18 +108,33 @@ describe('TV hosting a room', () => {
   it('when a phone finishes the mystery, the TV shows the ending', () => {
     const {server, screen} = hostWithTwoPhones();
     press(screen, 'intro-begin');
-    const script: [string, Record<string, unknown>][] = [
-      ['DISCOVER_CLUE', {clueId: 'platform-clock'}], ['DISCOVER_CLUE', {clueId: 'company-notice'}], ['DISCOVER_CLUE', {clueId: 'waiting-room-clock'}],
-      ['SUBMIT_ANSWER', {puzzleId: 'station-clock', answer: '1147'}], ['ADVANCE_SCENE', {}],
-      ['DISCOVER_CLUE', {clueId: 'torn-ticket'}], ['DISCOVER_CLUE', {clueId: 'departure-board'}], ['DISCOVER_CLUE', {clueId: 'carriage-plan'}],
-      ['SUBMIT_ANSWER', {puzzleId: 'torn-ticket', answer: '207|c|7'}], ['ADVANCE_SCENE', {}],
-      ['DISCOVER_CLUE', {clueId: 'pocket-watch'}], ['DISCOVER_CLUE', {clueId: 'conductors-ledger'}], ['DISCOVER_CLUE', {clueId: 'seat-eight-card'}], ['DISCOVER_CLUE', {clueId: 'wired-brake'}],
-      ['SUBMIT_ANSWER', {puzzleId: 'conductors-ledger', answer: 'voss|carriage-c|1147'}], ['ADVANCE_SCENE', {}],
-      ['DISCOVER_CLUE', {clueId: 'blackwater-lever'}], ['DISCOVER_CLUE', {clueId: 'lamp-room-door'}],
-      ['SUBMIT_ANSWER', {puzzleId: 'final-signal', answer: 'voss-sabotage'}],
-    ];
-    script.forEach(([type, args], i) => act(() => server.phoneActs(i % 2 ? 'Grace' : 'Aksh', {type, ...args})));
+    finishGame(server);
     expect(screen.getByTestId('ending-title').props.children).toBe('THE TRUTH');
+  });
+
+  it('Play Again in a room starts a fresh game on the server for everyone', () => {
+    const {server, screen} = hostWithTwoPhones();
+    press(screen, 'intro-begin');
+    finishGame(server);
+    press(screen, 'ending-again');
+    expect(server.socket!.sent.filter((m: {type: string}) => m.type === 'START_GAME')).toHaveLength(2);
+    expect(screen.getByTestId('intro-begin')).toBeTruthy();
+    press(screen, 'intro-begin');
+    expect(screen.getByText('THE STATION')).toBeTruthy();
+    expect(screen.getByTestId('game-score').props.children).toBe('0');
+  });
+
+  it('Play Again in a room waits for the server; if the phones have gone it says why and stays on the ending', () => {
+    const {server, screen} = hostWithTwoPhones();
+    press(screen, 'intro-begin');
+    finishGame(server);
+    expect(screen.getByTestId('ending-title')).toBeTruthy();
+    act(() => server.phoneDrops('Aksh'));
+    act(() => server.phoneDrops('Grace'));
+    press(screen, 'ending-again');
+    expect(screen.getByTestId('ending-title')).toBeTruthy();
+    expect(screen.queryByTestId('intro-begin')).toBeNull();
+    expect(screen.getByText(/players/i)).toBeTruthy();
   });
 });
 

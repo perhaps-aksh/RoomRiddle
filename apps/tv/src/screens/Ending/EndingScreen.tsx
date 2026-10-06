@@ -94,12 +94,13 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
         {summary.elapsedMs !== null && <Stat label="Time" value={formatClock(summary.elapsedMs)} />}
       </Transition>
 
-      {refusal && (
-        <View style={styles.refusal}>
-          <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} />
-        </View>
-      )}
       <View style={styles.actions}>
+        {/* Floats beside the buttons, so the story and numbers never move. */}
+        {refusal && (
+          <View style={styles.refusal}>
+            <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} />
+          </View>
+        )}
         <TVButton variant="action" tone="primary" label="Play Again" onPress={playAgain} preferredFocus testID="ending-again" />
         <TVButton
           variant="action"
@@ -134,8 +135,10 @@ const Stat = ({
 
 const styles = StyleSheet.create({
   refusal: {
-    marginBottom: theme.spacing.md,
-    maxWidth: px(900),
+    position: 'absolute',
+    left: px(1000),
+    right: 0,
+    bottom: 0,
   },
   screen: {
     flex: 1,

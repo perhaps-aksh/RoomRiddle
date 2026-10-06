@@ -17,6 +17,29 @@ id = "/com.amazon.vega.os@IVega_1_2"
 id = "/com.amazon.kepler.keplerscript_4@IKeplerScript_0"
 
 
+# Audio playback (W3C media player): services listed in Amazon's media-player setup guide.
+[wants]
+[[wants.service]]
+id = "com.amazon.mediametrics.service"
+[[wants.service]]
+id = "com.amazon.media.server"
+[[wants.service]]
+id = "com.amazon.gipc.uuid.*"
+[[wants.service]]
+id = "com.amazon.media.playersession.service"
+[[wants.service]]
+id = "com.amazon.mediabuffer.service"
+[[wants.service]]
+id = "com.amazon.mediatransform.service"
+[[wants.service]]
+id = "com.amazon.audio.stream"
+[[wants.service]]
+id = "com.amazon.audio.control"
+
+[offers]
+[[offers.service]]
+id = "com.amazon.gipc.uuid.*"
+
 [components]
 [[components.interactive]]
 id = "com.roomriddle.tv.main"

@@ -15,9 +15,11 @@
     "build:app": "npm-run-all build:release",
     "build": "npm-run-all build:release",
     "release": "npm-run-all lint test build:app"
-    },
+  },
   "dependencies": {
+    "@amazon-devices/react-native-async-storage__async-storage": "2.1.9000000000-rn-83",
     "@amazon-devices/react-native-kepler": "~4.0.0",
+    "@amazon-devices/react-native-w3cmedia": "2.3.4-rn-83",
     "react": "19.2.0",
     "react-native": "0.83.0"
   },
@@ -25,8 +27,8 @@
     "node": ">=20"
   },
   "devDependencies": {
-    "@amazon-devices/kepler-cli-platform": "^0",
     "@amazon-devices/eslint-plugin-kepler": "^0.1.4",
+    "@amazon-devices/kepler-cli-platform": "^0",
     "@react-native-community/cli": "20.0.0",
     "@react-native/babel-preset": "0.83.0",
     "@react-native/eslint-config": "0.83.0",

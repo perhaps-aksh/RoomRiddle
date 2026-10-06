@@ -118,3 +118,16 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Workaround:** `packages/client/src/assembler.ts`. `RoomClient` treats incoming text as a stream and emits each complete top-level JSON object, tracking strings and escapes. Whole messages pass straight through, so phones and Node are unaffected. Covered by client tests that split messages at every byte position. Verified on the VVD: the intro appears within 2 s of Start.
 - **Suggestion:** Fix the Vega RN WebSocket bridge to deliver whole messages, or document that `onmessage` may receive partial frames.
 
+## FL-012: W3C media on Vega rejects `http://` and the RN asset URI form for local files
+- **Date:** 2026-10-06
+- **Task:** Phase 7 audio. A device probe of `AudioPlayer` from `@amazon-devices/react-native-w3cmedia` (2.3.4-rn-83) on the VVD.
+- **Steps:** Set `player.src` to three sources: the bundled MP3 from `Image.resolveAssetSource(require('./x.mp3')).uri`, an MP3 served by the dev server over `http://10.0.2.2:4000`, and the same bundled file with `file://` removed.
+- **Expected:** Each source plays, or the `error` event names the cause.
+- **Actual:** The first two fail with `MediaError {code: 4, message: ""}` and give no reason in JS. Device logs (`loggingctl log -f`) show the causes:
+  - `http://`: `isUriSchemeSecure Got an insecure protocol/scheme http, return error`.
+  - `file:///pkg/bundle/...`: GStreamer `Resource not found` (domain 1805, code 3).
+  - The plain path `/pkg/bundle/assets/src/assets/x.mp3` plays (`loadedmetadata` → `canplay` → `playing`, `currentTime` advancing).
+- **Severity:** Medium. Every route to sound fails silently from JS, and the path form that works isn't documented.
+- **Workaround:** Bundle all audio. Strip `file://` from the resolved asset URI before setting `src` (the TV's `AudioManager` does this in one place). Verified on the VVD. `@amazon-devices/react-native-async-storage__async-storage` (2.1.9000000000-rn-83) persisted a value across an app relaunch in the same probe.
+- **Suggestion:** Fill `MediaError.message` with the native reason. Document which URI schemes are allowed (https only?), and that bundled assets need a plain path.
+

@@ -75,3 +75,42 @@ export function tagSide(object: Box, others: readonly Box[], tag: {width: number
   return aboveBad === 0 || aboveBad <= belowBad ? 'above' : 'below';
 }
 
+export type FocusDirection = 'up' | 'down' | 'left' | 'right';
+
+/**
+ * Remote-control neighbours of on-screen objects: for each object and each
+ * direction, the object a press should move to (or none). Objects live on
+ * camera-transformed planes, which the native focus engine doesn't see, so
+ * the world wires these explicitly instead of trusting spatial search.
+ *
+ * A candidate must lie in that direction (its centre past our edge on that
+ * side). Score = main-axis distance + 2 × cross-axis offset, so a press goes
+ * to what is roughly in line rather than merely nearest.
+ */
+export function focusNeighbors(boxes: ReadonlyMap<string, Box>): Map<string, Partial<Record<FocusDirection, string>>> {
+  const centres = [...boxes].map(([id, b]) => ({id, x: b.x + b.width / 2, y: b.y + b.height / 2, b}));
+  const out = new Map<string, Partial<Record<FocusDirection, string>>>();
+  for (const a of centres) {
+    const next: Partial<Record<FocusDirection, string>> = {};
+    for (const dir of ['up', 'down', 'left', 'right'] as const) {
+      let best: {id: string; score: number} | undefined;
+      for (const b of centres) {
+        if (b.id === a.id) continue;
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const main = dir === 'up' ? -dy : dir === 'down' ? dy : dir === 'left' ? -dx : dx;
+        const cross = dir === 'up' || dir === 'down' ? Math.abs(dx) : Math.abs(dy);
+        // Its centre must lie past our edge on that side: neighbours on the same row aren't "below".
+        const beyond =
+          dir === 'up' ? b.y < a.b.y : dir === 'down' ? b.y > a.b.y + a.b.height : dir === 'left' ? b.x < a.b.x : b.x > a.b.x + a.b.width;
+        if (main <= 0 || !beyond) continue;
+        const score = main + 2 * cross;
+        if (!best || score < best.score) best = {id: b.id, score};
+      }
+      if (best) next[dir] = best.id;
+    }
+    out.set(a.id, next);
+  }
+  return out;
+}
+

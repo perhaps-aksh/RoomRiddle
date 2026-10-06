@@ -17,6 +17,7 @@ import {
   centerOf,
   objectBounds,
   tagSide,
+  focusNeighbors,
   objectViews,
   placeSet,
   trainX,
@@ -249,6 +250,8 @@ const WorldView = ({
 
   // ── The world reacts to authoritative state (anyone's action) ────────
   const prevState = useRef<GameState | null>(state);
+  // Hotspot focusables by object id, for explicit remote neighbours.
+  const hotspotRefs = useRef(new Map<string, View>());
   const pendingLines = useRef<{id: string; characterId?: string}[]>([]);
   useEffect(() => {
     const events = diffEvents(prevState.current, state);
@@ -287,6 +290,11 @@ const WorldView = ({
   const [returnTo, setReturnTo] = useState<'object' | 'bar' | null>(null);
   // Bumped when inspection closes so hotspots/bar remount and preferred focus is honoured.
   const [focusEpoch, setFocusEpoch] = useState(0);
+  // Second render after mount, so neighbour refs exist.
+  const [, setRefsReady] = useState(0);
+  useEffect(() => {
+    setRefsReady(n => n + 1);
+  }, [set.id, focusEpoch]);
   const lastFocus = session.lastFocus.get(`${gameKey}:${set.id}`);
 
   // Dialogue: the current line goes to the audio hook as it appears.
@@ -427,6 +435,7 @@ const WorldView = ({
       screenBoxes.set(v.object.id, projectBox(objectBounds(v.object, node), node.depth, set.camera));
     }
   }
+  const neighbors = focusNeighbors(screenBoxes);
   const hotspots = showObjects
     ? targets.map(v => {
         const node = setNodes.get(v.object.nodeId);
@@ -436,9 +445,18 @@ const WorldView = ({
         }
         const others = [...screenBoxes].filter(([id]) => id !== v.object.id).map(([, b]) => b);
         const tagBelow = tagSide(own, others, TAG_BOX, TAG_TOP_LIMIT) === 'below';
+        const nb = neighbors.get(v.object.id) ?? {};
+        const ref = (id?: string) => (id ? hotspotRefs.current.get(id) ?? null : null);
+        const next = {up: ref(nb.up), down: ref(nb.down), left: ref(nb.left), right: ref(nb.right)};
         return (
           <Plane key={`${v.object.id}-${focusEpoch}`} cam={cam} depth={node.depth}>
-            <Hotspot view={v} node={node} tagBelow={tagBelow} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
+            <Hotspot view={v} node={node} tagBelow={tagBelow} next={next} pressRef={r => {
+                if (r) {
+                  hotspotRefs.current.set(v.object.id, r);
+                } else {
+                  hotspotRefs.current.delete(v.object.id);
+                }
+              }} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
                 session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id);
                 lookAt(v);
               }} onSelect={() => openInspection(v)} />

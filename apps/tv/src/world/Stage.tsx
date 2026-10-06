@@ -174,6 +174,8 @@ export const Hotspot = ({
   preferredFocus,
   onFocus,
   onSelect,
+  pressRef,
+  next,
 }: {
   view: ObjectView;
   node: PlacedNode;
@@ -182,6 +184,10 @@ export const Hotspot = ({
   preferredFocus: boolean;
   onFocus: () => void;
   onSelect: () => void;
+  /** Registers the focusable, so neighbours can point remote presses at it. */
+  pressRef?: (r: View | null) => void;
+  /** Explicit remote neighbours (camera-transformed planes defeat spatial focus search). */
+  next?: {up?: View | null; down?: View | null; left?: View | null; right?: View | null};
 }) => {
   const [focused, setFocused] = useState(false);
   const {progress} = useFocusAnimation(focused, 1);
@@ -190,7 +196,12 @@ export const Hotspot = ({
   return (
     <View style={[styles.abs, {left: px(box.x), top: px(box.y), width: px(box.width), height: px(box.height)}]}>
       <Pressable
+        ref={pressRef}
         style={StyleSheet.absoluteFill}
+        {...(next?.up ? {nextFocusUp: next.up} : null)}
+        {...(next?.down ? {nextFocusDown: next.down} : null)}
+        {...(next?.left ? {nextFocusLeft: next.left} : null)}
+        {...(next?.right ? {nextFocusRight: next.right} : null)}
         onFocus={() => {
           setFocused(true);
           cue('focus');

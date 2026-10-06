@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {describe, test} from 'node:test';
 import type {PlaceholderShape} from '@roomriddle/shared-types';
 import {pivotFrame, rotatedPoint, scaleShape} from './shapes';
-import {tagSide} from './layout';
+import {focusNeighbors, tagSide} from './layout';
 
 const hand: PlaceholderShape = {x: 98, y: 30, w: 4, h: 70, color: 'ink', rotate: 90, pivot: {x: 100, y: 100}};
 
@@ -52,5 +52,35 @@ describe('focus tag placement', () => {
   test('when both sides collide, the side covering less wins', () => {
     const o = box(800, 500, 100, 100);
     assert.equal(tagSide(o, [box(800, 400, 100, 60), box(800, 620, 100, 60), box(700, 640, 100, 40)], tag, 140), 'above');
+  });
+});
+
+describe('remote focus neighbours', () => {
+  const b = (x: number, y: number, w = 100, h = 100) => ({x, y, width: w, height: h});
+  // The station on screen: clock and notice stacked on the left, suitcase below them,
+  // waiting-room clock mid-top, paper on the bench mid-bottom.
+  const station = new Map([
+    ['clock', b(220, 130, 200, 200)],
+    ['notice', b(230, 360, 180, 120)],
+    ['suitcase', b(300, 700, 170, 120)],
+    ['waiting', b(890, 370, 90, 90)],
+    ['paper', b(780, 700, 150, 60)],
+  ]);
+  const n = focusNeighbors(station);
+  test('Up from the suitcase goes to the notice above it, not elsewhere', () => {
+    assert.equal(n.get('suitcase')!.up, 'notice');
+    assert.equal(n.get('notice')!.up, 'clock');
+  });
+  test('Down retraces, and the bottom row has no Down (native focus reaches the bar)', () => {
+    assert.equal(n.get('clock')!.down, 'notice');
+    assert.equal(n.get('notice')!.down, 'suitcase');
+    assert.equal(n.get('suitcase')!.down, undefined);
+    assert.equal(n.get('paper')!.down, undefined);
+  });
+  test('Left/Right move along the row', () => {
+    assert.equal(n.get('suitcase')!.right, 'paper');
+    assert.equal(n.get('paper')!.left, 'suitcase');
+    assert.equal(n.get('notice')!.right, 'waiting');
+    assert.equal(n.get('clock')!.left, undefined);
   });
 });

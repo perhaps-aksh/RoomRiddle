@@ -34,3 +34,5 @@ export type {PresentationState, Tween, Caption, DialogueRun, SetChange, Characte
 export {objectViews, actionFor, focusable, dialogueFor, diffEvents, verbFor} from './interactions';
 export type {ObjectStatus, ObjectView} from './interactions';
 export {validateWorld} from './validate';
+export {pivotFrame, rotatedPoint, scaleShape} from './shapes';
+export type {PivotFrame} from './shapes';

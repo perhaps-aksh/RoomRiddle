@@ -76,8 +76,13 @@ export interface PlaceholderShape {
   opacity?: number;
   /** Corner radius; ≥ min(w,h)/2 draws a circle or pill. */
   radius?: number;
-  /** Degrees. */
+  /** Degrees, clockwise. */
   rotate?: number;
+  /**
+   * Rotation origin in the asset's box (default: the shape's own centre).
+   * Clock hands rotate about the clock's centre, not about themselves.
+   */
+  pivot?: {x: number; y: number};
   /** Mono text drawn centred in the box (clock faces, signs). */
   text?: string;
   textColor?: WorldColor;

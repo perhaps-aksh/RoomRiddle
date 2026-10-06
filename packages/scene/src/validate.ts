@@ -8,6 +8,9 @@
 import type {MysteryDefinition, MysteryWorld} from '@roomriddle/shared-types';
 import {validateManifest} from './assets';
 
+/** Share of an interactive object's box its art must span on each axis. */
+const MIN_FILL = 0.8;
+
 export function validateWorld(world: MysteryWorld, mystery: MysteryDefinition): string[] {
   const errors = [...validateManifest(world.manifest)];
   const assets = new Set(world.manifest.assets.map(a => a.id));
@@ -75,6 +78,18 @@ export function validateWorld(world: MysteryWorld, mystery: MysteryDefinition): 
         objIds.add(o.id);
         if (!nodeIds.has(o.nodeId)) {
           errors.push(`${sw.sceneId}/${set.id}: object ${o.id} uses missing node ${o.nodeId}`);
+        }
+        // Focus frame, camera target and inspection all use the object's box:
+        // its placeholder art must actually fill that box, or focus floats beside the drawing.
+        const node = set.nodes.find(n => n.id === o.nodeId);
+        const art = node && !o.bounds ? world.manifest.assets.find(a => a.id === node.assetId) : undefined;
+        if (art?.placeholder && art.placeholder.length > 0) {
+          const ink = art.placeholder.filter(s => (s.opacity ?? 1) > 0.3);
+          const w = Math.max(...ink.map(s => s.x + s.w)) - Math.min(...ink.map(s => s.x));
+          const h = Math.max(...ink.map(s => s.y + s.h)) - Math.min(...ink.map(s => s.y));
+          if (w < art.size.width * MIN_FILL || h < art.size.height * MIN_FILL) {
+            errors.push(`${sw.sceneId}/${set.id}: object ${o.id}'s art fills only ${Math.round((100 * w) / art.size.width)}%×${Math.round((100 * h) / art.size.height)}% of its box`);
+          }
         }
         if (o.clueId !== undefined) {
           if (!scene.clueIds.includes(o.clueId)) {

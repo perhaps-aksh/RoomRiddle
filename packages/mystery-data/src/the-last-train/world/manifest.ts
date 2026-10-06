@@ -10,6 +10,7 @@
  * Sizes are design px (1920×1080 screen). Depth: 0 = sky, 1 = moves with the camera.
  */
 import type {AssetDefinition, AssetManifest, PlaceholderShape, WorldColor} from '@roomriddle/shared-types';
+import {clockFace} from '../../kit/clock';
 
 type Extra = Partial<Omit<PlaceholderShape, 'x' | 'y' | 'w' | 'h' | 'color'>>;
 const r = (x: number, y: number, w: number, h: number, color: WorldColor, extra: Extra = {}): PlaceholderShape => ({x, y, w, h, color, ...extra});
@@ -333,15 +334,14 @@ const CLOCK = asset({
   depth: 0.3,
   size: {width: 200, height: 200},
   animation: 'none',
-  animationNote: 'Static; cracked glass. Hands frozen at 11:59 (the clue).',
+  animationNote: 'Static; cracked glass. Hands frozen at 11:59 (the clue): the clock runs twelve minutes fast, so the true moment is 11:47.',
   description: 'The platform clock on the tower: blackened, cracked, stopped.',
   placeholder: [
-    r(0, 0, 200, 200, 'brass', {radius: 100}),
-    r(12, 12, 176, 176, 'paper', {radius: 88}),
-    r(98, 36, 4, 66, 'ink', {role: 'hand-hour', rotate: -8}),
-    r(98, 24, 4, 78, 'ink', {role: 'hand-minute', rotate: -6}),
-    r(40, 120, 120, 36, 'paper', {text: '11:59', textColor: 'ink', textSize: 24, opacity: 0.95}),
-    r(40, 40, 130, 6, 'shadow', {rotate: 32, opacity: 0.6, role: 'crack'}),
+    ...clockFace({size: 200, time: {hours: 11, minutes: 59}, rim: 'brass', face: 'paper', rimRatio: 0.06}),
+    // Cracked glass: faint, jagged and off the hub, so it never reads as a hand.
+    r(118, 128, 44, 2, 'shadow', {rotate: 38, opacity: 0.45, role: 'crack'}),
+    r(138, 146, 30, 2, 'shadow', {rotate: -24, opacity: 0.4, role: 'crack'}),
+    r(126, 150, 22, 2, 'shadow', {rotate: 70, opacity: 0.35, role: 'crack'}),
   ],
 });
 
@@ -367,7 +367,8 @@ const WAITING_CLOCK = asset({
   animation: 'loop',
   animationNote: 'Second hand ticking (optional).',
   description: 'The waiting-room wall clock, seen through the window. Still ticking.',
-  placeholder: [r(0, 0, 90, 90, 'woodLight', {radius: 45}), r(8, 8, 74, 74, 'paper', {radius: 37}), r(44, 18, 3, 30, 'ink', {rotate: 100}), r(44, 14, 3, 34, 'ink', {rotate: 318})],
+  // True time, still running: 11:53, a few minutes after it happened.
+  placeholder: clockFace({size: 90, time: {hours: 11, minutes: 53, seconds: 20}, rim: 'woodLight', face: 'paper', rimRatio: 0.09, secondHand: true}),
 });
 
 const SUITCASE = asset({
@@ -391,7 +392,11 @@ const NEWSPAPER = asset({
   size: {width: 150, height: 60},
   animation: 'none',
   description: "Tonight's evening paper, left on the bench.",
-  placeholder: [r(0, 10, 150, 50, 'paper', {rotate: -4}), r(12, 20, 90, 8, 'ink', {opacity: 0.7}), r(12, 36, 120, 5, 'ink', {opacity: 0.4})],
+  // The print turns with the paper: everything pivots on the paper's centre.
+  placeholder: (() => {
+    const tilt = {rotate: -4, pivot: {x: 75, y: 35}};
+    return [r(0, 10, 150, 50, 'paper', tilt), r(12, 20, 90, 8, 'ink', {...tilt, opacity: 0.7}), r(12, 36, 120, 5, 'ink', {...tilt, opacity: 0.4})];
+  })(),
 });
 
 const TICKET = asset({
@@ -403,7 +408,13 @@ const TICKET = asset({
   size: {width: 150, height: 80},
   animation: 'none',
   description: 'A torn ticket in a puddle on the platform.',
-  placeholder: [r(0, 40, 150, 40, 'lampGlow', {radius: 20, opacity: 0.15}), r(30, 20, 90, 44, 'paper', {rotate: 12}), r(42, 34, 50, 6, 'ink', {rotate: 12, opacity: 0.6})],
+  // Fills its box so the focus frame hugs it. The print turns with the ticket (pivot: its centre).
+  placeholder: [
+    r(0, 50, 150, 30, 'lampGlow', {radius: 15, opacity: 0.15}),
+    r(6, 5, 138, 70, 'paper', {rotate: 6, pivot: {x: 75, y: 40}}),
+    r(22, 22, 80, 8, 'ink', {rotate: 6, pivot: {x: 75, y: 40}, opacity: 0.6}),
+    r(22, 42, 54, 6, 'ink', {rotate: 6, pivot: {x: 75, y: 40}, opacity: 0.4}),
+  ],
 });
 
 const DEPARTURE_BOARD = asset({
@@ -467,7 +478,8 @@ const POCKET_WATCH = asset({
   size: {width: 160, height: 90},
   animation: 'none',
   description: 'The gap beneath seat seven, where something brass catches the light.',
-  placeholder: [r(0, 30, 160, 60, 'shadow', {radius: 20, opacity: 0.6}), r(60, 44, 36, 36, 'brass', {radius: 18, opacity: 0.8})],
+  // Stopped where it fell: 11:47, the moment itself.
+  placeholder: [r(0, 0, 160, 90, 'shadow', {radius: 24, opacity: 0.6}), ...clockFace({x: 47, y: 12, size: 66, time: {hours: 11, minutes: 47}, rim: 'brass', face: 'paper', rimRatio: 0.1, marks: false})],
 });
 
 const SEAT_CARD = asset({
@@ -523,7 +535,8 @@ const LEVER_FRAME = asset({
   description: 'The lever frame: a long brass row of numbered levers; one is marked BLACKWATER.',
   placeholder: [
     r(0, 300, 900, 60, 'iron'),
-    ...row(12, i => r(30 + i * 72, 40 + (i === 7 ? 30 : 0), 18, 270, i === 7 ? 'danger' : 'brass', {radius: 8, rotate: i === 7 ? -14 : 0})),
+    // Levers hinge at the frame; the pulled one (BLACKWATER) leans back from its base.
+    ...row(12, i => r(30 + i * 72, 40, 18, 270, i === 7 ? 'danger' : 'brass', {radius: 8, rotate: i === 7 ? -14 : 0, pivot: {x: 39 + i * 72, y: 305}})),
   ],
 });
 

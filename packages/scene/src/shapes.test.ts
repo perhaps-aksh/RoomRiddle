@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {describe, test} from 'node:test';
 import type {PlaceholderShape} from '@roomriddle/shared-types';
 import {pivotFrame, rotatedPoint, scaleShape} from './shapes';
+import {tagSide} from './layout';
 
 const hand: PlaceholderShape = {x: 98, y: 30, w: 4, h: 70, color: 'ink', rotate: 90, pivot: {x: 100, y: 100}};
 
@@ -31,5 +32,25 @@ describe('shape geometry', () => {
     assert.deepEqual(s.pivot, {x: 50, y: 50});
     assert.equal(s.x + s.w / 2, 50);
     assert.equal(scaleShape(hand, 1, 1), hand);
+  });
+});
+
+describe('focus tag placement', () => {
+  const tag = {width: 300, height: 60, gap: 18};
+  const box = (x: number, y: number, width: number, height: number) => ({x, y, width, height});
+  test('above by default', () => {
+    assert.equal(tagSide(box(800, 600, 100, 100), [], tag, 140), 'above');
+  });
+  test('below when above would sit under the header', () => {
+    assert.equal(tagSide(box(800, 150, 100, 100), [], tag, 140), 'below');
+  });
+  test('below when above would cover another object (notice under the clock)', () => {
+    const clock = box(220, 130, 200, 200);
+    const notice = box(230, 360, 180, 120);
+    assert.equal(tagSide(notice, [clock], tag, 140), 'below');
+  });
+  test('when both sides collide, the side covering less wins', () => {
+    const o = box(800, 500, 100, 100);
+    assert.equal(tagSide(o, [box(800, 400, 100, 60), box(800, 620, 100, 60), box(700, 640, 100, 40)], tag, 140), 'above');
   });
 });

@@ -69,7 +69,7 @@ export const MysteryDetailsScreen = ({
           {!available
             ? 'Coming soon. This mystery is not playable yet.'
             : isSelected
-            ? '✓ Selected for tonight. Local play on this TV, phones join in a later phase.'
+            ? '✓ Selected for tonight. Play here on the TV, or create a room so phones can join.'
             : ' '}
         </Text>
         <View style={styles.actionRow}>

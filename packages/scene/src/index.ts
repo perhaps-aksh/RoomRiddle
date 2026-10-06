@@ -27,7 +27,7 @@ export {MODE_POLICY, accepts} from './modes';
 export type {SceneInput, ModePolicy} from './modes';
 export {TRAIN_SEQUENCE, canTransition, trainX, doorsOpen, headlightsOn, steaming} from './train';
 export type {TrainMotion} from './train';
-export {placeNode, placeSet, objectBounds, centerOf, assetsForSet} from './layout';
+export {placeNode, placeSet, objectBounds, centerOf, assetsForSet, tagSide} from './layout';
 export type {PlacedNode} from './layout';
 export {SceneDirector, tweenValue} from './director';
 export type {PresentationState, Tween, Caption, DialogueRun, SetChange, CharacterPresence, DirectorOptions} from './director';

@@ -113,7 +113,7 @@ describe('RoomRiddle TV shell', () => {
     // Back from the intro returns to the details, where the mystery is now selected.
     fireEvent.press(screen.getByTestId('intro-back'));
     expect(
-      screen.getByText('✓ Selected for tonight. Local play on this TV, phones join in a later phase.'),
+      screen.getByText('✓ Selected for tonight. Play here on the TV, or create a room so phones can join.'),
     ).toBeTruthy();
   });
 

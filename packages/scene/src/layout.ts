@@ -53,3 +53,25 @@ export function centerOf(box: {x: number; y: number; width: number; height: numb
 export function assetsForSet(set: WorldSet, extra: readonly string[] = []): string[] {
   return [...new Set([...set.nodes.map(n => n.assetId), ...extra])];
 }
+
+type Box = {x: number; y: number; width: number; height: number};
+
+const overlaps = (a: Box, b: Box) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+/**
+ * Where a focused object's name tag goes, in screen space. Above by default;
+ * below when the space above is under the header (`topLimit`) or would cover
+ * another object (the notice's tag hid the clock it hangs under). If both
+ * sides collide, the side that covers less wins.
+ */
+export function tagSide(object: Box, others: readonly Box[], tag: {width: number; height: number; gap: number}, topLimit: number): 'above' | 'below' {
+  const cx = object.x + object.width / 2;
+  const at = (y: number): Box => ({x: cx - tag.width / 2, y, width: tag.width, height: tag.height});
+  const above = at(object.y - tag.gap - tag.height);
+  const below = at(object.y + object.height + tag.gap);
+  const covered = (t: Box) => others.reduce((sum, o) => (overlaps(t, o) ? sum + 1 : sum), 0);
+  const aboveBad = (above.y < topLimit ? 10 : 0) + covered(above);
+  const belowBad = covered(below);
+  return aboveBad === 0 || aboveBad <= belowBad ? 'above' : 'below';
+}
+

@@ -16,6 +16,7 @@ import {
   projectBox,
   centerOf,
   objectBounds,
+  tagSide,
   objectViews,
   placeSet,
   trainX,
@@ -55,7 +56,9 @@ const INSPECT_SPOT = {x: 560, y: 440};
  */
 const LOOK_SAFE = {top: 150, bottom: 820, left: 200, right: 1720};
 /** Objects whose top is above this (on screen) show their focus tag below them, clear of the header. */
-const TAG_FLIP_Y = 300;
+/** A focus tag (name + action) in design px, and the highest it may sit (below the HUD header). */
+const TAG_BOX = {width: 360, height: 80, gap: 18};
+const TAG_TOP_LIMIT = 202;
 
 interface Inspecting {
   objectId: string;
@@ -416,15 +419,26 @@ const WorldView = ({
   const barFocus = hotspotFocus === undefined ? (returning && hub.suggestedFocus !== 'continue' ? initialFocusKey : hub.suggestedFocus) : undefined;
 
   const showObjects = policy.focusObjects && !hub.confirmLeave;
+  // Every object's on-screen box, so a focus tag never covers a neighbour.
+  const screenBoxes = new Map<string, ReturnType<typeof projectBox>>();
+  for (const v of targets) {
+    const node = setNodes.get(v.object.nodeId);
+    if (node) {
+      screenBoxes.set(v.object.id, projectBox(objectBounds(v.object, node), node.depth, set.camera));
+    }
+  }
   const hotspots = showObjects
     ? targets.map(v => {
         const node = setNodes.get(v.object.nodeId);
-        if (!node) {
+        const own = screenBoxes.get(v.object.id);
+        if (!node || !own) {
           return null;
         }
+        const others = [...screenBoxes].filter(([id]) => id !== v.object.id).map(([, b]) => b);
+        const tagBelow = tagSide(own, others, TAG_BOX, TAG_TOP_LIMIT) === 'below';
         return (
           <Plane key={`${v.object.id}-${focusEpoch}`} cam={cam} depth={node.depth}>
-            <Hotspot view={v} node={node} tagBelow={projectBox(objectBounds(v.object, node), node.depth, set.camera).y < TAG_FLIP_Y} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
+            <Hotspot view={v} node={node} tagBelow={tagBelow} preferredFocus={v.object.id === hotspotFocus} onFocus={() => {
                 session.lastFocus.set(`${gameKey}:${set.id}`, v.object.id);
                 lookAt(v);
               }} onSelect={() => openInspection(v)} />

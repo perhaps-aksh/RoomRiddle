@@ -43,8 +43,16 @@ h4 { font: var(--t-h2-font); letter-spacing: var(--t-h2-tracking); }
 
 /* ── Top bar ────────────────────────────────────────────────────── */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-sm); padding-bottom: var(--s-md); border-bottom: 1px solid var(--c-hairline); }
-.wordmark { font: var(--t-wordmark-font); letter-spacing: var(--t-wordmark-tracking); text-transform: uppercase; color: var(--c-accent); }
-.topbar-right { display: flex; align-items: center; gap: var(--s-sm); }
+.wordmark { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: var(--t-wordmark-font); letter-spacing: var(--t-wordmark-tracking); text-transform: uppercase; color: var(--c-accent); }
+.topbar-right { display: flex; flex-shrink: 0; align-items: center; gap: var(--s-sm); }
+/* Phones: the connection status shows as its coloured dot only (the word stays for screen readers),
+   so the wordmark, room chip and status fit on one line. Words return on wider screens. */
+.status-text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.status { min-height: 24px; }
+.status.bad .status-text, .status.wait .status-text { position: static; width: auto; height: auto; clip: auto; }
+@media (min-width: 480px) { .status-text { position: static; width: auto; height: auto; clip: auto; } }
+/* The narrowest phones (320 px): tighter wordmark tracking so it isn't truncated. */
+@media (max-width: 359px) { .wordmark { letter-spacing: 3px; } }
 .chip { display: inline-block; padding: 3px 8px; border: 1px solid var(--c-border); border-radius: var(--r-sm); color: var(--c-text-secondary); font-size: 12px; }
 .status { display: inline-flex; align-items: center; gap: 6px; font: var(--t-label-font); letter-spacing: 1.5px; text-transform: uppercase; color: var(--c-text-secondary); }
 .status i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }

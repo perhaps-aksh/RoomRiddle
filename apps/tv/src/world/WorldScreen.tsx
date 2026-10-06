@@ -465,6 +465,17 @@ const WorldView = ({
       })
     : null;
 
+  // Dialogue sits opposite the speaker on screen, so it never covers who is talking.
+  const speakerSide = (characterId: string): 'left' | 'right' | 'center' => {
+    const presence = s.characters[characterId];
+    const node = presence && presence.state !== 'hidden' ? setNodes.get(presence.nodeId ?? 'detective-spot') : undefined;
+    if (!node) {
+      return 'center';
+    }
+    const box = projectBox({x: node.x, y: node.y, width: node.width, height: node.height}, node.depth, set.camera);
+    const cx = box.x + box.width / 2;
+    return cx > 1920 * 0.6 ? 'left' : cx < 1920 * 0.4 ? 'right' : 'center';
+  };
   const trainMotion = s.train;
   const found = views.filter(v => v.status === 'examined').length;
   const clueObjects = views.filter(v => v.object.clueId !== undefined).length;
@@ -503,7 +514,9 @@ const WorldView = ({
         </View>
       )}
 
-      {s.mode === 'dialogue' && line && <DialogueBox key={line.id} speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''} text={line.text} onNext={advance} aside={inspectView !== undefined} />}
+      {s.mode === 'dialogue' && line && (
+        <DialogueBox key={line.id} speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''} text={line.text} onNext={advance} aside={inspectView !== undefined} side={speakerSide(line.characterId)} />
+      )}
 
       {/* The inspection stays up while the detective reacts to what was found. */}
       {inspectView && (s.mode === 'inspection' || s.dialogue?.resume === 'inspection') && (
@@ -528,8 +541,8 @@ const WorldView = ({
   );
 };
 
-const DialogueBox = ({speaker, text, onNext, aside}: {speaker: string; text: string; onNext: () => void; aside: boolean}) => (
-  <View style={[styles.dialogue, aside && styles.dialogueAside]} testID="world-dialogue">
+const DialogueBox = ({speaker, text, onNext, aside, side = 'center'}: {speaker: string; text: string; onNext: () => void; aside: boolean; side?: 'left' | 'right' | 'center'}) => (
+  <View style={[styles.dialogue, !aside && side === 'left' && styles.dialogueLeft, !aside && side === 'right' && styles.dialogueRight, aside && styles.dialogueAside]} testID="world-dialogue">
     <Pressable onPress={onNext} hasTVPreferredFocus accessibilityRole="button" accessibilityLabel={`${speaker}: ${text} Continue.`} testID="world-dialogue-next" style={styles.dialogueInner}>
       <Text style={styles.speaker}>{speaker.toUpperCase()}</Text>
       <Text style={[styles.line, aside && styles.lineAside]}>{text}</Text>
@@ -557,7 +570,8 @@ const InspectionPanel = ({
   return (
     <View style={styles.inspect} testID="world-inspection">
       <RRPanel variant="elevated" tab={verbFor(view.object).toUpperCase()} meta={view.status === 'examined' ? 'IN EVIDENCE' : undefined}>
-        <Text style={styles.inspectName}>{view.object.name}</Text>
+        {/* The clue card carries its own title; the name alone would repeat it. */}
+        {!(view.status === 'examined' && view.clue) && <Text style={styles.inspectName}>{view.object.name}</Text>}
         {view.status === 'examined' && view.clue ? (
           <ClueCard key={view.clue.id} clue={view.clue} index={index || undefined} fresh={inspecting.fresh} testID="world-clue" />
         ) : view.status === 'scenery' ? (
@@ -607,6 +621,8 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: theme.spacing.xxl,
     paddingTop: theme.spacing.lg,
+    // Same band as the action bar: the HUD stays readable over any art the camera brings up.
+    backgroundColor: theme.colors.overlay,
   },
   bar: {
     position: 'absolute',
@@ -635,6 +651,15 @@ const styles = StyleSheet.create({
     left: px(260),
     right: px(260),
     bottom: px(90),
+  },
+  // Away from a speaker standing on the right / left of the screen.
+  dialogueLeft: {
+    left: px(96),
+    right: px(720),
+  },
+  dialogueRight: {
+    left: px(720),
+    right: px(96),
   },
   // Beside the inspection panel (which holds the right column), under the object.
   dialogueAside: {
@@ -672,7 +697,10 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: px(96),
     top: px(150),
+    // Never past the bottom safe edge, however much the panel holds.
+    maxHeight: px(1080 - 150 - 48),
     width: px(760),
+    overflow: 'hidden',
   },
   inspectName: {
     ...theme.text.h1,

@@ -94,7 +94,7 @@ function topBar(view: RoomView): string {
     <span class="wordmark">RoomRiddle</span>
     <span class="topbar-right">
       ${room ? `<span class="chip mono" aria-label="Room ${esc(room.code)}">RM ${esc(room.code)}</span>` : ''}
-      ${status ? `<span class="status ${status.cls}" role="status"><i></i>${status.text}</span>` : ''}
+      ${status ? `<span class="status ${status.cls}" role="status" title="${status.text}"><i></i><span class="status-text">${status.text}</span></span>` : ''}
     </span>
   </header>`;
 }

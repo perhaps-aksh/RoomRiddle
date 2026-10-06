@@ -120,7 +120,7 @@ describe('RoomRiddle TV shell', () => {
   it('Settings lists the settings and Back', () => {
     const screen = render(<App />);
     fireEvent.press(screen.getByTestId('home-settings'));
-    for (const id of ['motion', 'world', 'sound', 'music', 'display', 'controls', 'back']) {
+    for (const id of ['motion', 'world', 'sound', 'master', 'music', 'sfx', 'voice', 'subtitles', 'display', 'controls', 'back']) {
       expect(screen.getByTestId(`settings-${id}`)).toBeTruthy();
     }
     fireEvent.press(screen.getByTestId('settings-sound'));
@@ -181,6 +181,53 @@ describe('remote Back button', () => {
   });
 });
 
+describe('saved settings', () => {
+  // A store shared across two app launches stands in for the TV's storage.
+  const memoryStore = () => {
+    let saved: string | null = null;
+    return {read: async () => saved, write: async (json: string) => {
+        saved = json;
+      },
+      peek: () => saved};
+  };
+  const flush = async () => {
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+  };
+
+  it('Motion, Scenes and audio levels survive closing and reopening the app', async () => {
+    const store = memoryStore();
+    const first = render(<App settingsStore={store} />);
+    await flush();
+    fireEvent.press(first.getByTestId('home-settings'));
+    fireEvent.press(first.getByTestId('settings-motion'));
+    fireEvent.press(first.getByTestId('settings-world'));
+    fireEvent.press(first.getByTestId('settings-music'));
+    fireEvent.press(first.getByTestId('settings-subtitles'));
+    expect(JSON.parse(store.peek() ?? '{}')).toMatchObject({motion: 'reduced', scenes: 'casefile', music: 50, subtitles: false});
+    first.unmount();
+
+    const second = render(<App settingsStore={store} />);
+    await flush();
+    fireEvent.press(second.getByTestId('home-settings'));
+    expect(second.getByText('Reduced')).toBeTruthy();
+    expect(second.getByText('Case file')).toBeTruthy();
+    expect(second.getByText('50%')).toBeTruthy();
+    expect(second.getAllByText('Off').length).toBeGreaterThan(0);
+  });
+
+  it('a corrupt saved copy falls back to the defaults', async () => {
+    const screen = render(<App settingsStore={{read: async () => '{not json', write: async () => undefined}} />);
+    await flush();
+    fireEvent.press(screen.getByTestId('home-settings'));
+    expect(screen.getByText('Full')).toBeTruthy();
+    expect(screen.getByText('Cinematic')).toBeTruthy();
+  });
+});
+
 describe('room code entry', () => {
   it('appends digits up to four, deletes and clears', () => {
     expect(applyKey('', '4')).toBe('4');
@@ -200,7 +247,7 @@ describe('Phase 5 experience', () => {
     expect(screen.getByText('Full')).toBeTruthy();
     fireEvent.press(screen.getByTestId('settings-motion'));
     expect(screen.getByText('Reduced')).toBeTruthy();
-    expect(screen.getByText('Applies immediately, for this session.')).toBeTruthy();
+    expect(screen.getByText('Saved on this TV')).toBeTruthy();
     // The preference survives navigation (it lives above the navigator).
     fireEvent.press(screen.getByTestId('settings-back'));
     fireEvent.press(screen.getByTestId('home-settings'));

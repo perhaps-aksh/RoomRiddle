@@ -1,15 +1,28 @@
 {
   "preset": "@amazon-devices/react-native-kepler",
   "testRegex": "/test/.*\\.(test|spec)\\.(ts|tsx|js)$",
-  "moduleFileExtensions": ["ts", "tsx", "js", "jsx", "json", "node"],
+  "moduleFileExtensions": [
+    "ts",
+    "tsx",
+    "js",
+    "jsx",
+    "json",
+    "node"
+  ],
   "moduleNameMapper": {
     "^react-native$": "@amazon-devices/react-native-kepler",
     "^react-native/(.*)$": "@amazon-devices/react-native-kepler/$1",
     "^@roomriddle/(.*)$": "<rootDir>/../../packages/$1/src/index.ts",
-    "^~/(.*)$": "<rootDir>/src/$1"
+    "^~/(.*)$": "<rootDir>/src/$1",
+    "^@amazon-devices/react-native-async-storage__async-storage$": "<rootDir>/node_modules/@amazon-devices/react-native-async-storage__async-storage/jest/async-storage-mock"
   },
-  "modulePaths": ["<rootDir>/src"],
-  "moduleDirectories": ["node_modules", "<rootDir>/node_modules"],
+  "modulePaths": [
+    "<rootDir>/src"
+  ],
+  "moduleDirectories": [
+    "node_modules",
+    "<rootDir>/node_modules"
+  ],
   "roots": [
     "<rootDir>/src/",
     "<rootDir>/test/",
@@ -25,5 +38,8 @@
     "!**/types.ts",
     "!src/**/*.d.ts"
   ],
-  "coverageDirectory": ".tmp/coverage"
+  "coverageDirectory": ".tmp/coverage",
+  "setupFilesAfterEnv": [
+    "<rootDir>/test/support/setup.ts"
+  ]
 }

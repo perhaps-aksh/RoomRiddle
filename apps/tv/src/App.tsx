@@ -5,7 +5,6 @@ import {ScreenTransition} from './components/Background/ScreenTransition';
 import {DEFAULT_MYSTERY_ID} from './data/mysteries';
 import {GameProvider, GameProviderProps, useGame} from './game/GameContext';
 import {RoomWatcher} from './game/RoomWatcher';
-import {MotionProvider} from './ui/motion';
 import {ToastProvider} from './ui/Toast';
 import type {TransitionPreset} from './ui/Transition';
 import {
@@ -30,6 +29,7 @@ import {MysteryDetailsScreen} from './screens/MysteryDetails/MysteryDetailsScree
 import {PuzzleScreen} from './screens/Puzzle/PuzzleScreen';
 import {SceneRoute} from './world/SceneRoute';
 import {useWorldSession, WorldSessionProvider} from './world/WorldSession';
+import {SettingsProvider, SettingsStore} from './settings/SettingsContext';
 import {SettingsScreen} from './screens/Settings/SettingsScreen';
 import {ScreenProps} from './screens/types';
 
@@ -48,26 +48,34 @@ export const App = ({
   createSocket,
   serverUrl,
   reducedMotion,
-  cinematicWorld = true,
+  cinematicWorld,
+  settingsStore,
 }: {
   clock?: () => number;
   /** Tests inject a fake WebSocket and URL. */
   createSocket?: GameProviderProps['createSocket'];
   serverUrl?: string;
-  /** Start with reduced motion (also switchable in Settings). */
+  /** Start with reduced motion (a saved setting; also switchable in Settings). */
   reducedMotion?: boolean;
-  /** Scenes as the 2.5D world (default) or as P5 case files (also switchable in Settings). */
+  /** Scenes as the 2.5D world (default) or as P5 case files (a saved setting; also switchable in Settings). */
   cinematicWorld?: boolean;
+  /** Where settings are saved (AsyncStorage on the TV). */
+  settingsStore?: SettingsStore;
 }) => (
-  <MotionProvider initialReduced={reducedMotion}>
-    <WorldSessionProvider initialEnabled={cinematicWorld}>
+  <SettingsProvider
+    store={settingsStore}
+    initial={{
+      ...(reducedMotion === undefined ? {} : {motion: reducedMotion ? 'reduced' : 'full'}),
+      ...(cinematicWorld === undefined ? {} : {scenes: cinematicWorld ? 'cinematic' : 'casefile'}),
+    }}>
+    <WorldSessionProvider>
       <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
         <ToastProvider>
           <Shell />
         </ToastProvider>
       </GameProvider>
     </WorldSessionProvider>
-  </MotionProvider>
+  </SettingsProvider>
 );
 
 const Shell = () => {

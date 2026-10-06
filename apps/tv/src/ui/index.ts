@@ -15,6 +15,6 @@ export {Feedback} from './Feedback';
 export type {FeedbackKind} from './Feedback';
 export {ToastProvider, useToast} from './Toast';
 export {FocusFrame, useFocusAnimation} from './focus';
-export {MotionProvider, useMotionPrefs, useReducedMotion, useEntrance, timing} from './motion';
+export {useMotionPrefs, useReducedMotion, useEntrance, timing} from './motion';
 export {cue, setCueHandler} from './cues';
 export type {Cue} from './cues';

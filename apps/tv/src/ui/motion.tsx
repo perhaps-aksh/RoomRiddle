@@ -3,8 +3,9 @@
  * applies the reduced-motion preference in one place, so no screen invents
  * its own durations or easings.
  */
-import React, {createContext, ReactNode, useContext, useEffect, useMemo, useState} from 'react';
-import {AccessibilityInfo, Animated} from 'react-native';
+import {useEffect, useMemo, useState} from 'react';
+import {Animated} from 'react-native';
+import {useSettings} from '../settings/SettingsContext';
 import {theme} from '../theme/theme';
 
 export type {MotionName} from '@roomriddle/ui';
@@ -15,38 +16,17 @@ interface MotionPrefs {
   setReduced: (reduced: boolean) => void;
 }
 
-const MotionContext = createContext<MotionPrefs>({reduced: false, setReduced: () => undefined});
-
-/** Holds the reduced-motion preference. Seeds from the OS setting when the platform exposes it. */
-export const MotionProvider = ({children, initialReduced = false}: {children: ReactNode; initialReduced?: boolean}) => {
-  const [reduced, setReduced] = useState(initialReduced);
-  useEffect(() => {
-    let alive = true;
-    try {
-      AccessibilityInfo.isReduceMotionEnabled?.()
-        .then(enabled => {
-          if (alive && enabled) {
-            setReduced(true);
-          }
-        })
-        .catch(() => undefined);
-    } catch {
-      // Not available on this platform: keep the in-app setting.
-    }
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const value = useMemo(() => ({reduced, setReduced}), [reduced]);
-  return <MotionContext.Provider value={value}>{children}</MotionContext.Provider>;
-};
-
+/**
+ * Reduced motion is a saved player preference (settings/SettingsContext), so it
+ * survives restarts; the OS reduce-motion setting seeds it on first launch.
+ */
 export function useMotionPrefs(): MotionPrefs {
-  return useContext(MotionContext);
+  const {settings, update} = useSettings();
+  return useMemo(() => ({reduced: settings.motion === 'reduced', setReduced: (r: boolean) => update({motion: r ? 'reduced' : 'full'})}), [settings.motion, update]);
 }
 
 export function useReducedMotion(): boolean {
-  return useContext(MotionContext).reduced;
+  return useSettings().settings.motion === 'reduced';
 }
 
 /** Duration for a semantic motion, respecting reduced motion. */

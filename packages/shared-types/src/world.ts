@@ -238,8 +238,12 @@ export interface DialogueLine {
   characterId: string;
   text: string;
   trigger: DialogueTrigger;
-  /** Phase 7 hook: the voice line for this text. Nothing plays it yet. */
+  /** The recorded line (an AudioManifest id). Optional: without it, or if the file is missing, the text alone carries the line. */
   audioId?: string;
+  /** How the line is delivered; renderers may pick a pose or expression from it. */
+  emotion?: 'neutral' | 'curious' | 'suspicious' | 'urgent' | 'grim' | 'resolved';
+  /** How long the line stays up when it auto-advances (ms). Default: from its length. */
+  durationMs?: number;
 }
 
 // ── Timelines ──────────────────────────────────────────────────────────

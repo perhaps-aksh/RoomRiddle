@@ -14,7 +14,9 @@
     "^react-native/(.*)$": "@amazon-devices/react-native-kepler/$1",
     "^@roomriddle/(.*)$": "<rootDir>/../../packages/$1/src/index.ts",
     "^~/(.*)$": "<rootDir>/src/$1",
-    "^@amazon-devices/react-native-async-storage__async-storage$": "<rootDir>/node_modules/@amazon-devices/react-native-async-storage__async-storage/jest/async-storage-mock"
+    "^@amazon-devices/react-native-async-storage__async-storage$": "<rootDir>/node_modules/@amazon-devices/react-native-async-storage__async-storage/jest/async-storage-mock",
+    "^@amazon-devices/react-native-w3cmedia$": "<rootDir>/test/support/w3cmedia.ts",
+    "\\.(mp3|m4a|wav)$": "<rootDir>/test/support/fileStub.js"
   },
   "modulePaths": [
     "<rootDir>/src"

@@ -38,6 +38,8 @@ import type {Navigator} from '../navigation/TVNavigation';
 import {useBackInterceptor} from '../navigation/useBackInterceptor';
 import {px, theme} from '../theme/theme';
 import {cue, worldAudio} from '../ui/cues';
+import {useAudio, useAudioPlace} from '../audio/AudioContext';
+import {useSettings} from '../settings/SettingsContext';
 import {Feedback} from '../ui/Feedback';
 import {LoadingState} from '../ui/LoadingState';
 import {useReducedMotion} from '../ui/motion';
@@ -297,6 +299,12 @@ const WorldView = ({
   }, [set.id, focusEpoch]);
   const lastFocus = session.lastFocus.get(`${gameKey}:${set.id}`);
 
+  // Audio: where we are in the world (music waits through cinematics; ambience follows the set).
+  const audio = useAudio();
+  const {subtitles} = useSettings().settings;
+  useAudioPlace({cinematic: s.mode === 'cinematic' || (s.mode === 'dialogue' && s.dialogue?.resume === 'cinematic'), setId: set.id});
+  useEffect(() => () => audio.report({cinematic: false, setId: null}), [audio]);
+
   // Dialogue: the current line goes to the audio hook as it appears.
   const line = s.dialogue ? world.dialogue.find(l => l.id === s.dialogue!.lineIds[s.dialogue!.index]) : undefined;
   useEffect(() => {
@@ -359,6 +367,7 @@ const WorldView = ({
     const scenery = [...setNodes.values()].filter(n => n.layer !== 'character' && n.layer !== 'effects');
     const hidden = occluders({id: node.id, depth: node.depth, box: bounds}, scenery, shot);
     setInspecting({objectId: view.object.id, hidden, fresh: false, unlocked: null});
+    audio.moment(`inspect:${view.object.id}`);
     director.setMode('inspection');
     director.camera.moveTo(shot, reduced ? 0 : 900, 'cinematic', Date.now());
     bump();
@@ -393,12 +402,14 @@ const WorldView = ({
 
   // ── Remote / Back ────────────────────────────────────────────────────
   const skip = () => {
+    audio.stopVoice();
     director.skip(Date.now());
     apply(Date.now());
     bump();
     kick();
   };
   const advance = () => {
+    audio.stopVoice();
     director.advanceDialogue(Date.now());
     bump();
     kick();
@@ -515,7 +526,12 @@ const WorldView = ({
       )}
 
       {s.mode === 'dialogue' && line && (
-        <DialogueBox key={line.id} speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''} text={line.text} onNext={advance} aside={inspectView !== undefined} side={speakerSide(line.characterId)} />
+        <DialogueBox
+          key={line.id}
+          speaker={world.characters.find(c => c.id === line.characterId)?.name ?? ''}
+          text={subtitles || !audio.hasVoice(line.audioId) ? line.text : null}
+          spoken={line.text}
+          onNext={advance} aside={inspectView !== undefined} side={speakerSide(line.characterId)} />
       )}
 
       {/* The inspection stays up while the detective reacts to what was found. */}
@@ -541,11 +557,12 @@ const WorldView = ({
   );
 };
 
-const DialogueBox = ({speaker, text, onNext, aside, side = 'center'}: {speaker: string; text: string; onNext: () => void; aside: boolean; side?: 'left' | 'right' | 'center'}) => (
+/** `text` null: subtitles are off and the line is heard, so only the speaker shows. */
+const DialogueBox = ({speaker, text, spoken, onNext, aside, side = 'center'}: {speaker: string; text: string | null; spoken: string; onNext: () => void; aside: boolean; side?: 'left' | 'right' | 'center'}) => (
   <View style={[styles.dialogue, !aside && side === 'left' && styles.dialogueLeft, !aside && side === 'right' && styles.dialogueRight, aside && styles.dialogueAside]} testID="world-dialogue">
-    <Pressable onPress={onNext} hasTVPreferredFocus accessibilityRole="button" accessibilityLabel={`${speaker}: ${text} Continue.`} testID="world-dialogue-next" style={styles.dialogueInner}>
+    <Pressable onPress={onNext} hasTVPreferredFocus accessibilityRole="button" accessibilityLabel={`${speaker}: ${spoken} Continue.`} testID="world-dialogue-next" style={styles.dialogueInner}>
       <Text style={styles.speaker}>{speaker.toUpperCase()}</Text>
-      <Text style={[styles.line, aside && styles.lineAside]}>{text}</Text>
+      {text !== null && <Text style={[styles.line, aside && styles.lineAside]}>{text}</Text>}
       <Text style={styles.next}>OK ▸</Text>
     </Pressable>
   </View>

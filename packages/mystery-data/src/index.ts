@@ -1,7 +1,9 @@
-import type {MysteryDefinition, MysteryId, MysterySummary, MysteryWorld} from '@roomriddle/shared-types';
+import type {AudioDirection, AudioManifest, MysteryDefinition, MysteryId, MysterySummary, MysteryWorld} from '@roomriddle/shared-types';
 import {comingSoon} from './coming-soon';
 import {theLastTrain, theLastTrainMystery} from './the-last-train';
 import {lastTrainWorld} from './the-last-train/world';
+import {lastTrainAudio, lastTrainAudioManifest} from './the-last-train/audio';
+import {coreAudioManifest, coreCueSounds, coreMusic} from './kit/audio';
 
 /** Every mystery shown in the Mystery Library, in display order. */
 export const mysteryCatalog: readonly MysterySummary[] = [theLastTrain, ...comingSoon];
@@ -31,4 +33,16 @@ export function getMysteryWorld(id: MysteryId): MysteryWorld | undefined {
   return worlds[id];
 }
 
-export {theLastTrain, theLastTrainMystery, lastTrainWorld};
+/** How each mystery sounds (Phase 7), keyed by mystery id. A mystery without one plays the shared sounds only. */
+const audio: Readonly<Record<MysteryId, {manifest: AudioManifest; direction: AudioDirection}>> = {
+  [lastTrainWorld.mysteryId]: {manifest: lastTrainAudioManifest, direction: lastTrainAudio},
+};
+
+export function getMysteryAudio(id: MysteryId): {manifest: AudioManifest; direction: AudioDirection} | undefined {
+  return audio[id];
+}
+
+/** Every audio manifest (shared first), for the renderer's registry. */
+export const audioManifests: readonly AudioManifest[] = [coreAudioManifest, ...Object.values(audio).map(a => a.manifest)];
+
+export {theLastTrain, theLastTrainMystery, lastTrainWorld, lastTrainAudio, lastTrainAudioManifest, coreAudioManifest, coreCueSounds, coreMusic};

@@ -30,6 +30,7 @@ import {PuzzleScreen} from './screens/Puzzle/PuzzleScreen';
 import {SceneRoute} from './world/SceneRoute';
 import {useWorldSession, WorldSessionProvider} from './world/WorldSession';
 import {SettingsProvider, SettingsStore} from './settings/SettingsContext';
+import {AudioPlace, AudioProvider, useAudioPlace} from './audio/AudioContext';
 import {SettingsScreen} from './screens/Settings/SettingsScreen';
 import {ScreenProps} from './screens/types';
 
@@ -70,9 +71,11 @@ export const App = ({
     }}>
     <WorldSessionProvider>
       <GameProvider clock={clock} createSocket={createSocket} serverUrl={serverUrl}>
-        <ToastProvider>
-          <Shell />
-        </ToastProvider>
+        <AudioProvider>
+          <ToastProvider>
+            <Shell />
+          </ToastProvider>
+        </AudioProvider>
       </GameProvider>
     </WorldSessionProvider>
   </SettingsProvider>
@@ -150,6 +153,7 @@ const Shell = () => {
   const returnHome = useCallback(() => dispatch({type: 'reset'}), []);
 
   const entry = currentEntry(stack);
+  useAudioPlace(audioPlaceFor(entry.route));
   // The 2.5D world paints the whole screen: animating the backdrop under it
   // only costs frames (on its own the drift measured ~45% VVD CPU on Home).
   const {enabled: worldOn} = useWorldSession();
@@ -250,3 +254,23 @@ const styles = StyleSheet.create({
     display: 'none',
   },
 });
+
+/** Where the players are, for music and ambience (the audio manager decides what that sounds like). */
+function audioPlaceFor(route: Route): Partial<AudioPlace> {
+  switch (route.name) {
+    case 'mysteries':
+    case 'mysteryDetails':
+    case 'gameIntro':
+      return {place: 'selection'};
+    case 'scene':
+    case 'investigation':
+    case 'evidence':
+      return {place: 'game', screen: 'scene', puzzleId: null};
+    case 'puzzle':
+      return {place: 'game', screen: 'puzzle', puzzleId: route.puzzleId};
+    case 'ending':
+      return {place: 'ending'};
+    default:
+      return {place: 'menu'};
+  }
+}

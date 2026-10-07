@@ -37,3 +37,5 @@ export type {ObjectStatus, ObjectView} from './interactions';
 export {validateWorld} from './validate';
 export {pivotFrame, rotatedPoint, scaleShape} from './shapes';
 export type {PivotFrame} from './shapes';
+export {AudioDirector, AudioRegistry, musicStateFor, musicCommand, ambientFor, momentCommands, validateAudio} from './audio';
+export type {AudioBackend, AudioDirectorOptions, MusicContext} from './audio';

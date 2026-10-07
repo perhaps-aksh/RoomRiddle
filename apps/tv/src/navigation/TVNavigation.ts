@@ -27,6 +27,7 @@ export type Route =
   | {name: 'mysteries'}
   | {name: 'mysteryDetails'; mysteryId: string}
   | {name: 'settings'}
+  | {name: 'audioDiagnostics'}
   | {name: 'gameIntro'}
   | {name: 'scene'}
   | {name: 'investigation'}

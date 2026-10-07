@@ -5,13 +5,23 @@ import type {AudioBackend} from '@roomriddle/scene';
 import {bundledAudio} from './bundled';
 
 /**
- * Plays sounds on Vega with the W3C AudioPlayer (one player per playing sound).
- * Sources are the bundled files only; Vega's media player rejects `http://`
- * and the `file://` form of bundled asset URIs, so the scheme is stripped
- * (friction log FL-012). Every call is guarded: audio never breaks the game.
+ * Plays sounds on Vega with the W3C AudioPlayer.
+ *
+ * Sources are bundled files only; Vega's media player rejects `http://` and the
+ * `file://` form of bundled asset URIs, so the scheme is stripped (FL-012).
+ * Every call is guarded: audio never breaks the game.
+ *
+ * Every player has an id and an explicit state (LOADING → PLAYING → STOPPING →
+ * RELEASED, or ERROR; pooled effect players rest in IDLE). Counters live in
+ * `audioStats` so leaks show (created must equal released once all is stopped).
+ *
+ * Effect pooling (`audioConfig.pooling`): an effect reuses its warm player only
+ * when that player is IDLE; a LOADING/PLAYING/STOPPING/ERROR player is never
+ * handed a sound. Off by default until proven on the device (Phase 7A).
  */
-export function bundledPath(id: string): string | null {
-  const mod = bundledAudio[id];
+
+/** The runtime path for a bundled module (what the native player receives). */
+export function assetPath(mod: number | undefined): string | null {
   if (mod === undefined) {
     return null;
   }
@@ -19,167 +29,265 @@ export function bundledPath(id: string): string | null {
   return uri ? uri.replace(/^file:\/\//, '') : null;
 }
 
-const contentType = (s: AudioDefinition) =>
-  s.channel === 'music' ? AudioContentType.CONTENT_TYPE_MUSIC : s.channel === 'voice' ? AudioContentType.CONTENT_TYPE_SPEECH : AudioContentType.CONTENT_TYPE_SONIFICATION;
+export function bundledPath(id: string): string | null {
+  return assetPath(bundledAudio[id]);
+}
 
-const devLog = (msg: string) => {
-  if (__DEV__) {
-    console.log(`[audio] ${msg}`);
+export type PlayerState = 'LOADING' | 'IDLE' | 'PLAYING' | 'STOPPING' | 'RELEASED' | 'ERROR';
+
+export interface AudioStats {
+  created: number;
+  released: number;
+  errors: number;
+  active: number;
+  reused: number;
+  lastSoundId: string;
+  lastPath: string;
+  lastPlayerId: number;
+  lastError: string;
+  /** Player id → state, for players not yet released. */
+  states: Record<number, PlayerState>;
+}
+
+export const audioConfig = {pooling: false};
+
+export const audioStats: AudioStats = {created: 0, released: 0, errors: 0, active: 0, reused: 0, lastSoundId: '', lastPath: '', lastPlayerId: 0, lastError: '', states: {}};
+const statListeners = new Set<() => void>();
+export function onAudioStats(cb: () => void): () => void {
+  statListeners.add(cb);
+  return () => {
+    statListeners.delete(cb);
+  };
+}
+const changed = () => {
+  audioStats.active = Object.keys(audioStats.states).length;
+  for (const cb of statListeners) {
+    cb();
   }
 };
 
-interface Slot {
-  player: AudioPlayer | null;
-  volume: number;
-  stopped: boolean;
-  /** A warm effect player: returned to the pool instead of torn down. */
-  pooled?: string;
-}
+const devLog = (msg: string) => {
+  if (__DEV__) {
+    console.log(msg);
+  }
+};
 
-/**
- * Effects reuse one warm player per sound: creating a W3C player takes ~2 s on
- * the emulator, so a fresh player per press would lag. A warm player replays
- * from the start; if it's still busy, a fresh one plays alongside.
- */
-interface Warm {
-  player: AudioPlayer;
-  busy: boolean;
-  onDone: (() => void) | null;
-}
+const contentType = (channel: AudioDefinition['channel']) =>
+  channel === 'music' ? AudioContentType.CONTENT_TYPE_MUSIC : channel === 'voice' ? AudioContentType.CONTENT_TYPE_SPEECH : AudioContentType.CONTENT_TYPE_SONIFICATION;
 
-export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: string) => void = devLog): AudioBackend {
-  const slots = new Map<number, Slot>();
-  const warm = new Map<string, Warm | 'loading'>();
+let nextPlayerId = 1;
 
-  const teardown = (p: AudioPlayer | null) => {
-    if (!p) {
+/** One native player with its id and state. */
+class Tracked {
+  readonly id = nextPlayerId++;
+  readonly player: AudioPlayer;
+  state: PlayerState = 'LOADING';
+  constructor(channel: AudioDefinition['channel'], readonly soundId: string) {
+    this.player = new AudioPlayer(contentType(channel), AudioUsageType.USAGE_GAME);
+    audioStats.created++;
+    audioStats.states[this.id] = 'LOADING';
+    changed();
+  }
+  set(state: PlayerState) {
+    this.state = state;
+    if (state === 'RELEASED') {
+      delete audioStats.states[this.id];
+    } else {
+      audioStats.states[this.id] = state;
+    }
+    changed();
+  }
+  release() {
+    if (this.state === 'RELEASED' || this.state === 'STOPPING') {
       return;
     }
+    this.set('STOPPING');
     try {
-      p.pause();
+      this.player.pause();
     } catch {
       // already gone
     }
-    p.deinitialize().catch(() => undefined);
+    this.player
+      .deinitialize()
+      .catch(() => undefined)
+      .finally(() => {
+        audioStats.released++;
+        this.set('RELEASED');
+      });
+  }
+}
+
+interface Slot {
+  tracked: Tracked | null;
+  volume: number;
+  stopped: boolean;
+  /** A warm effect player: returned to the pool instead of torn down. */
+  pooled: boolean;
+}
+
+export type W3cBackend = AudioBackend & {
+  /** `path` overrides the bundled lookup (diagnostic files outside the manifests). */
+  play(handle: number, sound: AudioDefinition, volume: number, path?: string | null): void;
+  stopAll(): void;
+};
+
+export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: string) => void = devLog): W3cBackend {
+  const slots = new Map<number, Slot>();
+  const warm = new Map<string, Tracked>();
+
+  const fail = (t: Tracked, sound: AudioDefinition, path: string, reused: boolean) => {
+    const previousState = t.state;
+    const err = JSON.stringify(t.player.error ?? null);
+    audioStats.errors++;
+    audioStats.lastError = `${sound.id} player ${t.id}: ${err}`;
+    t.set('ERROR');
+    log(
+      `[AUDIO_ERROR] soundId=${sound.id} path=${path} playerId=${t.id} channel=${sound.channel} reused=${reused} previousState=${previousState} ` +
+        `active=${audioStats.active} created=${audioStats.created} released=${audioStats.released} error=${err}`,
+    );
   };
 
   const release = (handle: number) => {
     const slot = slots.get(handle);
     slots.delete(handle);
-    if (!slot) {
+    const t = slot?.tracked;
+    if (!t) {
       return;
     }
-    if (slot.pooled) {
-      const w = warm.get(slot.pooled);
-      if (w && w !== 'loading') {
-        try {
-          w.player.pause();
-        } catch {
-          // ignore
+    if (slot.pooled && t.state === 'PLAYING') {
+      try {
+        t.player.pause();
+      } catch {
+        // ignore
+      }
+      t.set('IDLE');
+      return;
+    }
+    if (!slot.pooled) {
+      t.release();
+    }
+  };
+
+  /** Load an effect into its warm player, paused; it becomes IDLE when ready. */
+  const prepare = (sound: AudioDefinition, path: string) => {
+    const t = new Tracked(sound.channel, sound.id);
+    warm.set(sound.id, t);
+    t.player
+      .initialize()
+      .then(() => {
+        t.player.addEventListener('error', () => {
+          fail(t, sound, path, true);
+          warm.delete(sound.id);
+          t.release();
+        });
+        t.player.addEventListener('canplay', () => {
+          if (t.state === 'LOADING') {
+            t.set('IDLE');
+          }
+        });
+        t.player.loop = false;
+        t.player.autoplay = false;
+        t.player.src = path;
+      })
+      .catch(e => {
+        log(`[AUDIO_ERROR] soundId=${sound.id} warm init ${String(e)}`);
+        warm.delete(sound.id);
+        t.release();
+      });
+  };
+
+  const fresh = (handle: number, sound: AudioDefinition, path: string, slot: Slot) => {
+    const t = new Tracked(sound.channel, sound.id);
+    slot.tracked = t;
+    audioStats.lastPlayerId = t.id;
+    t.player
+      .initialize()
+      .then(() => {
+        if (slot.stopped) {
+          t.release();
+          return;
         }
-        w.busy = false;
-        w.onDone = null;
-      }
-      return;
-    }
-    teardown(slot.player);
-  };
-
-  /** Load an effect into its warm player (paused at the start). */
-  const prepare = (sound: AudioDefinition, src: string) => {
-    warm.set(sound.id, 'loading');
-    (async () => {
-      const p = new AudioPlayer(contentType(sound), AudioUsageType.USAGE_GAME);
-      await p.initialize();
-      const w: Warm = {player: p, busy: false, onDone: null};
-      const done = () => {
-        const cb = w.onDone;
-        w.busy = false;
-        w.onDone = null;
-        cb?.();
-      };
-      p.addEventListener('ended', done);
-      p.addEventListener('error', () => {
-        log(`${sound.id}: warm player error ${JSON.stringify(p.error)}`);
-        done();
-      });
-      p.loop = false;
-      p.autoplay = false;
-      p.src = src;
-      warm.set(sound.id, w);
-    })().catch(e => {
-      log(`${sound.id}: warm ${String(e)}`);
-      warm.delete(sound.id);
-    });
-  };
-
-  const fresh = (handle: number, sound: AudioDefinition, src: string, slot: Slot) => {
-    (async () => {
-      const p = new AudioPlayer(contentType(sound), AudioUsageType.USAGE_GAME);
-      await p.initialize();
-      if (slot.stopped) {
-        await p.deinitialize();
-        return;
-      }
-      slot.player = p;
-      p.loop = sound.loop;
-      p.volume = slot.volume;
-      p.addEventListener('error', () => {
-        log(`${sound.id}: media error ${JSON.stringify(p.error)}`);
-        release(handle);
-        onEnded(handle);
-      });
-      if (!sound.loop) {
-        p.addEventListener('ended', () => {
-          release(handle);
+        const p = t.player;
+        p.loop = sound.loop;
+        p.volume = slot.volume;
+        p.addEventListener('playing', () => {
+          if (t.state === 'LOADING') {
+            t.set('PLAYING');
+            log(`[AUDIO_TEST] started soundId=${sound.id} playerId=${t.id} volume=${slot.volume.toFixed(3)}`);
+          }
+        });
+        p.addEventListener('error', () => {
+          fail(t, sound, path, false);
+          slots.delete(handle);
+          t.release();
           onEnded(handle);
         });
+        if (!sound.loop) {
+          p.addEventListener('ended', () => {
+            log(`[AUDIO_TEST] completed soundId=${sound.id} playerId=${t.id}`);
+            release(handle);
+            onEnded(handle);
+          });
+        }
+        p.autoplay = true;
+        p.src = path;
+      })
+      .catch(e => {
+        log(`[AUDIO_ERROR] soundId=${sound.id} playerId=${t.id} init ${String(e)}`);
+        slots.delete(handle);
+        t.release();
+        onEnded(handle);
+      });
+  };
+
+  const reuse = (handle: number, w: Tracked, volume: number, slot: Slot) => {
+    slot.pooled = true;
+    slot.tracked = w;
+    audioStats.reused++;
+    audioStats.lastPlayerId = w.id;
+    w.set('PLAYING');
+    const done = () => {
+      w.player.removeEventListener('ended', done);
+      if (slots.get(handle) === slot) {
+        release(handle);
+        onEnded(handle);
       }
-      p.autoplay = true;
-      p.src = src;
-    })().catch(e => {
-      log(`${sound.id}: ${String(e)}`);
-      slots.delete(handle);
-      onEnded(handle);
-    });
+    };
+    w.player.addEventListener('ended', done);
+    try {
+      w.player.volume = volume;
+      w.player.currentTime = 0;
+      w.player.play().catch(() => done());
+    } catch {
+      done();
+    }
   };
 
   return {
-    play(handle, sound, volume) {
-      const src = bundledPath(sound.id);
-      if (!src) {
-        log(`no bundled file for ${sound.id}`);
+    play(handle: number, sound: AudioDefinition, volume: number, explicitPath?: string | null) {
+      const path = explicitPath ?? bundledPath(sound.id);
+      audioStats.lastSoundId = sound.id;
+      audioStats.lastPath = path ?? '(none)';
+      log(`[AUDIO_TEST] play soundId=${sound.id} path=${path} channel=${sound.channel} volume=${volume.toFixed(3)} pooling=${audioConfig.pooling}`);
+      if (!path) {
+        audioStats.lastError = `no bundled file for ${sound.id}`;
+        changed();
         onEnded(handle);
         return;
       }
-      const slot: Slot = {player: null, volume, stopped: false};
+      const slot: Slot = {tracked: null, volume, stopped: false, pooled: false};
       slots.set(handle, slot);
-      if (sound.channel !== 'sfx') {
-        fresh(handle, sound, src, slot);
-        return;
-      }
-      const w = warm.get(sound.id);
-      if (w && w !== 'loading' && !w.busy) {
-        slot.pooled = sound.id;
-        slot.player = w.player;
-        w.busy = true;
-        w.onDone = () => {
-          slots.delete(handle);
-          onEnded(handle);
-        };
-        try {
-          w.player.volume = volume;
-          w.player.currentTime = 0;
-          w.player.play().catch(() => w.onDone?.());
-        } catch {
-          w.onDone?.();
+      if (audioConfig.pooling && sound.channel === 'sfx') {
+        const w = warm.get(sound.id);
+        if (w && w.state === 'IDLE') {
+          reuse(handle, w, volume, slot);
+          return;
         }
-        return;
+        if (!w) {
+          prepare(sound, path);
+        }
       }
-      if (!w) {
-        prepare(sound, src);
-      }
-      fresh(handle, sound, src, slot);
+      fresh(handle, sound, path, slot);
     },
     setVolume(handle, volume) {
       const slot = slots.get(handle);
@@ -187,9 +295,9 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
         return;
       }
       slot.volume = volume;
-      if (slot.player) {
+      if (slot.tracked) {
         try {
-          slot.player.volume = volume;
+          slot.tracked.player.volume = volume;
         } catch {
           // ignore
         }
@@ -201,6 +309,17 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
         slot.stopped = true;
       }
       release(handle);
+    },
+    stopAll() {
+      for (const [h, slot] of [...slots.entries()]) {
+        slot.stopped = true;
+        release(h);
+        onEnded(h);
+      }
+      for (const w of warm.values()) {
+        w.release();
+      }
+      warm.clear();
     },
   };
 }

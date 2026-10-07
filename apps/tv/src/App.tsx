@@ -32,6 +32,7 @@ import {useWorldSession, WorldSessionProvider} from './world/WorldSession';
 import {SettingsProvider, SettingsStore} from './settings/SettingsContext';
 import {AudioPlace, AudioProvider, useAudioPlace} from './audio/AudioContext';
 import {SettingsScreen} from './screens/Settings/SettingsScreen';
+import {AudioDiagnosticsScreen} from './screens/Settings/AudioDiagnosticsScreen';
 import {ScreenProps} from './screens/types';
 
 /**
@@ -231,6 +232,8 @@ function renderScreen(route: Route, props: ScreenProps) {
       return <MysteryDetailsScreen {...props} route={route} />;
     case 'settings':
       return <SettingsScreen {...props} />;
+    case 'audioDiagnostics':
+      return <AudioDiagnosticsScreen {...props} />;
     case 'gameIntro':
       return <GameIntroScreen {...props} />;
     case 'scene':

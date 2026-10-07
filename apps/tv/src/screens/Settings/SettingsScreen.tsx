@@ -117,6 +117,7 @@ export const SettingsScreen = ({navigator}: ScreenProps) => {
               <>
                 <View style={styles.gap} />
                 <TVButton label="Back" onPress={() => navigator.back()} onFocus={() => setFocusedKey('back')} testID="settings-back" />
+                {__DEV__ && <TVButton label="Audio diagnostics" onPress={() => navigator.push({name: 'audioDiagnostics'})} testID="settings-audio-diagnostics" />}
               </>
             )}
           </View>

@@ -131,3 +131,10 @@ Format: **Task · Steps · Expected · Actual · Severity · Workaround · Sugge
 - **Workaround:** Bundle all audio. Strip `file://` from the resolved asset URI before setting `src` (the TV's `AudioManager` does this in one place). Verified on the VVD. `@amazon-devices/react-native-async-storage__async-storage` (2.1.9000000000-rn-83) persisted a value across an app relaunch in the same probe.
 - **Suggestion:** Fill `MediaError.message` with the native reason. Document which URI schemes are allowed (https only?), and that bundled assets need a plain path.
 
+
+## FL-013: VVD audio on WSLg crackles, then goes silent (2026-10-07)
+- **Where:** Vega Virtual Device (SDK 0.24.12112) under WSL2/WSLg 1.0.73 on Windows 11, sound through WSLg's PulseAudio (RDPSink → msrdc).
+- **What we saw:** VVD sound (its own boot chime too, so not the app) crackles; after a few minutes all audio from WSL stops. `pactl` then times out. Inside WSL, `paplay` of a plain WAV is silent while a Windows-side beep plays fine; `wsl --shutdown` brings it back until the next stall.
+- **Evidence:** the PulseAudio `rdp-sink` thread is blocked in `sock_alloc_send_pskb` (writing to the Windows RDP audio channel) and the main loop waits on it, so the whole server stops answering. Before we turned the VVD microphone off, `rdp-source` also logged hundreds of "q overrun" warnings.
+- **Mitigations tried:** `hw.audioInput = no` in the VVD instance config (stops the mic flood; no more q overruns) and `PULSE_LATENCY_MSEC=80/200` (buffer 3 ms → 60 ms; less crackle, not gone). Neither stops the sink stall. Scripts: `apps/tv/scripts/vvd-audio-start.sh`, `vvd-listen.sh`.
+- **Impact:** emulator audio can't be trusted for listening tests on this setup. The app's audio path is checked separately (device logs + in-app diagnostics).

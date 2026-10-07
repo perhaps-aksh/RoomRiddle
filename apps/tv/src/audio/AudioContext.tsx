@@ -37,10 +37,12 @@ interface AudioApi {
   stopVoice: () => void;
   /** Whether a recorded line exists for this audio id (subtitle rules). */
   hasVoice: (audioId: string | undefined) => boolean;
+  /** Diagnostics: silence the game's audio entirely (and resume it after). */
+  suspend: (on: boolean) => void;
 }
 
 const noop = () => undefined;
-const AudioCtx = createContext<AudioApi>({report: noop, moment: noop, stopVoice: noop, hasVoice: () => false});
+const AudioCtx = createContext<AudioApi>({report: noop, moment: noop, stopVoice: noop, hasVoice: () => false, suspend: noop});
 
 const registry = new AudioRegistry(audioManifests);
 
@@ -61,7 +63,11 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
     directorRef.current = director;
   }
   const director = directorRef.current;
+  const suspended = useRef(false);
   const run = (cmds: readonly AudioCommand[]) => {
+    if (suspended.current) {
+      return;
+    }
     try {
       director.runAll(cmds, Date.now());
     } catch {
@@ -105,6 +111,8 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
   }, [settings.master, settings.music, settings.sfx, settings.voice, settings.muted]);
   const mutedRef = useRef(settings.muted);
   mutedRef.current = settings.muted;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
   useEffect(
     () =>
       onForegroundChange(active => {
@@ -191,6 +199,22 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
       moment: key => run(momentCommands(directionRef.current, key)),
       stopVoice: () => run([{type: 'STOP_VOICE'}]),
       hasVoice: audioId => !!audioId && registry.playable(audioId),
+      suspend: on => {
+        if (on === suspended.current) {
+          return;
+        }
+        suspended.current = on;
+        if (on) {
+          director.stopAll();
+        } else {
+          // Re-apply the mix and the current place's music/ambience.
+          run([
+            {type: 'SET_VOLUME', gains: {music: channelGain(settingsRef.current, 'music'), ambient: channelGain(settingsRef.current, 'ambient'), sfx: channelGain(settingsRef.current, 'sfx'), voice: channelGain(settingsRef.current, 'voice')}},
+            {type: 'MUTE', muted: settingsRef.current.muted || !foreground.current},
+          ]);
+          setVersion(v => v + 1);
+        }
+      },
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],

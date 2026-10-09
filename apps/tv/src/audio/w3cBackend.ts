@@ -197,6 +197,7 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
   };
 
   const fresh = (handle: number, sound: AudioDefinition, path: string, slot: Slot) => {
+    const t0 = Date.now();
     const t = new Tracked(sound.channel, sound.id);
     slot.tracked = t;
     audioStats.lastPlayerId = t.id;
@@ -213,7 +214,7 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
         p.addEventListener('playing', () => {
           if (t.state === 'LOADING') {
             t.set('PLAYING');
-            log(`[AUDIO_TEST] started soundId=${sound.id} playerId=${t.id} volume=${slot.volume.toFixed(3)}`);
+            log(`[AUDIO_TEST] started soundId=${sound.id} playerId=${t.id} volume=${slot.volume.toFixed(3)} latencyMs=${Date.now() - t0} reused=false`);
           }
         });
         p.addEventListener('error', () => {
@@ -254,10 +255,14 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
       }
     };
     w.player.addEventListener('ended', done);
+    const t0 = Date.now();
     try {
       w.player.volume = volume;
       w.player.currentTime = 0;
-      w.player.play().catch(() => done());
+      w.player
+        .play()
+        .then(() => log(`[AUDIO_TEST] started soundId=${w.soundId} playerId=${w.id} volume=${volume.toFixed(3)} latencyMs=${Date.now() - t0} reused=true`))
+        .catch(() => done());
     } catch {
       done();
     }

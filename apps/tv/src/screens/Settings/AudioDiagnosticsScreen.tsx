@@ -83,6 +83,78 @@ export const AudioDiagnosticsScreen = ({navigator}: ScreenProps) => {
     }
   };
 
+  /**
+   * The scripted check: every step logs `[AUDIO_SEQ] step=…` with the time, so the
+   * device log lines up with a recording of the emulator's output (vvd-wav-start.sh).
+   * Steps are separated by ~3 s of silence; each ends with Stop all.
+   */
+  const [running, setRunning] = useState(false);
+  const runSequence = async () => {
+    if (running || !backend.current) {
+      return;
+    }
+    setRunning(true);
+    const b = backend.current;
+    const wait = (ms: number) => new Promise<void>(r => setTimeout(() => r(), ms));
+    const mark = (step: string) => console.log(`[AUDIO_SEQ] step=${step} t=${Date.now()} created=${audioStats.created} released=${audioStats.released} active=${audioStats.active} errors=${audioStats.errors}`);
+    const gap = async () => {
+      b.stopAll();
+      await wait(3000);
+    };
+    const one = async (step: string, ids: string[], ms: number) => {
+      mark(step);
+      play(ids);
+      await wait(ms);
+      await gap();
+    };
+    const wasPooling = audioConfig.pooling;
+    audioConfig.pooling = false;
+    try {
+      mark('begin');
+      await wait(2000);
+      await one('beep-wav', ['diag.wav'], 4000);
+      await one('beep-mp3', ['diag.mp3'], 4000);
+      await one('sfx', ['core.sfx.unlock'], 4000);
+      await one('click', ['core.ui.select'], 3000);
+      // Music at full, half, then zero volume on the same player (the volume path).
+      mark('music-100');
+      const h = handle.current++;
+      b.play(h, sound('core.music.menu'), 1);
+      await wait(6000);
+      mark('music-50');
+      b.setVolume(h, 0.5);
+      await wait(3000);
+      mark('music-0');
+      b.setVolume(h, 0);
+      await wait(3000);
+      await gap();
+      await one('ambient', ['last-train.ambient.rain'], 6000);
+      await one('voice', ['last-train.vo.arrival-1'], 8000);
+      await one('x3', TESTS.find(t => t.key === 'x3')!.ids, 5000);
+      await one('x5', TESTS.find(t => t.key === 'x5')!.ids, 6000);
+      await one('x10', TESTS.find(t => t.key === 'x10')!.ids, 8000);
+      await one('stack', ['core.music.menu', 'last-train.ambient.rain', 'last-train.vo.arrival-1', 'core.sfx.unlock'], 8000);
+      // Player reuse: warm up, then five clicks 800 ms apart.
+      audioConfig.pooling = true;
+      mark('reuse-warmup');
+      play(['core.sfx.unlock']);
+      await wait(4000);
+      for (let i = 0; i < 5; i++) {
+        mark(`reuse-${i + 1}`);
+        play(['core.sfx.unlock']);
+        await wait(800);
+      }
+      await wait(3000);
+      await gap();
+      audioConfig.pooling = false;
+      await wait(3000);
+      mark('end');
+    } finally {
+      audioConfig.pooling = wasPooling;
+      setRunning(false);
+    }
+  };
+
   const s = audioStats;
   const rows: [string, string][] = [
     ['Audio initialized', backend.current ? 'YES' : 'NO'],
@@ -101,8 +173,9 @@ export const AudioDiagnosticsScreen = ({navigator}: ScreenProps) => {
       <ScreenHeader title="Audio diagnostics" eyebrow="Development" />
       <View style={styles.columns}>
         <ScrollView style={styles.buttons} contentContainerStyle={styles.buttonsInner}>
-          {TESTS.map((t, i) => (
-            <TVButton key={t.key} label={t.label} onPress={() => play(t.ids)} preferredFocus={i === 0} testID={`diag-${t.key}`} />
+          <TVButton label={running ? 'Running…' : 'Run sequence'} onPress={runSequence} preferredFocus testID="diag-sequence" />
+          {TESTS.map(t => (
+            <TVButton key={t.key} label={t.label} onPress={() => play(t.ids)} testID={`diag-${t.key}`} />
           ))}
           <TVButton
             label={`Reuse: ${audioConfig.pooling ? 'on' : 'off'}`}

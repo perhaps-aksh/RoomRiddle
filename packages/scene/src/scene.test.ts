@@ -281,10 +281,10 @@ test('director: the train arrival plays as data, pauses for dialogue, hands cont
   d.update(10500);
   const camB = d.camera.sample(10500, false).x;
   assert.ok(camB > camA, 'the camera follows the train');
-  assert.equal(d.state.effects.steam, true);
 
   d.update(12000);
   assert.equal(d.state.train?.to, 'stopped');
+  assert.equal(d.state.effects.steam, true, 'steam once it has stopped');
   d.update(16000);
   assert.equal(d.state.train?.to, 'doors-opening');
   d.update(18300);

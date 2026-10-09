@@ -24,10 +24,13 @@ afterEach(() => {
 });
 
 const press = (screen: RenderAPI, testID: string) => fireEvent.press(screen.getByTestId(testID));
+/** Advance in 100 ms slices so promise work (asset loading) gets its time, as on a device. */
 async function run(ms: number) {
-  await act(async () => {
-    jest.advanceTimersByTime(ms);
-  });
+  for (let left = ms; left > 0; left -= 100) {
+    await act(async () => {
+      jest.advanceTimersByTime(Math.min(100, left));
+    });
+  }
 }
 
 /** The ids of sounds that are playing now (players still alive, by source path). */

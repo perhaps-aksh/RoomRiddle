@@ -6,7 +6,8 @@ import {useGame} from '../game/GameContext';
 import {channelGain} from '../settings/settings';
 import {useSettings} from '../settings/SettingsContext';
 import {setCueHandler, setWorldAudioHandler} from '../ui/cues';
-import {createW3cBackend, onForegroundChange} from './w3cBackend';
+import {bundledPath, createW3cBackend, onForegroundChange} from './w3cBackend';
+import {trace} from './trace';
 
 /**
  * The TV's AudioManager. One AudioDirector (packages/scene) does the mixing:
@@ -26,6 +27,8 @@ export interface AudioPlace {
   /** The 2.5D world: its cinematic flag and current set. */
   cinematic?: boolean;
   setId?: string | null;
+  /** A screen is still loading what it will report: keep the current sound until it does. */
+  holding?: boolean;
 }
 
 interface AudioApi {
@@ -50,28 +53,87 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
   const {settings} = useSettings();
   const {mystery, state, lastEvents, now} = useGame();
   const directorRef = useRef<AudioDirector | null>(null);
+  const sceneRef = useRef<string | null>(null);
+  sceneRef.current = state?.currentSceneId ?? null;
   if (!directorRef.current) {
     let director: AudioDirector | null = null;
-    const ended = (h: number) => director?.ended(h, Date.now());
-    let backend: AudioBackend;
+    const names = new Map<number, string>();
+    const ended = (h: number) => {
+      trace('end', `h=${h} id=${names.get(h) ?? '?'}`);
+      names.delete(h);
+      director?.ended(h, Date.now());
+      if (__DEV__ && director) {
+        trace('state', `music=${director.currentMusic ?? '-'} voice=${director.currentVoice ?? '-'} ducked=${!!director.currentVoice && !!director.currentMusic} ambient=[${director.ambientLayers.join(',')}]`);
+      }
+    };
+    let raw: AudioBackend;
     try {
-      backend = (injected ?? createW3cBackend)(ended);
+      raw = (injected ?? createW3cBackend)(ended);
     } catch {
-      backend = {play: (h: number) => ended(h), setVolume: noop, stop: noop};
+      raw = {play: (h: number) => ended(h), setVolume: noop, stop: noop};
     }
-    director = new AudioDirector(registry, backend, {fadeMs: 1400, duckTo: 0.4});
+    // Trace what the director asks of the platform (volume lines only when they move).
+    const lastVol = new Map<number, number>();
+    const reported = new Set<string>();
+    const backend: AudioBackend = {
+      play: (h, sound, volume) => {
+        if (!injected && !reported.has(sound.id) && !bundledPath(sound.id)) {
+          reported.add(sound.id);
+          // In the manifest but not in this build: say which, where, and why; the game goes on.
+          trace('missing', `id=${sound.id} reason=not-bundled path=- scene=${sceneRef.current ?? '-'}`);
+          if (__DEV__) {
+            console.warn(`[AUDIO_MISSING] id=${sound.id} reason=not-bundled scene=${sceneRef.current ?? '-'}`);
+          }
+        }
+        names.set(h, sound.id);
+        lastVol.set(h, volume);
+        trace('play', `h=${h} id=${sound.id} ch=${sound.channel} vol=${volume.toFixed(3)} loop=${sound.loop}`);
+        raw.play(h, sound, volume);
+      },
+      setVolume: (h, volume) => {
+        const prev = lastVol.get(h);
+        if (prev === undefined || Math.abs(prev - volume) >= 0.05 || (volume === 0) !== (prev === 0)) {
+          lastVol.set(h, volume);
+          trace('vol', `h=${h} id=${names.get(h) ?? '?'} vol=${volume.toFixed(3)}`);
+        }
+        raw.setVolume(h, volume);
+      },
+      stop: h => {
+        trace('stop', `h=${h} id=${names.get(h) ?? '?'}`);
+        names.delete(h);
+        lastVol.delete(h);
+        raw.stop(h);
+      },
+    };
+    director = new AudioDirector(registry, backend, {
+      fadeMs: 1400,
+      duckTo: 0.4,
+      // A referenced sound with no entry or no file: logged once, never blocks the game.
+      onMissing: (id, reason) => {
+        trace('missing', `id=${id} reason=${reason} scene=${sceneRef.current ?? '-'}`);
+        if (__DEV__) {
+          console.warn(`[AUDIO_MISSING] id=${id} reason=${reason} scene=${sceneRef.current ?? '-'}`);
+        }
+      },
+    });
     directorRef.current = director;
   }
   const director = directorRef.current;
   const suspended = useRef(false);
-  const run = (cmds: readonly AudioCommand[]) => {
-    if (suspended.current) {
+  const run = (cmds: readonly AudioCommand[], cause = '') => {
+    if (suspended.current || cmds.length === 0) {
       return;
+    }
+    if (__DEV__) {
+      trace('cmd', `${cause} ${cmds.map(c => c.type + ('id' in c ? `:${c.id}` : 'ids' in c ? `:[${c.ids.join(',')}]` : '')).join(' ')}`);
     }
     try {
       director.runAll(cmds, Date.now());
     } catch {
       // Audio must never break the game.
+    }
+    if (__DEV__) {
+      trace('state', `music=${director.currentMusic ?? '-'} voice=${director.currentVoice ?? '-'} ducked=${!!director.currentVoice && !!director.currentMusic} ambient=[${director.ambientLayers.join(',')}]`);
     }
     kick();
   };
@@ -103,10 +165,13 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
   // Settings → mixer.
   const foreground = useRef(true);
   useEffect(() => {
-    run([
-      {type: 'SET_VOLUME', gains: {music: channelGain(settings, 'music'), ambient: channelGain(settings, 'ambient'), sfx: channelGain(settings, 'sfx'), voice: channelGain(settings, 'voice')}},
-      {type: 'MUTE', muted: settings.muted || !foreground.current},
-    ]);
+    run(
+      [
+        {type: 'SET_VOLUME', gains: {music: channelGain(settings, 'music'), ambient: channelGain(settings, 'ambient'), sfx: channelGain(settings, 'sfx'), voice: channelGain(settings, 'voice')}},
+        {type: 'MUTE', muted: settings.muted || !foreground.current},
+      ],
+      'settings',
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.master, settings.music, settings.sfx, settings.voice, settings.muted]);
   const mutedRef = useRef(settings.muted);
@@ -117,7 +182,7 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
     () =>
       onForegroundChange(active => {
         foreground.current = active;
-        run([{type: 'MUTE', muted: mutedRef.current || !active}]);
+        run([{type: 'MUTE', muted: mutedRef.current || !active}], active ? 'foreground' : 'background');
       }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
@@ -134,14 +199,14 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
       // Discovery is sounded by the engine event (so a phone's discovery is heard too).
       const id = name === 'discovery' ? undefined : coreCueSounds[name];
       if (id) {
-        run([{type: 'PLAY_SFX', id}]);
+        run([{type: 'PLAY_SFX', id}], `ui:${name}`);
       }
     });
     const offWorld = setWorldAudioHandler(ev => {
       if (ev.name === 'audio.cue' && typeof ev.payload?.cue === 'string') {
-        run(momentCommands(directionRef.current, `cue:${ev.payload.cue}`));
+        run(momentCommands(directionRef.current, `cue:${ev.payload.cue}`), `cue:${ev.payload.cue}`);
       } else if (ev.name === 'dialogue' && typeof ev.payload?.audioId === 'string') {
-        run([{type: 'PLAY_VOICE', id: ev.payload.audioId}]);
+        run([{type: 'PLAY_VOICE', id: ev.payload.audioId}], `dialogue:${String(ev.payload.lineId ?? '')}`);
       }
     });
     return () => {
@@ -159,7 +224,7 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
     }
     seenEvents.current = lastEvents;
     const types = new Set(lastEvents.map(e => e.type));
-    run([...types].flatMap(t => momentCommands(directionRef.current, `event:${t}`)));
+    run([...types].flatMap(t => momentCommands(directionRef.current, `event:${t}`)), `events:${[...types].join(',')}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lastEvents]);
 
@@ -178,12 +243,15 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
   }, [deadline]);
   useEffect(() => {
     const p = place.current;
+    if (p.holding) {
+      return;
+    }
     const dir = directionRef.current;
     const remainingMs = deadline ? deadline - now() : null;
     const musicState = musicStateFor({...p, sceneId, remainingMs}, dir);
     const music = musicCommand(musicState, dir?.music, coreMusic);
     const layers = p.place === 'game' && dir ? ambientFor(dir, p.screen === 'puzzle' ? null : p.setId, sceneId) : [];
-    run([...(music ? [music] : []), {type: 'PLAY_AMBIENT', ids: layers}]);
+    run([...(music ? [music] : []), {type: 'PLAY_AMBIENT', ids: layers}], `place:${p.place}/${p.screen ?? '-'}/${p.setId ?? '-'}/${sceneId ?? '-'} state=${musicState}`);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [version, sceneId, deadline, tensionTick, mysteryAudio]);
 
@@ -196,9 +264,10 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
           setVersion(v => v + 1);
         }
       },
-      moment: key => run(momentCommands(directionRef.current, key)),
-      stopVoice: () => run([{type: 'STOP_VOICE'}]),
-      hasVoice: audioId => !!audioId && registry.playable(audioId),
+      moment: key => run(momentCommands(directionRef.current, key), key),
+      stopVoice: () => run([{type: 'STOP_VOICE'}], 'dialogue-advance'),
+      // Heard only if the manifest has it AND the file is in the build (else the text must show).
+      hasVoice: audioId => !!audioId && registry.playable(audioId) && (injected ? true : !!bundledPath(audioId)),
       suspend: on => {
         if (on === suspended.current) {
           return;

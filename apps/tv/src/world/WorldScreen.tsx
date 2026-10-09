@@ -94,6 +94,12 @@ export const WorldScreen = ({
   const {mystery, state} = useGame();
   const hub = useSceneHub(navigator);
   const [ready, setReady] = useState(false);
+  // Until the world is ready it can't say whether it opens on a cinematic: keep the current sound.
+  const {report} = useAudio();
+  useEffect(() => {
+    report({holding: !ready});
+  }, [ready, report]);
+  useEffect(() => () => report({holding: false}), [report]);
 
   // Load this scene's assets (placeholders resolve at once); release them on the way out.
   useEffect(() => {

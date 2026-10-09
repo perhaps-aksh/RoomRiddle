@@ -82,6 +82,9 @@ export class AudioDirector {
   private musicBed = 1;
   private bedFade: Fade | null = null;
   private readonly missing = new Set<string>();
+  /** The handle being started, and whether the backend already ended it (failed at once). */
+  private starting: number | null = null;
+  private endedWhileStarting = false;
   private readonly opts: Required<Omit<AudioDirectorOptions, 'onMissing'>> & Pick<AudioDirectorOptions, 'onMissing'>;
 
   constructor(
@@ -183,6 +186,11 @@ export class AudioDirector {
 
   /** The backend reports that a one-shot finished. */
   ended(handle: number, now: number): void {
+    if (handle === this.starting) {
+      // The backend gave up before play() returned (no file, refused): the caller drops it.
+      this.endedWhileStarting = true;
+      return;
+    }
     if (this.voice?.handle === handle) {
       this.voice = null;
       this.applyAll(now); // un-duck
@@ -218,10 +226,17 @@ export class AudioDirector {
     return s;
   }
 
-  private start(sound: AudioDefinition, level: number, now: number, fadeMs = 0): Voice {
+  /** Start a sound; null when the backend ended it straight away (nothing to track). */
+  private start(sound: AudioDefinition, level: number, now: number, fadeMs = 0): Voice | null {
     const v: Voice = {handle: this.nextHandle++, sound, level: fadeMs > 0 ? 0 : level, fade: fadeMs > 0 ? {from: 0, to: level, start: now, ms: fadeMs} : null, stopAtEnd: false};
-    this.backend.play(v.handle, sound, this.output(v, now));
-    return v;
+    this.starting = v.handle;
+    this.endedWhileStarting = false;
+    try {
+      this.backend.play(v.handle, sound, this.output(v, now));
+    } finally {
+      this.starting = null;
+    }
+    return this.endedWhileStarting ? null : v;
   }
 
   private fadeOut(v: Voice, ms: number, now: number): void {
@@ -311,8 +326,9 @@ export class AudioDirector {
       return;
     }
     const sound = this.sound(id);
-    if (sound) {
-      this.ambient.set(id, this.start(sound, 1, now, fadeMs));
+    const v = sound ? this.start(sound, 1, now, fadeMs) : null;
+    if (v) {
+      this.ambient.set(id, v);
     }
   }
 
@@ -334,7 +350,10 @@ export class AudioDirector {
         this.backend.stop(old.handle);
       }
     }
-    this.sfx.push(this.start(sound, 1, 0));
+    const v = this.start(sound, 1, 0);
+    if (v) {
+      this.sfx.push(v);
+    }
   }
 
   private playVoice(id: string, now: number): void {
@@ -344,7 +363,7 @@ export class AudioDirector {
       return;
     }
     this.voice = this.start(sound, 1, now);
-    this.applyAll(now); // duck the music
+    this.applyAll(now); // duck the music (only if the line really started)
   }
 
   private stopVoice(now: number): void {

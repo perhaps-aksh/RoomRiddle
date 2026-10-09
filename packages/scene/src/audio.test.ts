@@ -193,3 +193,53 @@ test('validateAudio catches bad ids, loops, unknown references and lists planned
   assert.ok(r.errors.some(e => e.includes('t.vo.nope')));
   assert.deepEqual(r.warnings, ['t.vo.d: no file yet (skipped at runtime)']);
 });
+
+test('a voice the platform rejects at once (no file) does not leave the music ducked', () => {
+  const fb = fakeBackend();
+  let d: AudioDirector | null = null;
+  // This backend fails voice lines synchronously, like the TV backend does when a file can't be resolved.
+  const backend = {
+    ...fb.backend,
+    play: (h: number, s: AudioDefinition, v: number) => {
+      if (s.channel === 'voice') {
+        d?.ended(h, 0);
+        return;
+      }
+      fb.backend.play(h, s, v);
+    },
+  };
+  d = new AudioDirector(new AudioRegistry([manifest]), backend, {fadeMs: 0, duckTo: 0.5});
+  d.run({type: 'PLAY_MUSIC', id: 't.music.a', fadeMs: 0}, 0);
+  d.run({type: 'PLAY_VOICE', id: 't.vo.line'}, 10);
+  assert.equal(d.currentVoice, null);
+  assert.equal(fb.vol('t.music.a'), 1, 'music at full level');
+});
+
+test('consecutive lines keep the music ducked; it comes back only after the last line', () => {
+  const {fb, d} = setup();
+  d.run({type: 'PLAY_MUSIC', id: 't.music.a', fadeMs: 0}, 0);
+  d.run({type: 'PLAY_VOICE', id: 't.vo.line'}, 10);
+  const first = [...fb.live.entries()].find(([, v]) => v.id === 't.vo.line')![0];
+  assert.equal(fb.vol('t.music.a'), 0.5);
+  // The next line replaces the first before it ends: still ducked, no gap.
+  d.run({type: 'PLAY_VOICE', id: 't.vo.line'}, 20);
+  assert.equal(fb.vol('t.music.a'), 0.5);
+  assert.ok(!fb.live.has(first), 'first line stopped');
+  // A late "ended" from the replaced line must not un-duck the current one.
+  d.ended(first, 30);
+  assert.equal(fb.vol('t.music.a'), 0.5);
+  const second = [...fb.live.entries()].find(([, v]) => v.id === 't.vo.line')![0];
+  d.ended(second, 40);
+  assert.equal(fb.vol('t.music.a'), 1);
+});
+
+test('stopAll during a line clears the voice and the duck', () => {
+  const {fb, d} = setup();
+  d.run({type: 'PLAY_MUSIC', id: 't.music.a', fadeMs: 0}, 0);
+  d.run({type: 'PLAY_VOICE', id: 't.vo.line'}, 10);
+  d.stopAll();
+  assert.equal(fb.live.size, 0);
+  assert.equal(d.currentVoice, null);
+  d.run({type: 'PLAY_MUSIC', id: 't.music.a', fadeMs: 0}, 20);
+  assert.equal(fb.vol('t.music.a'), 1, 'fresh music is not ducked');
+});

@@ -332,5 +332,5 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
 /** True while the app is in the foreground (sound pauses when the TV goes to Home). */
 export function onForegroundChange(cb: (active: boolean) => void): () => void {
   const sub = AppState.addEventListener('change', state => cb(state === 'active'));
-  return () => sub.remove();
+  return () => sub?.remove?.();
 }

@@ -47,8 +47,8 @@ test('every timeline audio cue and inspectable object has sound', () => {
   }
 });
 
-test('the arrival cinematic sounds in order: rain, approach, steam, stop, brake, doors', () => {
+test('the arrival cinematic sounds in order: rain, approach, brake, stop, steam, doors (P7B brief)', () => {
   const arrival = lastTrainWorld.scenes[0]!.timelines.find(t => t.id === 'train-arrival')!;
   const order = arrival.events.flatMap(e => (e.type === 'custom' && e.name === 'audio.cue' ? [String(e.payload?.cue)] : []));
-  assert.deepEqual(order, ['rain-start', 'train-approach', 'steam', 'train-stop', 'train-brake', 'doors-open']);
+  assert.deepEqual(order, ['rain-start', 'train-approach', 'train-brake', 'train-stop', 'steam', 'doors-open']);
 });

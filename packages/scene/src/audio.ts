@@ -58,6 +58,10 @@ export class AudioRegistry {
   get(id: string): AudioDefinition | undefined {
     return this.byId.get(id);
   }
+  /** Add a sound at runtime (e.g. a spoken reply served by the game server). */
+  register(sound: AudioDefinition): void {
+    this.byId.set(sound.id, sound);
+  }
   /** True when the id exists and has a file (missing/planned sounds are not playable). */
   playable(id: string): boolean {
     const s = this.byId.get(id);

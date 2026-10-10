@@ -45,7 +45,7 @@ import type {
   RejectionReason,
   ServerMessage,
 } from '@roomriddle/shared-types';
-import {SERVER_URL} from '../config/server';
+import {httpBase, SERVER_URL} from '../config/server';
 
 export type EventsHandler = (events: readonly GameEvent[]) => void;
 
@@ -71,6 +71,10 @@ export interface GameSession {
   closeRoom(): void;
   /** Retry the server connection now (RETRY on the connection screen). */
   reconnect(): void;
+  /** HTTP base of the game server (for server-relative URLs such as spoken replies). */
+  serverBase: string;
+  /** Question a character (room mode). Replies arrive in `room.conversation`. */
+  ask(characterId: string, question: string, evidenceClueId?: string): void;
 }
 
 const NO_SESSION: GameSession = {
@@ -86,6 +90,8 @@ const NO_SESSION: GameSession = {
   createRoom: () => {},
   closeRoom: () => {},
   reconnect: () => {},
+  serverBase: httpBase(SERVER_URL),
+  ask: () => {},
 };
 
 const GameContext = createContext<GameSession>(NO_SESSION);
@@ -264,6 +270,15 @@ export const GameProvider = ({children, clock = Date.now, createSocket, serverUr
   }, []);
 
   const reconnect = useCallback(() => clientRef.current?.reconnectNow(), []);
+  const ask = useCallback(
+    (characterId: string, question: string, evidenceClueId?: string) => {
+      if (inRoom()) {
+        send({type: 'ASK_CHARACTER', characterId, question, ...(evidenceClueId ? {evidenceClueId} : {})});
+      }
+    },
+    [send, inRoom],
+  );
+  const serverBase = useMemo(() => httpBase(serverUrl), [serverUrl]);
 
   useEffect(() => () => clientRef.current?.close(), []);
 
@@ -285,7 +300,7 @@ export const GameProvider = ({children, clock = Date.now, createSocket, serverUr
 
   const value = useMemo<GameSession>(() => {
     const room = roomView.current;
-    const shared = {start, dispatch, room, createRoom, closeRoom, reconnect};
+    const shared = {start, dispatch, room, createRoom, closeRoom, reconnect, serverBase, ask};
     if (inRoom()) {
       const mysteryId = room.room?.mysteryId;
       return {
@@ -301,7 +316,7 @@ export const GameProvider = ({children, clock = Date.now, createSocket, serverUr
     return {...shared, mode: 'local', ...local.current, lastActor: null, now: clock};
     // `version` changes whenever a ref changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [version, clock, start, dispatch, createRoom, closeRoom, reconnect, inRoom]);
+  }, [version, clock, start, dispatch, createRoom, closeRoom, reconnect, inRoom, serverBase, ask]);
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
 };

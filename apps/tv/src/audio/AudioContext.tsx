@@ -42,10 +42,13 @@ interface AudioApi {
   hasVoice: (audioId: string | undefined) => boolean;
   /** Diagnostics: silence the game's audio entirely (and resume it after). */
   suspend: (on: boolean) => void;
+  /** Speak a line served from a URL (an AI character's reply): voice channel, music ducked. */
+  speakUrl: (id: string, url: string) => void;
 }
 
 const noop = () => undefined;
-const AudioCtx = createContext<AudioApi>({report: noop, moment: noop, stopVoice: noop, hasVoice: () => false, suspend: noop});
+const AudioCtx = createContext<AudioApi>({report: noop, moment: noop, stopVoice: noop, hasVoice: () => false, suspend: noop, speakUrl: noop});
+const isRemote = (source: string | undefined) => !!source && /^https?:\/\//.test(source);
 
 const registry = new AudioRegistry(audioManifests);
 
@@ -77,7 +80,7 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
     const reported = new Set<string>();
     const backend: AudioBackend = {
       play: (h, sound, volume) => {
-        if (!injected && !reported.has(sound.id) && !bundledPath(sound.id)) {
+        if (!injected && !reported.has(sound.id) && !isRemote(sound.source) && !bundledPath(sound.id)) {
           reported.add(sound.id);
           // In the manifest but not in this build: say which, where, and why; the game goes on.
           trace('missing', `id=${sound.id} reason=not-bundled path=- scene=${sceneRef.current ?? '-'}`);
@@ -88,7 +91,12 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
         names.set(h, sound.id);
         lastVol.set(h, volume);
         trace('play', `h=${h} id=${sound.id} ch=${sound.channel} vol=${volume.toFixed(3)} loop=${sound.loop}`);
-        raw.play(h, sound, volume);
+        if (isRemote(sound.source)) {
+          // Streamed from the game server: hand the platform the URL itself.
+          (raw as AudioBackend & {play(h: number, s: typeof sound, v: number, path?: string | null): void}).play(h, sound, volume, sound.source);
+        } else {
+          raw.play(h, sound, volume);
+        }
       },
       setVolume: (h, volume) => {
         const prev = lastVol.get(h);
@@ -266,6 +274,10 @@ export const AudioProvider = ({children, backend: injected}: {children: ReactNod
       },
       moment: key => run(momentCommands(directionRef.current, key), key),
       stopVoice: () => run([{type: 'STOP_VOICE'}], 'dialogue-advance'),
+      speakUrl: (id, url) => {
+        registry.register({id, channel: 'voice', loop: false, status: 'final', source: url, description: 'Spoken reply from the game server', license: 'Generated at runtime (TTS)'});
+        run([{type: 'PLAY_VOICE', id}], `reply:${id}`);
+      },
       // Heard only if the manifest has it AND the file is in the build (else the text must show).
       hasVoice: audioId => !!audioId && registry.playable(audioId) && (injected ? true : !!bundledPath(audioId)),
       suspend: on => {

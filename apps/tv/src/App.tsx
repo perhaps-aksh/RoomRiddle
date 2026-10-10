@@ -4,6 +4,7 @@ import {Background, BackgroundMood} from './components/Background/Background';
 import {ScreenTransition} from './components/Background/ScreenTransition';
 import {DEFAULT_MYSTERY_ID} from './data/mysteries';
 import {GameProvider, GameProviderProps, useGame} from './game/GameContext';
+import {CharacterSpeech} from './game/CharacterSpeech';
 import {RoomWatcher} from './game/RoomWatcher';
 import {ToastProvider} from './ui/Toast';
 import type {TransitionPreset} from './ui/Transition';
@@ -178,6 +179,7 @@ const Shell = () => {
             {renderScreen(entry.route, props)}
           </ScreenTransition>
         </View>
+        {!blocked && <CharacterSpeech />}
         <RoomWatcher onBlockingChange={setBlocked} onReturnHome={returnHome} />
       </View>
     </BackInterceptorContext.Provider>

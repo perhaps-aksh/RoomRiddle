@@ -9,3 +9,8 @@
  * the LAN would use the laptop's LAN IP here instead.
  */
 export const SERVER_URL = 'ws://10.0.2.2:4000/ws';
+
+/** The same server over HTTP (spoken replies are served at /voice/<id>). */
+export function httpBase(wsUrl: string): string {
+  return wsUrl.replace(/^ws(s?):/, 'http$1:').replace(/\/ws\/?$/, '');
+}

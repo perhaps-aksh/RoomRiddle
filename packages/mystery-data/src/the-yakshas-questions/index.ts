@@ -10,7 +10,7 @@ export const theYakshasQuestions: MysterySummary = {
   id: 'the-yakshas-questions',
   title: "The Yaksha's Three Questions",
   tagline: 'A guardian, a lake, and three questions.',
-  genre: 'Family story',
+  genre: 'All ages',
   synopsis:
     'At sunrise, travellers reach a quiet forest lake. A calm guardian, the Yaksha, ' +
     'asks three questions. Observe, think, and answer together.',

@@ -13,7 +13,8 @@ export interface MysteryCardProps {
   testID?: string;
 }
 
-export const CARD_WIDTH = px(382);
+// Five cases fit across the 1664 px safe width (1920 − 2 × 128) with room for the focus scale.
+export const CARD_WIDTH = px(312);
 const CARD_HEIGHT = px(500);
 
 export const MysteryCard = ({
@@ -38,29 +39,27 @@ export const MysteryCard = ({
         <>
           <CardAtmosphere active={focused} />
           <View style={styles.topRow}>
-            <Text style={styles.genre}>{mystery.genre.toUpperCase()}</Text>
+            <Text style={styles.genre} numberOfLines={1}>{mystery.genre.toUpperCase()}</Text>
             {selected ? (
-              <Text style={styles.selectedTag}>SELECTED</Text>
+              <Text style={styles.selectedTag} accessibilityLabel="Selected">✓</Text>
             ) : !available ? (
               <Text style={styles.soonTag}>SOON</Text>
             ) : null}
           </View>
           <Text
             style={[styles.title, focused && styles.titleFocused]}
-            numberOfLines={2}>
+            numberOfLines={3}>
             {mystery.title}
           </Text>
           <Text style={styles.description} numberOfLines={3}>
             {mystery.shortDescription}
           </Text>
           <View style={styles.spacer} />
-          <Text style={styles.atmosphere} numberOfLines={2}>
-            {mystery.atmosphere}
-          </Text>
+          {/* Mood words live on the details screen; five cards leave no room for them here. */}
           <View style={styles.divider} />
           <View style={styles.metaRow}>
             <Meta label="Players" value={formatPlayers(mystery)} />
-            <Meta label="Difficulty" value={mystery.difficulty} />
+            <Meta label="Level" value={mystery.difficulty} />
           </View>
         </>
       )}
@@ -68,11 +67,11 @@ export const MysteryCard = ({
   );
 };
 
+// One line per fact (label, then value) so narrow cards never truncate either.
 const Meta = ({label, value}: {label: string; value: string}) => (
-  <View>
-    <Text style={styles.metaLabel}>{label.toUpperCase()}</Text>
-    <Text style={styles.metaValue}>{value}</Text>
-  </View>
+  <Text style={styles.metaLabel} numberOfLines={1}>
+    {label.toUpperCase()}  <Text style={styles.metaValue}>{value}</Text>
+  </Text>
 );
 
 /** Slow drifting light inside the focused card. Stopped when not focused. */
@@ -147,6 +146,7 @@ const styles = StyleSheet.create({
   },
   genre: {
     ...theme.text.label,
+    flexShrink: 1,
     color: theme.colors.accent,
   },
   soonTag: {
@@ -165,8 +165,8 @@ const styles = StyleSheet.create({
   },
   title: {
     ...theme.text.h1,
-    fontSize: px(44),
-    lineHeight: px(52),
+    fontSize: px(34),
+    lineHeight: px(40),
     letterSpacing: 0,
     textTransform: 'none',
     marginTop: theme.spacing.md,
@@ -196,9 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.border,
   },
   metaRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    columnGap: theme.spacing.md,
+    rowGap: px(6),
   },
   metaLabel: {
     ...theme.text.label,
@@ -209,7 +207,9 @@ const styles = StyleSheet.create({
   },
   metaValue: {
     ...theme.text.mono,
-    marginTop: px(4),
+    fontSize: px(24),
+    letterSpacing: 0,
+    textTransform: 'none',
     color: theme.colors.textPrimary,
   },
   atmosphereGlow: {

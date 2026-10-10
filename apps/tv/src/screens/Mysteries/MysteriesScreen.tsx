@@ -17,7 +17,7 @@ export const MysteriesScreen = ({
 
   return (
     <View style={styles.screen}>
-      <ScreenHeader title="Choose Your Mystery" subtitle="Four stories. One room. Tonight, who will find the truth?" />
+      <ScreenHeader title="Choose Your Mystery" subtitle={`${countWord(mysteries.length)} stories. One room. Tonight, who will find the truth?`} />
 
       <View style={styles.row}>
         {mysteries.map((mystery, index) => {
@@ -78,3 +78,8 @@ const styles = StyleSheet.create({
     color: theme.colors.textMuted,
   },
 });
+
+const WORDS = ['No', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten'];
+function countWord(n: number): string {
+  return WORDS[n] ?? String(n);
+}

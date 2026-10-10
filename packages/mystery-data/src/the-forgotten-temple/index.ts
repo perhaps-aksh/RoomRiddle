@@ -9,7 +9,7 @@ export const theForgottenTemple: MysterySummary = {
   id: 'the-forgotten-temple',
   title: 'The Forgotten Temple',
   tagline: 'The builders left a path. Can you read it?',
-  genre: 'Family adventure',
+  genre: 'Family',
   synopsis:
     'An old temple is being prepared for an exhibition. A carved panel of four symbols ' +
     'hints at a hidden archive. Follow the builders\' clues to find it, without damaging a thing.',

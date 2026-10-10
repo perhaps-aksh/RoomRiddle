@@ -138,6 +138,7 @@ export class CharacterService {
         ...(evidence ? {evidenceClueId: evidence.id} : {}),
         text,
         source,
+        questionsLeft: this.remaining(session),
         at: this.clock(),
       };
     };

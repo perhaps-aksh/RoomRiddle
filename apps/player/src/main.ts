@@ -71,10 +71,15 @@ client.onMessage(message => {
     history.replaceState(null, '', `/join/${message.room.code}`);
   }
   if (message.type === 'GAME_STARTED') {
+    ui.suspectId = null;
+    ui.evidenceId = null;
     ui.openPuzzleId = null;
     ui.feedback = null;
     ui.drafts = {};
     ui.selections = {};
+  }
+  if (message.type === 'CHARACTER_REPLY' && message.reply.askedBy !== null && ui.tab !== 'suspects') {
+    say({kind: 'info', title: `${message.reply.characterName} answered`, text: `${message.reply.askedBy}: “${message.reply.question}”`}, false);
   }
   if (message.type === 'GAME_STATE_UPDATED') {
     const f = feedbackFor(message.update, message.requestId === ui.pendingRequest);
@@ -130,8 +135,9 @@ function render(): void {
   root.innerHTML = renderScreen(view, ui);
   // Screen changes play the entrance animation and start at the top;
   // re-renders within a screen keep scroll and focus where they were.
-  const changed = name + ui.tab + (ui.openPuzzleId ?? '') !== lastScreen;
-  lastScreen = name + ui.tab + (ui.openPuzzleId ?? '');
+  const key = name + ui.tab + (ui.openPuzzleId ?? '') + (ui.suspectId ?? '');
+  const changed = key !== lastScreen;
+  lastScreen = key;
   root.querySelector('.screen')?.classList.toggle('enter', changed);
   if (changed) window.scrollTo(0, 0);
   else window.scrollTo(0, scrollY);
@@ -191,6 +197,38 @@ function bind(): void {
   });
   click('tab-evidence', () => {
     ui.tab = 'evidence';
+    render();
+  });
+  click('tab-suspects', () => {
+    ui.tab = 'suspects';
+    render();
+  });
+  click('suspects-back', () => {
+    ui.suspectId = null;
+    ui.evidenceId = null;
+    render();
+  });
+  each('[data-suspect]', b =>
+    b.addEventListener('click', () => {
+      ui.suspectId = b.dataset.suspect!;
+      ui.evidenceId = null;
+      render();
+    }),
+  );
+  on('question', 'input', e => {
+    if (ui.suspectId) ui.drafts[`ask:${ui.suspectId}`] = (e.target as HTMLTextAreaElement).value;
+  });
+  on('evidence', 'change', e => {
+    ui.evidenceId = (e.target as HTMLSelectElement).value || null;
+  });
+  on('ask-form', 'submit', e => {
+    e.preventDefault();
+    const id = ui.suspectId;
+    const question = (ui.drafts[`ask:${id}`] ?? '').trim();
+    if (!id || !question) return;
+    send({type: 'ASK_CHARACTER', characterId: id, question, ...(ui.evidenceId ? {evidenceClueId: ui.evidenceId} : {})});
+    ui.drafts[`ask:${id}`] = '';
+    ui.evidenceId = null;
     render();
   });
   click('advance', () => send({type: 'ADVANCE_SCENE'}));

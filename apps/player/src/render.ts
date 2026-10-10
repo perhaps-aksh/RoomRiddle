@@ -18,7 +18,11 @@ export interface UiState {
   code: string;
   name: string;
   joining: boolean;
-  tab: 'scene' | 'evidence';
+  tab: 'scene' | 'evidence' | 'suspects';
+  /** Suspect open in the Suspects tab. */
+  suspectId: string | null;
+  /** Clue to show the suspect with the next question. */
+  evidenceId: string | null;
   openPuzzleId: string | null;
   drafts: Record<string, string>;
   selections: Record<string, string[]>;
@@ -37,6 +41,8 @@ export const initialUi = (code: string, name: string): UiState => ({
   name,
   joining: false,
   tab: 'scene',
+  suspectId: null,
+  evidenceId: null,
   openPuzzleId: null,
   drafts: {},
   selections: {},
@@ -225,9 +231,11 @@ function gameScreen(view: RoomView, ui: UiState): string {
   <nav class="tabs" role="tablist">
     <button id="tab-scene" role="tab" aria-selected="${ui.tab === 'scene'}" class="${ui.tab === 'scene' ? 'on' : ''}">Scene</button>
     <button id="tab-evidence" role="tab" aria-selected="${ui.tab === 'evidence'}" class="${ui.tab === 'evidence' ? 'on' : ''}">Evidence <span class="mono">${state.discoveredClueIds.length}</span></button>
+    ${mystery.cast.some(c => c.interviewable) ? `<button id="tab-suspects" role="tab" aria-selected="${ui.tab === 'suspects'}" class="${ui.tab === 'suspects' ? 'on' : ''}">Question</button>` : ''}
   </nav>`;
 
   if (ui.tab === 'evidence') return hud + evidenceList(view);
+  if (ui.tab === 'suspects') return hud + suspectsView(view, ui);
   if (!scene) return hud;
   const puzzle = ui.openPuzzleId ? mystery.puzzles.find(p => p.id === ui.openPuzzleId) : undefined;
   if (puzzle && !state.solvedPuzzleIds.includes(puzzle.id)) return hud + puzzleView(view, ui, puzzle);
@@ -333,6 +341,72 @@ function evidenceList(view: RoomView): string {
       })
       .join('')}
     ${sealed > 0 ? `<p class="sealed mono">${sealed} sealed</p>` : ''}
+  </section>`;
+}
+
+// ─── Questioning ──────────────────────────────────────────────────────
+
+const MAX_QUESTION = 200;
+
+function initials(name: string): string {
+  return name.replace(/^(Inspector|Detective|The)\s+/i, '').split(/\s+/).map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase();
+}
+
+/** Pick a person, ask in your own words, optionally show a found clue. Replies come from the server. */
+export function suspectsView(view: RoomView, ui: UiState): string {
+  const mystery = view.mystery!;
+  const state = view.room!.gameState!;
+  const cast = mystery.cast.filter(c => c.interviewable);
+  const paused = state.status === 'paused';
+  const left = view.conversation.at(-1)?.questionsLeft;
+  const suspect = cast.find(c => c.id === ui.suspectId);
+  if (!suspect) {
+    return `<section class="suspects">
+      <p class="eyebrow">Question the people involved</p>
+      <h1 class="display">Who will you ask?</h1>
+      <p class="muted">Ask in your own words. They only know what they know, and some of them lie. Show them evidence to press them.</p>
+      <ul class="cast">${cast
+        .map(c => {
+          const asked = view.conversation.filter(r => r.characterId === c.id).length;
+          return `<li><button class="cast-card" data-suspect="${esc(c.id)}">
+            <span class="avatar" aria-hidden="true">${esc(initials(c.name))}</span>
+            <span class="cast-text"><b>${esc(c.name)}</b><span class="muted">${esc(c.role)}</span></span>
+            ${asked ? `<span class="mono muted">${asked}</span>` : ''}<span class="pc-arrow" aria-hidden="true">→</span>
+          </button></li>`;
+        })
+        .join('')}</ul>
+      ${left !== undefined ? `<p class="mono muted">${left} questions left for the group</p>` : ''}
+    </section>`;
+  }
+
+  const thread = view.conversation.filter(r => r.characterId === suspect.id);
+  const thinking = view.thinking?.characterId === suspect.id;
+  const found = state.discoveredClueIds.map(id => mystery.clues.find(c => c.id === id)).filter(c => c !== undefined);
+  const shown = found.find(c => c.id === ui.evidenceId);
+  const out = left === 0;
+  return `<section class="interview">
+    <button id="suspects-back" class="link">← Everyone</button>
+    <div class="cast-head">
+      <span class="avatar big" aria-hidden="true">${esc(initials(suspect.name))}</span>
+      <div><h1 class="display">${esc(suspect.name)}</h1><p class="muted">${esc(suspect.role)}</p></div>
+    </div>
+    <ol class="thread" aria-live="polite">${thread
+      .map(r => `<li class="q"><span class="label mono">${esc(r.askedBy ?? 'TV')}${r.evidenceClueId ? ` · shows ${esc(mystery.clues.find(c => c.id === r.evidenceClueId)?.title ?? 'evidence')}` : ''}</span><p>${esc(r.question)}</p></li>
+        <li class="a"><p>${esc(r.text)}</p></li>`)
+      .join('')}
+      ${thinking ? `<li class="a thinking" role="status"><span class="dots" aria-label="${esc(suspect.name)} is thinking"><i></i><i></i><i></i></span></li>` : ''}
+      ${thread.length === 0 && !thinking ? '<li class="muted empty-thread">No questions yet.</li>' : ''}
+    </ol>
+    <form id="ask-form" autocomplete="off">
+      <label for="question">Your question</label>
+      <textarea id="question" rows="2" maxlength="${MAX_QUESTION}" placeholder="e.g. Where were you at midnight?" ${paused || out ? 'disabled' : ''}>${esc(ui.drafts[`ask:${suspect.id}`] ?? '')}</textarea>
+      ${found.length
+        ? `<label for="evidence">Show evidence <span class="muted">(optional)</span></label>
+      <select id="evidence"><option value="">None</option>${found.map(c => `<option value="${esc(c.id)}" ${shown?.id === c.id ? 'selected' : ''}>${esc(c.title)}</option>`).join('')}</select>`
+        : ''}
+      <button id="ask" type="submit" ${paused || thinking || out ? 'disabled' : ''}>${out ? 'No questions left' : thinking ? 'Listening…' : 'Ask'}</button>
+      ${left !== undefined && !out ? `<p class="mono muted">${left} questions left for the group</p>` : ''}
+    </form>
   </section>`;
 }
 

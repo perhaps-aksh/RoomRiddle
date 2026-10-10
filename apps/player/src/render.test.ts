@@ -1,7 +1,8 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {initialRoomView, type RoomView} from '@roomriddle/client';
-import type {Room} from '@roomriddle/shared-types';
+import {createInitialGameState} from '@roomriddle/game-engine';
+import type {CharacterReply, PublicMystery, Room} from '@roomriddle/shared-types';
 import {errorState, initialUi, loadingState, renderScreen, screenName} from './render';
 
 const room = (over: Partial<Room> = {}): Room => ({
@@ -79,4 +80,56 @@ test('player names are escaped', () => {
   v.room!.players[1]!.name = '<img src=x onerror=alert(1)>';
   const html = renderScreen(v, initialUi('', ''));
   assert.doesNotMatch(html, /<img src=x/);
+});
+
+// ─── Questioning ──────────────────────────────────────────────────────
+
+const mystery = {
+  summary: {id: 'the-last-train', title: 'The Last Train'},
+  scenes: [{id: 'station', title: 'Platform Two', clueIds: ['platform-clock'], puzzleIds: []}],
+  clues: [{id: 'platform-clock', sceneId: 'station', prompt: 'Look', title: 'The Platform Clock', description: []}],
+  puzzles: [],
+  endings: [],
+  cast: [
+    {id: 'detective', name: 'Detective Grace', role: 'Detective', interviewable: false},
+    {id: 'voss', name: 'Inspector R. Voss', role: 'Company inspector', interviewable: true},
+  ],
+} as unknown as PublicMystery;
+
+const reply = (over: Partial<CharacterReply> = {}): CharacterReply => ({
+  id: 'r1', characterId: 'voss', characterName: 'Inspector R. Voss', question: 'Where were you?', askedBy: 'Aksh',
+  text: 'Reading. Company business.', source: 'ai', questionsLeft: 29, at: 0, ...over,
+});
+
+const playing = (over: Partial<RoomView> = {}): RoomView => ({
+  ...inLobby(),
+  mystery,
+  room: room({status: 'playing', gameState: {...createInitialGameState('the-last-train'), status: 'playing', currentSceneId: 'station', discoveredClueIds: ['platform-clock']}}),
+  ...over,
+});
+
+test('the Question tab lists only people who can be questioned', () => {
+  const html = renderScreen(playing(), {...initialUi('4827', 'Aksh'), tab: 'suspects'});
+  assert.match(html, /id="tab-suspects"/);
+  assert.match(html, /data-suspect="voss"/);
+  assert.doesNotMatch(html, /data-suspect="detective"/);
+  assert.match(html, /RV<\/span>/, 'initials drop the title');
+});
+
+test('an open interview shows the thread, a thinking state, found evidence and the group budget', () => {
+  const ui = {...initialUi('4827', 'Aksh'), tab: 'suspects' as const, suspectId: 'voss'};
+  const html = renderScreen(playing({conversation: [reply()], thinking: {characterId: 'voss', askedBy: 'Grace'}}), ui);
+  assert.match(html, /Where were you\?/);
+  assert.match(html, /Reading\. Company business\./);
+  assert.match(html, /is thinking/);
+  assert.match(html, /<option value="platform-clock"/);
+  assert.match(html, /29 questions left/);
+  assert.match(html, /id="ask"[^>]*disabled/, 'no second question while one is being answered');
+});
+
+test('with no questions left the form is closed', () => {
+  const ui = {...initialUi('4827', 'Aksh'), tab: 'suspects' as const, suspectId: 'voss'};
+  const html = renderScreen(playing({conversation: [reply({questionsLeft: 0})]}), ui);
+  assert.match(html, /No questions left/);
+  assert.match(html, /<textarea[^>]*disabled/);
 });

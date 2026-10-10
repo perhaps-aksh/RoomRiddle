@@ -16,7 +16,7 @@ const train = getMysteryDefinition('the-last-train')!;
 const voss = findCharacter(train, 'voss')!;
 
 function stateWith(mystery: MysteryDefinition, patch: Partial<GameState> = {}): GameState {
-  return {...createInitialGameState(mystery.summary.id), status: 'in-progress', currentSceneId: mystery.startSceneId, ...patch} as GameState;
+  return {...createInitialGameState(mystery.summary.id), status: 'playing', currentSceneId: mystery.startSceneId, ...patch} as GameState;
 }
 
 /** A provider that records what it was shown and replies from a script. */

@@ -146,7 +146,7 @@ button.option.pending { opacity: .6; }
 .banner { margin-top: var(--s-md); padding: var(--s-md); border-radius: var(--r-sm); background: var(--c-surface-elevated); }
 .banner.bad { border-left: 3px solid var(--c-danger); }
 .banner b { color: var(--c-danger); font: var(--t-label-font); letter-spacing: var(--t-label-tracking); text-transform: uppercase; margin-right: var(--s-xs); }
-.tabs { display: grid; grid-template-columns: 1fr 1fr; margin-top: var(--s-md); border-bottom: 1px solid var(--c-border); }
+.tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: var(--s-md); border-bottom: 1px solid var(--c-border); }
 .tabs button { background: none; color: var(--c-text-secondary); border: 0; border-radius: 0; border-bottom: 2px solid transparent; min-height: 48px; }
 .tabs button.on { color: var(--c-accent); border-bottom-color: var(--c-accent); }
 .tabs .mono { color: var(--c-text-muted); }
@@ -170,6 +170,31 @@ button.option.pending { opacity: .6; }
 
 .case-file .sealed { margin-top: var(--s-md); color: var(--c-text-muted); text-transform: uppercase; font-size: 12px; text-align: center; }
 .empty { display: grid; justify-items: center; gap: var(--s-sm); margin-top: var(--s-xl); padding: var(--s-xxl) var(--s-lg); border: 1px dashed var(--c-border); border-radius: var(--r-sm); text-align: center; }
+
+/* ── Questioning ───────────────────────────────────────────────── */
+.cast { list-style: none; margin: var(--s-lg) 0 var(--s-md); padding: 0; display: grid; gap: var(--s-sm); }
+.cast-card { display: grid; grid-template-columns: auto 1fr auto auto; align-items: center; gap: var(--s-md); width: 100%; min-height: 72px; padding: var(--s-md) var(--s-lg); text-align: left; text-transform: none; letter-spacing: 0; background: var(--c-surface); color: var(--c-text-primary); border: 1px solid var(--c-border); }
+.cast-card .pc-arrow { color: var(--c-focus); font-size: 20px; }
+.cast-text { display: grid; gap: 2px; }
+.cast-text b { font: var(--t-h2-font); font-size: 18px; }
+.cast-text .muted { font-size: 13px; }
+.avatar { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--c-accent-soft); background: var(--c-surface-sunken); color: var(--c-accent); font: var(--t-label-font); letter-spacing: 1px; }
+.avatar.big { width: 64px; height: 64px; font-size: 18px; }
+.cast-head { display: flex; gap: var(--s-md); align-items: center; margin: var(--s-sm) 0 var(--s-lg); }
+.cast-head .display { margin: 0; font-size: 26px; line-height: 32px; }
+.thread { list-style: none; margin: 0 0 var(--s-lg); padding: 0; display: grid; gap: var(--s-sm); }
+.thread li { max-width: 88%; padding: var(--s-sm) var(--s-md); border-radius: var(--r-md); animation: reveal var(--m-discovery) both; }
+.thread .q { justify-self: end; background: var(--c-surface-elevated); border: 1px solid var(--c-border); }
+.thread .q .label { font-size: 10px; margin-bottom: 2px; }
+.thread .a { justify-self: start; background: var(--c-surface); border-left: 3px solid var(--c-accent); font: var(--t-body-font); font-style: italic; }
+.thread .empty-thread { justify-self: center; background: none; font-size: 14px; }
+.dots { display: inline-flex; gap: 5px; padding: 4px 0; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c-accent); animation: pulse 700ms infinite alternate; }
+.dots i:nth-child(2) { animation-delay: 230ms; } .dots i:nth-child(3) { animation-delay: 460ms; }
+#ask-form textarea, #ask-form select { width: 100%; padding: var(--s-md); background: var(--c-surface-sunken); color: var(--c-text-primary); border: 1px solid var(--c-border); border-radius: var(--r-sm); font: var(--t-body-font); }
+#ask-form textarea { resize: vertical; min-height: 64px; }
+#ask-form button { margin-top: var(--s-md); width: 100%; }
+#ask-form .mono { margin-top: var(--s-sm); text-align: center; font-size: 12px; }
 
 /* ── Ending ─────────────────────────────────────────────────────── */
 .ending .verdict { font-size: 38px; line-height: 44px; animation: cinematic var(--m-ending-reveal) both; }

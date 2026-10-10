@@ -110,6 +110,8 @@ export interface CharacterReply {
   text: string;
   /** 'ai' = generated and checked; 'authored' = a written fallback line. */
   source: 'ai' | 'authored';
+  /** Questions the room has left this playthrough. */
+  questionsLeft: number;
   at: number;
 }
 

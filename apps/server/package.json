@@ -17,6 +17,7 @@
     "@roomriddle/game-engine": "*",
     "@roomriddle/mystery-data": "*",
     "@roomriddle/shared-types": "*",
+    "msedge-tts": "^2.0.9",
     "qrcode-generator": "^2.0.4",
     "ws": "^8.22.0"
   },

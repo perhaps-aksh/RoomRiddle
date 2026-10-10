@@ -2,7 +2,14 @@ import type {AiConfig} from '../config';
 import {CharacterService} from './CharacterService';
 import {geminiProvider, groqProvider, type AiProvider} from './providers';
 
+import {edgeVoiceProvider, VoiceService} from './voice';
+
 export {CharacterService} from './CharacterService';
+export {VoiceService} from './voice';
+
+export function createVoiceService(config: AiConfig, log: (line: string) => void): VoiceService {
+  return new VoiceService(config.voices ? [edgeVoiceProvider()] : [], {log});
+}
 export type {AiProvider} from './providers';
 
 /** Configured providers in AI_ORDER (default Groq, then Gemini), authored lines always last. */

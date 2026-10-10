@@ -18,11 +18,15 @@ const MIME: Record<string, string> = {
   '.ico': 'image/x-icon',
 };
 
+export type VoiceClipLookup = (id: string) => {data: Buffer; mime: string} | undefined;
+
 export interface AppServerOptions {
   /** Where the built player app lives. Missing directory = API only. */
   playerDir?: string;
   /** Live counts for /health. */
   stats?: () => {rooms: number; connections: number};
+  /** Spoken replies, served at /voice/<id>. */
+  voiceClip?: VoiceClipLookup;
 }
 
 /**
@@ -45,6 +49,18 @@ export function createAppServer(options: AppServerOptions = {}): Server {
         mysteries: mysteryCatalog.length,
         ...(options.stats ? options.stats() : {}),
       });
+      return;
+    }
+    const voice = /^\/voice\/([a-f0-9]{8,40})(\.mp3)?$/.exec(url.pathname);
+    if (voice) {
+      const clip = options.voiceClip?.(voice[1]!);
+      if (!clip) {
+        sendJson(res, 404, {error: 'not_found'});
+        return;
+      }
+      // Content-addressed (hash of voice + text): safe to cache for good.
+      res.writeHead(200, {'content-type': clip.mime, 'content-length': clip.data.length, 'cache-control': 'public, max-age=31536000, immutable', 'access-control-allow-origin': '*'});
+      res.end(req.method === 'HEAD' ? undefined : clip.data);
       return;
     }
     if (servePlayerApp(res, playerDir, url.pathname)) return;

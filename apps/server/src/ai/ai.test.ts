@@ -9,6 +9,7 @@ import {CharacterService} from './CharacterService';
 import {authoredReply} from './fallback';
 import {checkReply} from './guard';
 import {allowedFacts, buildCharacterPrompt} from './prompt';
+import {ssmlText, VoiceService, type VoiceProvider} from './voice';
 import {geminiProvider, groqProvider, ProviderError, type AiProvider, type CompletionRequest} from './providers';
 
 const T0 = 1_700_000_000_000;
@@ -292,5 +293,55 @@ describe('providers', () => {
 
     const limited = (async () => new Response('{}', {status: 429})) as unknown as typeof fetch;
     await assert.rejects(groqProvider('KEY', 'm', limited).complete(request), (e: unknown) => e instanceof ProviderError && e.limited);
+  });
+});
+
+describe('voices', () => {
+  const clip = {data: Buffer.alloc(500, 1), mime: 'audio/mpeg'};
+  function provider(result: 'ok' | Error, calls: string[] = []): VoiceProvider {
+    return {
+      name: 'fake',
+      async synthesize(text, voice) {
+        calls.push(`${voice.edge}:${text}`);
+        if (result instanceof Error) throw result;
+        return clip;
+      },
+    };
+  }
+
+  test('a line is spoken once, cached by voice and text, and concurrent requests share the work', async () => {
+    const calls: string[] = [];
+    const service = new VoiceService([provider('ok', calls)]);
+    const [a, b] = await Promise.all([service.speak('Hello.', {edge: 'en-GB-RyanNeural'}), service.speak('Hello.', {edge: 'en-GB-RyanNeural'})]);
+    assert.ok(a && a === b);
+    assert.equal(calls.length, 1);
+    assert.equal(service.clip(a!)?.mime, 'audio/mpeg');
+    const other = await service.speak('Hello.', {edge: 'en-GB-SoniaNeural'});
+    assert.notEqual(other, a, 'a different voice is a different clip');
+  });
+
+  test('falls through providers; all failing means subtitles only', async () => {
+    const service = new VoiceService([provider(new Error('down')), provider('ok')]);
+    assert.ok(await service.speak('One.'));
+    assert.equal(await new VoiceService([provider(new Error('down'))]).speak('Two.'), null);
+    assert.equal(new VoiceService([]).enabled, false);
+  });
+
+  test('old clips are evicted past the cap', async () => {
+    const service = new VoiceService([provider('ok')], {maxClips: 2});
+    const first = await service.speak('a');
+    await service.speak('b');
+    await service.speak('c');
+    assert.equal(service.clip(first!), undefined);
+  });
+
+  test('SSML text is escaped', () => {
+    assert.equal(ssmlText(`I'm <sure> & "certain"`), 'I&apos;m &lt;sure&gt; &amp; &quot;certain&quot;');
+  });
+
+  test('every interviewable character in every case has a voice', () => {
+    for (const m of playableMysteries) {
+      for (const c of m.truth!.characters.filter(ch => ch.interviewable)) assert.ok(c.voice?.edge, `${m.summary.id}/${c.id}`);
+    }
   });
 });

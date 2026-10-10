@@ -224,6 +224,16 @@ export interface CharacterTruth {
   facts: TruthFact[];
   /** Interviewable by players. The narrator and absent people usually aren't. */
   interviewable: boolean;
+  /** How they sound when spoken aloud (server text-to-speech). Subtitles are always shown. */
+  voice?: CharacterVoice;
+}
+
+/** A free TTS voice. `edge` is a Microsoft neural voice name, e.g. 'en-GB-ThomasNeural'. */
+export interface CharacterVoice {
+  edge: string;
+  /** Relative speed/pitch, e.g. '-8%'. */
+  rate?: string;
+  pitch?: string;
 }
 
 /** A spoiler: these terms must not be spoken (by anyone) until `until` holds. */

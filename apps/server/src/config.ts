@@ -29,6 +29,8 @@ export interface AiConfig {
   timeoutMs: number;
   maxQuestions: number;
   cooldownMs: number;
+  /** Spoken replies (free Edge neural voices). VOICES_DISABLED=1 = subtitles only. */
+  voices: boolean;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -53,6 +55,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       timeoutMs: int(env.AI_TIMEOUT_MS, 6000),
       maxQuestions: int(env.AI_MAX_QUESTIONS, 30),
       cooldownMs: int(env.AI_COOLDOWN_MS, 4000),
+      voices: env.VOICES_DISABLED !== '1',
     },
   };
 }

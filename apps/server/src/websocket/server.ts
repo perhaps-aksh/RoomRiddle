@@ -1,6 +1,7 @@
 import type {IncomingMessage, Server} from 'node:http';
 import {WebSocketServer, type WebSocket} from 'ws';
 import type {CharacterService} from '../ai/CharacterService';
+import type {VoiceService} from '../ai/voice';
 import type {RoomManager} from '../rooms/RoomManager';
 import {ConnectionManager} from './ConnectionManager';
 import {MAX_MESSAGE_BYTES} from './messages';
@@ -24,12 +25,12 @@ export interface GameSocketServer {
 export function attachGameSocket(
   httpServer: Server,
   rooms: RoomManager,
-  options: {clock?: () => number; log?: (line: string) => void; characters?: CharacterService} = {},
+  options: {clock?: () => number; log?: (line: string) => void; characters?: CharacterService; voices?: VoiceService} = {},
 ): GameSocketServer {
   const clock = options.clock ?? Date.now;
   const log = options.log ?? (() => {});
   const connections = new ConnectionManager(clock);
-  const router = new MessageRouter(rooms, connections, clock, log, options.characters);
+  const router = new MessageRouter(rooms, connections, clock, log, options.characters, options.voices);
   const wss = new WebSocketServer({server: httpServer, path: WEBSOCKET_PATH, maxPayload: MAX_MESSAGE_BYTES});
   const alive = new WeakMap<WebSocket, boolean>();
 

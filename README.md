@@ -66,7 +66,9 @@ As of 2026-10-10. "Verified" means covered by automated tests and run on the Veg
 | Truth tables (per-character facts, spoiler guards), server-only | **In progress** |
 | Cases 2–5 as playable data | **In progress** |
 | AI suspect interrogation (Groq / Gemini, guarded, authored fallback) | **Server done** (Day 2); phone and TV UI next |
-| AI adaptive hints, narration, character voices (TTS) | Planned |
+| Phone Question tab | **Done** (Day 3) |
+| Character voices (free Edge neural TTS, cached, served at `/voice/<id>.mp3`) | **Server done** (Day 3); TV playback next |
+| AI adaptive hints, narration | Planned |
 | Painted scene art, video loops, real audio | **In progress** |
 | Physical Fire TV hardware validation | **Planned** (device being acquired) |
 | Downloadable mystery library / marketplace | **Planned** (architecture below) |
@@ -474,6 +476,7 @@ sequenceDiagram
 ### 10.4 Cost and reliability
 - Free tiers only, in `AI_ORDER` (default Groq `openai/gpt-oss-120b`, measured 0.5–1.2 s per line, then Gemini), then authored lines. Players never pay and never see a key.
 - A per-room question budget (30 per playthrough), a per-player cooldown (4 s), short outputs, a 6 s timeout per provider and reply caching keep usage inside free limits. A rate-limited provider rests for a minute; a denied key rests for ten.
+- `npx tsx apps/server/scripts/voice-samples.ts <dir>` writes one sample per character to audition the casting.
 - `npm run ai-smoke -w @roomriddle/server [groq|gemini]` asks real suspects with the real keys and prints which source answered.
 
 ### 10.5 Code map
@@ -483,6 +486,7 @@ sequenceDiagram
 | `ai/providers.ts` | Gemini and Groq REST clients (key in headers, never in URLs). |
 | `ai/guard.ts` | Strips stage directions, caps at three sentences, rejects spoilers, unsolved typed answers and out-of-character lines. |
 | `ai/fallback.ts` | Authored replies from unlocked first-person facts, or a deflection in a tone suited to the case. |
+| `ai/voice.ts` | Spoken replies: Edge neural voices (free, no key) via `msedge-tts`, content-addressed in-memory cache, `CHARACTER_VOICE` after the text so subtitles never wait. Each character's voice is data (`CharacterTruth.voice`). |
 | `ai/CharacterService.ts` | Budget, cooldown, cache, provider chain, history (last three exchanges per character). Never changes game state. |
 
 ### 10.6 Server settings
@@ -492,6 +496,7 @@ sequenceDiagram
 | `AI_ORDER` | `groq,gemini` | Provider order. |
 | `GROQ_MODEL` / `GEMINI_MODEL` | `openai/gpt-oss-120b` / `gemini-3.8-flash` | Models. |
 | `AI_DISABLED` | unset | `1` = authored lines only (offline demo). |
+| `VOICES_DISABLED` | unset | `1` = subtitles only. |
 | `AI_TIMEOUT_MS`, `AI_MAX_QUESTIONS`, `AI_COOLDOWN_MS` | 6000, 30, 4000 | Limits. |
 - Voice: server-side free TTS, one fixed voice per character, subtitles always shown. Speech input via Groq Whisper from the phone microphone.
 

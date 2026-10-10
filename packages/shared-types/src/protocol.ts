@@ -96,6 +96,8 @@ export type ServerMessageBody =
   /** A character is composing a reply (for "Voss is thinking…"). */
   | {type: 'CHARACTER_THINKING'; characterId: string; askedBy: string | null}
   | {type: 'CHARACTER_REPLY'; reply: CharacterReply}
+  /** The spoken version of a reply, when ready (path on this server, e.g. /voice/ab12.mp3). */
+  | {type: 'CHARACTER_VOICE'; replyId: string; characterId: string; audioUrl: string}
   | {type: 'ERROR'; code: ErrorCode; message: string; detail?: string};
 
 /** One answered question, broadcast to the whole room. Presentation only: never a game rule. */
@@ -112,6 +114,8 @@ export interface CharacterReply {
   source: 'ai' | 'authored';
   /** Questions the room has left this playthrough. */
   questionsLeft: number;
+  /** Set once the spoken version is ready (see CHARACTER_VOICE). */
+  audioUrl?: string;
   at: number;
 }
 

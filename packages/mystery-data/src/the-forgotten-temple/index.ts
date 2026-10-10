@@ -237,6 +237,7 @@ const truth: MysteryTruth = {
     {
       id: 'anaya',
       name: 'Anaya Rao',
+      voice: {edge: 'en-IN-NeerjaExpressiveNeural'},
       role: 'Curator',
       persona: 'Warm, curious, encouraging; speaks simply for children and adults alike. Loves history, never preachy.',
       interviewable: true,
@@ -249,6 +250,7 @@ const truth: MysteryTruth = {
     {
       id: 'dev-sharma',
       name: 'Dev Sharma',
+      voice: {edge: 'en-IN-PrabhatNeural', rate: '-10%', pitch: '-10%'},
       role: 'Temple archivist',
       persona: 'Gentle, thoughtful elder. Explains history slowly and kindly. Cares deeply about fragile things.',
       interviewable: true,
@@ -261,6 +263,7 @@ const truth: MysteryTruth = {
     {
       id: 'meera',
       name: 'Meera',
+      voice: {edge: 'en-IN-NeerjaNeural', rate: '+8%', pitch: '+12%'},
       role: 'Young research assistant',
       persona: 'Excited, quick, notices visual details; speaks like a bright teenager.',
       interviewable: true,

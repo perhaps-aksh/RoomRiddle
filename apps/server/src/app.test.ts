@@ -55,3 +55,22 @@ test('unknown routes return 404', async () => {
     assert.equal(res.status, 404);
   });
 });
+
+test('serves spoken replies by id, immutable, and 404s unknown or malformed ids', async () => {
+  const data = Buffer.from('ID3fake-mp3');
+  const server = createAppServer({ playerDir: '/nonexistent', voiceClip: (id) => (id === 'abcdef0123456789abcd' ? { data, mime: 'audio/mpeg' } : undefined) });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    const ok = await fetch(`${base}/voice/abcdef0123456789abcd.mp3`);
+    assert.equal(ok.status, 200);
+    assert.equal(ok.headers.get('content-type'), 'audio/mpeg');
+    assert.match(ok.headers.get('cache-control') ?? '', /immutable/);
+    assert.deepEqual(Buffer.from(await ok.arrayBuffer()), data);
+    assert.equal((await fetch(`${base}/voice/0000000000000000.mp3`)).status, 404);
+    assert.equal((await fetch(`${base}/voice/..%2F..%2Fsecret`)).status, 404);
+  } finally {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
+  }
+});

@@ -81,6 +81,8 @@ export function reduceRoomView(view: RoomView, message: ServerMessage, now: numb
       return {...base, room: null, session: null, lastUpdate: null, ended: message.reason};
     case 'CHARACTER_THINKING':
       return {...base, thinking: {characterId: message.characterId, askedBy: message.askedBy}};
+    case 'CHARACTER_VOICE':
+      return {...base, conversation: view.conversation.map(r => (r.id === message.replyId ? {...r, audioUrl: message.audioUrl} : r))};
     case 'CHARACTER_REPLY':
       return {...base, thinking: null, conversation: [...view.conversation, message.reply].slice(-CONVERSATION_LIMIT)};
     case 'ERROR':

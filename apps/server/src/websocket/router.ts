@@ -8,7 +8,9 @@ import type {
   ServerMessageBody,
   SessionInfo,
 } from '@roomriddle/shared-types';
+import {findCharacter} from '@roomriddle/game-engine';
 import {CharacterService} from '../ai/CharacterService';
+import type {VoiceService} from '../ai/voice';
 import {RoomError} from '../errors/errors';
 import {toPublicMystery} from '../game/GameSession';
 import {qrMatrix} from '../qr/qr';
@@ -30,6 +32,7 @@ export class MessageRouter {
     private readonly clock: () => number,
     private readonly log: Logger = () => {},
     private readonly characters: CharacterService = new CharacterService({clock}),
+    private readonly voices?: VoiceService,
   ) {}
 
   /** Entry point for every raw frame. Never throws. */
@@ -185,6 +188,7 @@ export class MessageRouter {
             if (this.rooms.get(room.id) !== room || room.game !== pending.session) return;
             this.log(`[room ${room.code}] ${reply.characterName} answered ${reply.askedBy ?? 'the TV'} (${reply.source})`);
             this.connections.broadcast(room.id, {type: 'CHARACTER_REPLY', reply}, undefined, connection, requestId);
+            this.voice(room, pending.session, reply.id, reply.characterId, reply.text);
           })
           .catch(err => {
             this.log(`[router] character reply failed: ${(err as Error)?.stack ?? String(err)}`);
@@ -204,6 +208,16 @@ export class MessageRouter {
   }
 
   // ─── Helpers ────────────────────────────────────────────────────────
+
+  /** Speak a reply once the text is out. Subtitles never wait for audio. */
+  private voice(room: Room, session: NonNullable<Room['game']>, replyId: string, characterId: string, text: string): void {
+    if (!this.voices?.enabled) return;
+    const voice = findCharacter(session.mystery, characterId)?.voice;
+    void this.voices.speak(text, voice).then(id => {
+      if (!id || this.rooms.get(room.id) !== room || room.game !== session) return;
+      this.connections.broadcast(room.id, {type: 'CHARACTER_VOICE', replyId, characterId, audioUrl: `/voice/${id}.mp3`});
+    });
+  }
 
   private broadcastGameResult(
     room: Room,

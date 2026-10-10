@@ -3,6 +3,7 @@ import {AudioContentType, AudioPlayer, AudioUsageType} from '@amazon-devices/rea
 import type {AudioDefinition} from '@roomriddle/shared-types';
 import type {AudioBackend} from '@roomriddle/scene';
 import {bundledAudio} from './bundled';
+import {trace} from './trace';
 
 /**
  * Plays sounds on Vega with the W3C AudioPlayer.
@@ -141,6 +142,7 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
     audioStats.errors++;
     audioStats.lastError = `${sound.id} player ${t.id}: ${err}`;
     t.set('ERROR');
+    trace('error', `id=${sound.id} path=${path} player=${t.id} state=${previousState} error=${err}`);
     log(
       `[AUDIO_ERROR] soundId=${sound.id} path=${path} playerId=${t.id} channel=${sound.channel} reused=${reused} previousState=${previousState} ` +
         `active=${audioStats.active} created=${audioStats.created} released=${audioStats.released} error=${err}`,
@@ -235,6 +237,7 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
       })
       .catch(e => {
         log(`[AUDIO_ERROR] soundId=${sound.id} playerId=${t.id} init ${String(e)}`);
+        trace('error', `id=${sound.id} path=${path} player=${t.id} init ${String(e)}`);
         slots.delete(handle);
         t.release();
         onEnded(handle);

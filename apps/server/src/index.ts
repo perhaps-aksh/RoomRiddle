@@ -27,7 +27,11 @@ process.on('uncaughtException', err => {
 const rooms = new RoomManager(config);
 let socketCount = () => 0;
 
-const server = createAppServer({stats: () => ({rooms: rooms.size, connections: socketCount()}), voiceClip: id => voices.clip(id)});
+const server = createAppServer({stats: () => ({rooms: rooms.size, connections: socketCount()}), voiceClip: id => {
+  const clip = voices.clip(id);
+  log(`[voice] GET ${id} ${clip ? "200" : "404"}`);
+  return clip;
+}});
 const sockets = attachGameSocket(server, rooms, {log, characters, voices});
 socketCount = () => sockets.connections.count;
 

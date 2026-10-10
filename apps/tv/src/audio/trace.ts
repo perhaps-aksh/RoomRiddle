@@ -16,7 +16,7 @@
 
 export interface TraceLine {
   t: number;
-  kind: 'cmd' | 'play' | 'vol' | 'stop' | 'end' | 'missing' | 'state' | 'mark';
+  kind: 'cmd' | 'play' | 'vol' | 'stop' | 'end' | 'missing' | 'state' | 'mark' | 'error';
   msg: string;
 }
 

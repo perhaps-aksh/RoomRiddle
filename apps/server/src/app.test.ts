@@ -68,6 +68,13 @@ test('serves spoken replies by id, immutable, and 404s unknown or malformed ids'
     assert.equal(ok.headers.get('content-type'), 'audio/mpeg');
     assert.match(ok.headers.get('cache-control') ?? '', /immutable/);
     assert.deepEqual(Buffer.from(await ok.arrayBuffer()), data);
+    const part = await fetch(`${base}/voice/abcdef0123456789abcd.mp3`, { headers: { range: 'bytes=3-6' } });
+    assert.equal(part.status, 206);
+    assert.equal(part.headers.get('content-range'), `bytes 3-6/${data.length}`);
+    assert.equal(Buffer.from(await part.arrayBuffer()).toString(), 'fake');
+    const tail = await fetch(`${base}/voice/abcdef0123456789abcd.mp3`, { headers: { range: 'bytes=-3' } });
+    assert.equal(Buffer.from(await tail.arrayBuffer()).toString(), 'mp3');
+    assert.equal((await fetch(`${base}/voice/abcdef0123456789abcd.mp3`, { headers: { range: 'bytes=99-' } })).status, 416);
     assert.equal((await fetch(`${base}/voice/0000000000000000.mp3`)).status, 404);
     assert.equal((await fetch(`${base}/voice/..%2F..%2Fsecret`)).status, 404);
   } finally {

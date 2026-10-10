@@ -89,6 +89,7 @@ export function toPublicMystery(mystery: MysteryDefinition): PublicMystery {
       hintIds: hints.map(h => h.id),
     })),
     endings: endings.map(({id, title, tone}) => ({id, title, tone})),
+    cast: (mystery.truth?.characters ?? []).map(({id, name, role, interviewable}) => ({id, name, role, interviewable})),
   };
 }
 

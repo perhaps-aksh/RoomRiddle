@@ -65,7 +65,8 @@ As of 2026-10-10. "Verified" means covered by automated tests and run on the Veg
 | The Last Train: full playable case | **Implemented, verified** |
 | Truth tables (per-character facts, spoiler guards), server-only | **In progress** |
 | Cases 2–5 as playable data | **In progress** |
-| AI suspect interrogation and adaptive hints (Gemini, Groq fallback) | **In progress** (design below; keys configured server-side) |
+| AI suspect interrogation (Groq / Gemini, guarded, authored fallback) | **Server done** (Day 2); phone and TV UI next |
+| AI adaptive hints, narration, character voices (TTS) | Planned |
 | Painted scene art, video loops, real audio | **In progress** |
 | Physical Fire TV hardware validation | **Planned** (device being acquired) |
 | Downloadable mystery library / marketplace | **Planned** (architecture below) |
@@ -425,7 +426,7 @@ flowchart LR
 
 ## 10. AI layer
 
-**Status: in progress.** Keys live only in `apps/server/.env` (git-ignored). The game remains fully playable without AI.
+**Status: interrogation is live on the server** (`apps/server/src/ai/`); the phone/TV interface, hints, narration and voices come next. Keys live only in `apps/server/.env` (git-ignored). The game remains fully playable without AI.
 
 ### 10.1 What the AI does
 1. **Interrogation:** players pick a suspect on their phone and ask anything (typed, or spoken and transcribed). The suspect answers in character on the TV, with voice and subtitles.
@@ -449,8 +450,9 @@ sequenceDiagram
   participant A as AI gateway
   participant M as Gemini / Groq
   participant T as TV
-  P->>S: ASK_CHARACTER {characterId, question}
-  S->>S: per-room budget, length cap, moderation
+  P->>S: ASK_CHARACTER {characterId, question, evidenceClueId?}
+  S->>S: per-room budget, per-player cooldown, length cap
+  S->>T: CHARACTER_THINKING
   S->>G: speakableFacts(character, state), activeGuardedTerms(state)
   G-->>S: allowed facts, banned terms
   S->>A: persona + allowed facts + found clues + question
@@ -470,8 +472,27 @@ sequenceDiagram
 ```
 
 ### 10.4 Cost and reliability
-- Free tiers only: Gemini Flash first, Groq as fallback, then authored lines. Players never pay and never see a key.
-- A per-room question budget, short outputs and reply caching keep usage inside free limits.
+- Free tiers only, in `AI_ORDER` (default Groq `openai/gpt-oss-120b`, measured 0.5–1.2 s per line, then Gemini), then authored lines. Players never pay and never see a key.
+- A per-room question budget (30 per playthrough), a per-player cooldown (4 s), short outputs, a 6 s timeout per provider and reply caching keep usage inside free limits. A rate-limited provider rests for a minute; a denied key rests for ten.
+- `npm run ai-smoke -w @roomriddle/server [groq|gemini]` asks real suspects with the real keys and prints which source answered.
+
+### 10.5 Code map
+| File | Role |
+| --- | --- |
+| `ai/prompt.ts` | Builds the prompt from persona, unlocked facts (minus any holding a live spoiler) and found clue titles. Player text is fenced. |
+| `ai/providers.ts` | Gemini and Groq REST clients (key in headers, never in URLs). |
+| `ai/guard.ts` | Strips stage directions, caps at three sentences, rejects spoilers, unsolved typed answers and out-of-character lines. |
+| `ai/fallback.ts` | Authored replies from unlocked first-person facts, or a deflection in a tone suited to the case. |
+| `ai/CharacterService.ts` | Budget, cooldown, cache, provider chain, history (last three exchanges per character). Never changes game state. |
+
+### 10.6 Server settings
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `GROQ_API_KEY`, `GEMINI_API_KEY` | none | Free-tier keys, in `apps/server/.env` only. |
+| `AI_ORDER` | `groq,gemini` | Provider order. |
+| `GROQ_MODEL` / `GEMINI_MODEL` | `openai/gpt-oss-120b` / `gemini-3.8-flash` | Models. |
+| `AI_DISABLED` | unset | `1` = authored lines only (offline demo). |
+| `AI_TIMEOUT_MS`, `AI_MAX_QUESTIONS`, `AI_COOLDOWN_MS` | 6000, 30, 4000 | Limits. |
 - Voice: server-side free TTS, one fixed voice per character, subtitles always shown. Speech input via Groq Whisper from the phone microphone.
 
 ---

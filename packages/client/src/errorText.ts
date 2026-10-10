@@ -25,6 +25,7 @@ const TEXT: Record<ErrorCode, string> = {
   RATE_LIMITED: 'Slow down a little.',
   PLAYER_NOT_FOUND: 'You are no longer in this room.',
   INVALID_SESSION: 'Your session expired. Join again.',
+  QUESTION_LIMIT: 'Your group has asked every question for this case.',
   CONNECTION_FAILED: 'Cannot reach the game server.',
   SERVER_ERROR: 'The server had a problem. Try again.',
 };

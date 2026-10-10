@@ -8,6 +8,7 @@ import type {
   ServerMessageBody,
   SessionInfo,
 } from '@roomriddle/shared-types';
+import {CharacterService} from '../ai/CharacterService';
 import {RoomError} from '../errors/errors';
 import {toPublicMystery} from '../game/GameSession';
 import {qrMatrix} from '../qr/qr';
@@ -28,6 +29,7 @@ export class MessageRouter {
     private readonly connections: ConnectionManager,
     private readonly clock: () => number,
     private readonly log: Logger = () => {},
+    private readonly characters: CharacterService = new CharacterService({clock}),
   ) {}
 
   /** Entry point for every raw frame. Never throws. */
@@ -170,6 +172,24 @@ export class MessageRouter {
           connection,
           requestId,
         );
+        return;
+      }
+      case 'ASK_CHARACTER': {
+        const {room, playerId} = this.seat(connection);
+        const pending = this.characters.accept(room, playerId, message);
+        this.connections.broadcast(room.id, {type: 'CHARACTER_THINKING', characterId: pending.characterId, askedBy: pending.askedBy});
+        void pending
+          .run()
+          .then(reply => {
+            // Drop replies for a room that closed or restarted while the model was thinking.
+            if (this.rooms.get(room.id) !== room || room.game !== pending.session) return;
+            this.log(`[room ${room.code}] ${reply.characterName} answered ${reply.askedBy ?? 'the TV'} (${reply.source})`);
+            this.connections.broadcast(room.id, {type: 'CHARACTER_REPLY', reply}, undefined, connection, requestId);
+          })
+          .catch(err => {
+            this.log(`[router] character reply failed: ${(err as Error)?.stack ?? String(err)}`);
+            this.error(connection, new RoomError('SERVER_ERROR'), requestId);
+          });
         return;
       }
       default: {

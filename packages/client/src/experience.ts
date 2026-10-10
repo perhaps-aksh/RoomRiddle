@@ -46,6 +46,7 @@ const SPECS: Record<ErrorCode, Spec> = {
   HOST_DISCONNECTED: {kind: 'connection', title: 'TV OFFLINE', message: 'The investigation is paused until the TV reconnects.', actions: ['wait'], blocking: false},
   INVALID_ACTION: {kind: 'action', title: 'ACTION UNAVAILABLE', actions: ['dismiss'], blocking: false},
   INVALID_MESSAGE: {kind: 'server', title: 'ACTION UNAVAILABLE', message: 'That request could not be understood. Try again.', actions: ['retry'], blocking: false},
+  QUESTION_LIMIT: {kind: 'action', title: 'NO MORE QUESTIONS', message: 'Your group has asked every question for this case. Use the evidence you have.', actions: ['dismiss'], blocking: false},
   RATE_LIMITED: {kind: 'action', title: 'EASY THERE', message: 'Too many actions at once. Wait a moment, then try again.', actions: ['dismiss'], blocking: false},
   PLAYER_NOT_FOUND: {kind: 'identity', title: 'SEAT RELEASED', message: 'You were away too long and your place in the room was released.', actions: ['join-another'], blocking: true},
   INVALID_SESSION: {kind: 'identity', title: 'SESSION EXPIRED', message: 'This session is no longer valid. Join the room again.', actions: ['join-another'], blocking: true},

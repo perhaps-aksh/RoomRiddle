@@ -9,7 +9,8 @@
     "start": "tsx src/index.ts",
     "test": "tsx --test \"src/**/*.test.ts\"",
     "fake-tv": "tsx scripts/fake-tv.ts",
-    "play-bots": "tsx scripts/play-bots.ts"
+    "play-bots": "tsx scripts/play-bots.ts",
+    "ai-smoke": "tsx scripts/ai-smoke.ts"
   },
   "dependencies": {
     "@roomriddle/client": "*",

@@ -49,6 +49,15 @@ export interface PublicMystery
   clues: Omit<Clue, 'description'>[];
   puzzles: PublicPuzzle[];
   endings: Pick<Ending, 'id' | 'title' | 'tone'>[];
+  /** Who can be questioned (names and roles only; never their facts). */
+  cast: PublicCharacter[];
+}
+
+export interface PublicCharacter {
+  id: string;
+  name: string;
+  role: string;
+  interviewable: boolean;
 }
 
 /** Earned text, derived by the server from GameState. */

@@ -10,6 +10,7 @@ export const MAX_MESSAGE_BYTES = 4 * 1024;
 const MAX_ID = 64;
 const MAX_ANSWER = 200;
 const MAX_NAME_INPUT = 64;
+export const MAX_QUESTION = 200;
 
 type Validator = (m: Record<string, unknown>) => string | null;
 
@@ -43,6 +44,7 @@ const VALIDATORS: Record<ClientMessage['type'], Validator> = {
   REQUEST_HINT: fields({puzzleId: nonEmpty(MAX_ID)}),
   ADVANCE_SCENE: fields({}),
   MAKE_CHOICE: fields({choiceId: nonEmpty(MAX_ID), optionId: nonEmpty(MAX_ID)}),
+  ASK_CHARACTER: fields({characterId: nonEmpty(MAX_ID), question: v => typeof v === 'string' && v.trim().length > 0 && v.length <= MAX_QUESTION}, {evidenceClueId: nonEmpty(MAX_ID)}),
 };
 
 export function parseClientMessage(raw: string): ParseResult {

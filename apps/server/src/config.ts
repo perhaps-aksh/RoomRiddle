@@ -15,6 +15,20 @@ export interface ServerConfig {
   /** A room whose host stays disconnected this long is closed. */
   hostGraceMs: number;
   maxRooms: number;
+  ai: AiConfig;
+}
+
+/** Free-tier character voices. Keys come from apps/server/.env (git-ignored) and never leave the server. */
+export interface AiConfig {
+  geminiKey: string | null;
+  geminiModel: string;
+  groqKey: string | null;
+  groqModel: string;
+  /** Provider order, e.g. ['groq', 'gemini']. */
+  order: ('gemini' | 'groq')[];
+  timeoutMs: number;
+  maxQuestions: number;
+  cooldownMs: number;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -28,6 +42,18 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     lobbyPlayerGraceMs: int(env.LOBBY_PLAYER_GRACE_MS, 2 * 60_000),
     hostGraceMs: int(env.HOST_GRACE_MS, 10 * 60_000),
     maxRooms: int(env.MAX_ROOMS, 200),
+    ai: {
+      // AI_DISABLED=1 forces authored lines only (offline demo, tests).
+      geminiKey: env.AI_DISABLED === '1' ? null : env.GEMINI_API_KEY?.trim() || null,
+      geminiModel: env.GEMINI_MODEL ?? 'gemini-3.8-flash',
+      groqKey: env.AI_DISABLED === '1' ? null : env.GROQ_API_KEY?.trim() || null,
+      groqModel: env.GROQ_MODEL ?? 'openai/gpt-oss-120b',
+      // Groq first: measured ~0.5 s per line on the free tier (2026-10-10).
+      order: (env.AI_ORDER ?? 'groq,gemini').split(',').map(s => s.trim()).filter((s): s is 'gemini' | 'groq' => s === 'gemini' || s === 'groq'),
+      timeoutMs: int(env.AI_TIMEOUT_MS, 6000),
+      maxQuestions: int(env.AI_MAX_QUESTIONS, 30),
+      cooldownMs: int(env.AI_COOLDOWN_MS, 4000),
+    },
   };
 }
 

@@ -53,6 +53,11 @@ export type ClientMessageBody =
   | {type: 'READY'; ready: boolean}
   /** Host only. Starts the mystery, or restarts it once completed. */
   | {type: 'START_GAME'}
+  /**
+   * Question a character (AI-voiced, bound by the case's truth table). Optionally
+   * show them a clue the room has found. Never changes game state.
+   */
+  | {type: 'ASK_CHARACTER'; characterId: string; question: string; evidenceClueId?: string}
   | GameActionMessage;
 
 export type ClientMessage = ClientMessageBody & {requestId?: string};
@@ -88,7 +93,25 @@ export type ServerMessageBody =
   /** Sent to a player after their own LEAVE_ROOM. */
   | {type: 'LEFT_ROOM'}
   | {type: 'ROOM_CLOSED'; reason: 'host-left' | 'expired'}
+  /** A character is composing a reply (for "Voss is thinking…"). */
+  | {type: 'CHARACTER_THINKING'; characterId: string; askedBy: string | null}
+  | {type: 'CHARACTER_REPLY'; reply: CharacterReply}
   | {type: 'ERROR'; code: ErrorCode; message: string; detail?: string};
+
+/** One answered question, broadcast to the whole room. Presentation only: never a game rule. */
+export interface CharacterReply {
+  id: string;
+  characterId: string;
+  characterName: string;
+  question: string;
+  /** Player name, or null for the TV host. */
+  askedBy: string | null;
+  evidenceClueId?: string;
+  text: string;
+  /** 'ai' = generated and checked; 'authored' = a written fallback line. */
+  source: 'ai' | 'authored';
+  at: number;
+}
 
 export type ServerMessage = ServerMessageBody & {
   /** Server clock (epoch ms) when sent. Clients use it to correct countdowns. */
@@ -119,6 +142,8 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'PLAYER_NOT_FOUND'
   | 'INVALID_SESSION'
+  /** The room has used its questions for this game. */
+  | 'QUESTION_LIMIT'
   /** Raised on the client when the server cannot be reached. */
   | 'CONNECTION_FAILED'
   | 'SERVER_ERROR';

@@ -20,6 +20,7 @@ const DEFAULT_MESSAGES: Record<ErrorCode, string> = {
   RATE_LIMITED: 'Too many messages. Slow down.',
   PLAYER_NOT_FOUND: 'That player is no longer in this room.',
   INVALID_SESSION: 'Your session has expired. Join again.',
+  QUESTION_LIMIT: 'The room has asked all its questions for this case.',
   CONNECTION_FAILED: 'Could not reach the game server.',
   SERVER_ERROR: 'Something went wrong on the server.',
 };

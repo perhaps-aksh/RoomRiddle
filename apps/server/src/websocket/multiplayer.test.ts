@@ -403,4 +403,25 @@ describe('WebSocket multiplayer', () => {
     const err = await phoneB.expectError({type: 'DISCOVER_CLUE', clueId: 'platform-clock'}, 'INVALID_ACTION');
     assert.equal(err.detail, 'already-discovered');
   });
+
+  test('a phone questions a suspect: the whole room sees "thinking", then the reply (authored with no AI keys)', async () => {
+    const s = await server();
+    const {tv, phoneA, phoneB} = await lobby(s);
+    const started = await tv.request({type: 'START_GAME'}, 'GAME_STARTED');
+    assert.ok(started.mystery.cast.some(c => c.id === 'voss' && c.interviewable));
+    assert.ok(!JSON.stringify(started.mystery.cast).includes('compartment'), 'cast carries names, never facts');
+
+    const reply = await phoneA.request({type: 'ASK_CHARACTER', characterId: 'voss', question: 'Were you in your compartment?'}, 'CHARACTER_REPLY');
+    assert.equal(reply.reply.source, 'authored');
+    assert.equal(reply.reply.askedBy, 'Aksh');
+    for (const c of [tv, phoneB]) {
+      const thinking = await c.next('CHARACTER_THINKING');
+      assert.equal(thinking.characterId, 'voss');
+      const seen = await c.next('CHARACTER_REPLY');
+      assert.equal(seen.reply.id, reply.reply.id);
+    }
+    await phoneA.expectError({type: 'ASK_CHARACTER', characterId: 'voss', question: 'again?'}, 'RATE_LIMITED');
+    await phoneB.expectError({type: 'ASK_CHARACTER', characterId: 'voss', question: 'x'.repeat(201)}, 'INVALID_MESSAGE');
+    await phoneB.expectError({type: 'ASK_CHARACTER', characterId: 'detective', question: 'hi'}, 'INVALID_ACTION');
+  });
 });

@@ -1,4 +1,5 @@
 import type {
+  CharacterReply,
   ErrorCode,
   GameUpdate,
   PublicMystery,
@@ -28,7 +29,13 @@ export interface RoomView {
   ended: 'left' | 'host-left' | 'expired' | 'removed' | null;
   /** Server clock minus local clock. */
   clockOffset: number;
+  /** Questions and answers this game, oldest first (latest CONVERSATION_LIMIT). */
+  conversation: CharacterReply[];
+  /** A character currently composing a reply. */
+  thinking: {characterId: string; askedBy: string | null} | null;
 }
+
+export const CONVERSATION_LIMIT = 30;
 
 export const initialRoomView: RoomView = {
   connection: 'idle',
@@ -40,6 +47,8 @@ export const initialRoomView: RoomView = {
   error: null,
   ended: null,
   clockOffset: 0,
+  conversation: [],
+  thinking: null,
 };
 
 export function reduceRoomView(view: RoomView, message: ServerMessage, now: number = Date.now()): RoomView {
@@ -61,7 +70,7 @@ export function reduceRoomView(view: RoomView, message: ServerMessage, now: numb
       }
       return {...base, room: message.room};
     case 'GAME_STARTED':
-      return {...base, room: message.room, mystery: message.mystery, lastUpdate: null, error: null};
+      return {...base, room: message.room, mystery: message.mystery, lastUpdate: null, error: null, conversation: [], thinking: null};
     case 'GAME_STATE_UPDATED':
       return {...base, room: message.room, lastUpdate: message.update};
     case 'GAME_COMPLETED':
@@ -70,8 +79,12 @@ export function reduceRoomView(view: RoomView, message: ServerMessage, now: numb
       return {...base, room: null, session: null, lastUpdate: null, ended: 'left'};
     case 'ROOM_CLOSED':
       return {...base, room: null, session: null, lastUpdate: null, ended: message.reason};
+    case 'CHARACTER_THINKING':
+      return {...base, thinking: {characterId: message.characterId, askedBy: message.askedBy}};
+    case 'CHARACTER_REPLY':
+      return {...base, thinking: null, conversation: [...view.conversation, message.reply].slice(-CONVERSATION_LIMIT)};
     case 'ERROR':
-      return {...base, error: {code: message.code, message: message.message, requestId: message.requestId}};
+      return {...base, thinking: null, error: {code: message.code, message: message.message, requestId: message.requestId}};
   }
 }
 

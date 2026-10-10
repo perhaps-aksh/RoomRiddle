@@ -45,3 +45,11 @@ export type {
   GameSummary,
 } from './selectors';
 export {validateMysteryDefinition} from './validate-mystery';
+export {
+  findCharacter,
+  interviewableCharacters,
+  speakableFacts,
+  lockedFacts,
+  activeGuardedTerms,
+  spoilersIn,
+} from './truth';

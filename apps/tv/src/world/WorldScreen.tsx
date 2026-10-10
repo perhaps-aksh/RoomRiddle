@@ -94,12 +94,13 @@ export const WorldScreen = ({
   const {mystery, state} = useGame();
   const hub = useSceneHub(navigator);
   const [ready, setReady] = useState(false);
-  // Until the world is ready it can't say whether it opens on a cinematic: keep the current sound.
+  // Until the world has started (and so knows whether it opens on a cinematic) keep the
+  // current sound; WorldView releases the hold once its first real mode is reported.
   const {report} = useAudio();
   useEffect(() => {
-    report({holding: !ready});
-  }, [ready, report]);
-  useEffect(() => () => report({holding: false}), [report]);
+    report({holding: true});
+    return () => report({holding: false});
+  }, [report]);
 
   // Load this scene's assets (placeholders resolve at once); release them on the way out.
   useEffect(() => {
@@ -244,6 +245,7 @@ const WorldView = ({
   );
 
   // First visit plays the scene's entry cinematic; returning (from a puzzle) doesn't.
+  const [started, setStarted] = useState(false);
   useEffect(() => {
     const id = scene.entryTimelineId;
     const key = `${gameKey}:${id}`;
@@ -254,6 +256,7 @@ const WorldView = ({
     apply(Date.now());
     bump();
     kick();
+    setStarted(true);
   }, [director, scene, gameKey, session, apply, bump, kick]);
 
   // ── The world reacts to authoritative state (anyone's action) ────────
@@ -310,6 +313,12 @@ const WorldView = ({
   const {subtitles} = useSettings().settings;
   useAudioPlace({cinematic: s.mode === 'cinematic' || (s.mode === 'dialogue' && s.dialogue?.resume === 'cinematic'), setId: set.id});
   useEffect(() => () => audio.report({cinematic: false, setId: null}), [audio]);
+  // Declared after useAudioPlace so, in the same commit, the post-start mode is reported first.
+  useEffect(() => {
+    if (started) {
+      audio.report({holding: false});
+    }
+  }, [started, audio]);
 
   // Dialogue: the current line goes to the audio hook as it appears.
   const line = s.dialogue ? world.dialogue.find(l => l.id === s.dialogue!.lineIds[s.dialogue!.index]) : undefined;

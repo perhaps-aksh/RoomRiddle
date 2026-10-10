@@ -101,5 +101,49 @@ export function validateMysteryDefinition(mystery: MysteryDefinition): string[] 
   if (!last) problems.push('no endings');
   else if (last.when.length > 0) problems.push(`last ending "${last.id}" must be an unconditional fallback`);
 
+  // (Shipped content must have exactly three hints per puzzle: enforced in mystery-data's catalog test.)
+
+  // No puzzle may need a clue or puzzle from a later scene (it could never be met in time).
+  const order = sceneSequence(mystery).map((s) => s.id);
+  const sceneOf = (kind: 'clue' | 'puzzle', id: string) =>
+    (kind === 'clue' ? mystery.clues.find((c) => c.id === id) : mystery.puzzles.find((p) => p.id === id))?.sceneId;
+  for (const puzzle of mystery.puzzles) {
+    const at = order.indexOf(puzzle.sceneId);
+    const needs: ['clue' | 'puzzle', string][] = [
+      ...(puzzle.requires?.clueIds ?? []).map((id) => ['clue', id] as ['clue', string]),
+      ...(puzzle.requires?.puzzleIds ?? []).map((id) => ['puzzle', id] as ['puzzle', string]),
+    ];
+    for (const [kind, id] of needs) {
+      const where = sceneOf(kind, id);
+      if (where && order.indexOf(where) > at) problems.push(`puzzle "${puzzle.id}" needs ${kind} "${id}" from a later scene`);
+    }
+  }
+
+  const truth = mystery.truth;
+  if (truth) {
+    const characterIds = truth.characters.map((c) => c.id);
+    dupes('character', characterIds);
+    dupes('fact', truth.characters.flatMap((c) => c.facts.map((f) => f.id)));
+    if (!characterIds.includes(truth.narratorId)) problems.push(`narrator "${truth.narratorId}" is not a character`);
+    if (truth.solution.length === 0) problems.push('truth has no solution');
+    const checkReq = (where: string, req: {clueIds?: string[]; puzzleIds?: string[]} | undefined) => {
+      for (const id of req?.clueIds ?? []) if (!clueIds.includes(id)) problems.push(`${where} needs unknown clue "${id}"`);
+      for (const id of req?.puzzleIds ?? []) if (!puzzleIds.includes(id)) problems.push(`${where} needs unknown puzzle "${id}"`);
+    };
+    for (const c of truth.characters) {
+      if (c.facts.length === 0) problems.push(`character "${c.id}" has no facts`);
+      for (const f of c.facts) {
+        checkReq(`fact "${f.id}"`, f.unlockedBy);
+        if (f.kind === 'secret' && !f.unlockedBy) problems.push(`secret "${f.id}" is never locked`);
+      }
+    }
+    truth.guarded.forEach((g, i) => {
+      if (g.terms.length === 0) problems.push(`guarded term set ${i + 1} is empty`);
+      if (!g.until.clueIds?.length && !g.until.puzzleIds?.length) problems.push(`guarded term set ${i + 1} never unlocks`);
+      checkReq(`guarded term set ${i + 1}`, g.until);
+    });
+    if (!truth.characters.some((c) => c.interviewable)) problems.push('no interviewable characters');
+  }
+
   return problems;
 }

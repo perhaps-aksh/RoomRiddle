@@ -137,10 +137,13 @@ const styles = StyleSheet.create({
     height: CARD_HEIGHT,
     padding: theme.spacing.lg,
   },
+  // Label tracking (6) is sized for headings; on a 382 px card two labels need tighter
+  // tracking and an explicit gap or they run together ("THRILLERSELECTED").
   topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    columnGap: theme.spacing.sm,
   },
   genre: {
     ...theme.text.label,
@@ -149,11 +152,15 @@ const styles = StyleSheet.create({
   soonTag: {
     ...theme.text.label,
     fontFamily: theme.fonts.technical,
+    fontSize: px(20),
+    letterSpacing: px(3),
     color: theme.colors.textMuted,
   },
   selectedTag: {
     ...theme.text.label,
     fontFamily: theme.fonts.technical,
+    fontSize: px(20),
+    letterSpacing: px(3),
     color: theme.colors.success,
   },
   title: {
@@ -191,11 +198,13 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    columnGap: theme.spacing.md,
   },
   metaLabel: {
     ...theme.text.label,
     fontFamily: theme.fonts.technical,
     fontSize: px(20),
+    letterSpacing: px(2),
     color: theme.colors.textMuted,
   },
   metaValue: {

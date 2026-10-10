@@ -79,7 +79,7 @@ export function toEngineAction(message: GameActionMessage, at: number): GameActi
 
 /** Mystery content for phones: answer keys, hint text and spoilers removed. */
 export function toPublicMystery(mystery: MysteryDefinition): PublicMystery {
-  const {puzzles, endings, clues, scoring: _scoring, ...rest} = mystery;
+  const {puzzles, endings, clues, scoring: _scoring, truth: _truth, ...rest} = mystery;
   return {
     ...rest,
     clues: clues.map(({description: _d, ...clue}) => clue),

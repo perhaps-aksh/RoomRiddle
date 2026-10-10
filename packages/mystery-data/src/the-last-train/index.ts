@@ -4,6 +4,7 @@ import {endings} from './endings';
 import {intro, theLastTrain} from './mystery';
 import {puzzles} from './puzzles';
 import {scenes} from './scenes';
+import {truth} from './truth';
 
 /**
  * The Last Train, assembled for the RoomRiddle Mystery Engine.
@@ -11,6 +12,8 @@ import {scenes} from './scenes';
  */
 export const theLastTrainMystery: MysteryDefinition = {
   summary: theLastTrain,
+  audience: {label: 'Teens & adults'},
+  truth,
   intro,
   startSceneId: 'station',
   scenes,

@@ -190,8 +190,72 @@ export interface FailureRules {
   timeLimitMinutes?: number;
 }
 
+// ─── Truth tables (server-only; never sent to a client) ──────────────────
+//
+// The authored ground truth of a case. Game rules never read it: the engine
+// decides answers from puzzles and clues alone. It exists so a character (or an
+// AI voicing one) can only say what the room has earned. A fact is "speakable"
+// once its `unlockedBy` requirement holds for the current GameState.
+
+/** One thing a character knows, believes or claims. */
+export interface TruthFact {
+  /** Unique across the whole mystery. */
+  id: string;
+  text: string;
+  /**
+   * - truth: true, and the character admits it once unlocked.
+   * - claim: what they say publicly. May be false (see `false`).
+   * - secret: true, but only revealed once unlocked (usually by evidence).
+   */
+  kind: 'truth' | 'claim' | 'secret';
+  /** A claim that is untrue. Only meaningful for kind 'claim'. */
+  false?: boolean;
+  /** Absent = speakable from the start. */
+  unlockedBy?: Requirement;
+}
+
+export interface CharacterTruth {
+  id: string;
+  name: string;
+  /** Short public role, e.g. "Company inspector". */
+  role: string;
+  /** How they speak: register, mood, verbal habits. Used to keep a voice consistent. */
+  persona: string;
+  facts: TruthFact[];
+  /** Interviewable by players. The narrator and absent people usually aren't. */
+  interviewable: boolean;
+}
+
+/** A spoiler: these terms must not be spoken (by anyone) until `until` holds. */
+export interface GuardedTerm {
+  terms: string[];
+  until: Requirement;
+}
+
+export interface MysteryTruth {
+  /** Who guides the players: a detective, a curator, the Yaksha. */
+  narratorId: string;
+  /** The whole truth in plain words. Server-only; for authors and checks. */
+  solution: string[];
+  characters: CharacterTruth[];
+  guarded: GuardedTerm[];
+  /** Topics no voice may ever discuss in this case (tone and cultural care). */
+  offLimits?: string[];
+}
+
+/** Who the case is for. Shown before play. */
+export interface MysteryAudience {
+  /** e.g. "Teens & adults", "Ages 8+", "All ages". */
+  label: string;
+  /** Shown once before the intro, e.g. a cultural note. Empty string = paragraph break. */
+  contentNote?: string[];
+}
+
 /** A complete, playable mystery: everything the engine needs, as data. */
 export interface MysteryDefinition {
+  /** Server-only ground truth for characters and voices. Stripped from every client message. */
+  truth?: MysteryTruth;
+  audience?: MysteryAudience;
   summary: MysterySummary;
   intro: {title: string; narration: string[]};
   startSceneId: string;

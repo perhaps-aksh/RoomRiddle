@@ -44,7 +44,7 @@ export type PublicPuzzle = Omit<Puzzle, 'acceptedAnswers' | 'hints' | 'solvedTex
 
 /** Mystery content safe to send to phones: no answers, no unearned spoilers. */
 export interface PublicMystery
-  extends Omit<MysteryDefinition, 'puzzles' | 'endings' | 'scoring' | 'clues'> {
+  extends Omit<MysteryDefinition, 'puzzles' | 'endings' | 'scoring' | 'clues' | 'truth'> {
   /** Clue descriptions arrive in GameReveals once discovered. */
   clues: Omit<Clue, 'description'>[];
   puzzles: PublicPuzzle[];

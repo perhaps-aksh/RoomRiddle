@@ -1,16 +1,20 @@
 import type {AudioDirection, AudioManifest, MysteryDefinition, MysteryId, MysterySummary, MysteryWorld} from '@roomriddle/shared-types';
 import {comingSoon} from './coming-soon';
 import {theLastTrain, theLastTrainMystery} from './the-last-train';
+import {theHollowManor, theHollowManorMystery} from './the-hollow-manor';
+import {signalLost, signalLostMystery} from './signal-lost';
 import {lastTrainWorld} from './the-last-train/world';
 import {lastTrainAudio, lastTrainAudioManifest} from './the-last-train/audio';
 import {coreAudioManifest, coreCueSounds, coreMusic} from './kit/audio';
 
 /** Every mystery shown in the Mystery Library, in display order. */
-export const mysteryCatalog: readonly MysterySummary[] = [theLastTrain, ...comingSoon];
+export const mysteryCatalog: readonly MysterySummary[] = [theLastTrain, theHollowManor, signalLost, ...comingSoon];
 
 /** Mysteries with full playable content, keyed by id. */
 const playable: Readonly<Record<MysteryId, MysteryDefinition>> = {
   [theLastTrainMystery.summary.id]: theLastTrainMystery,
+  [theHollowManorMystery.summary.id]: theHollowManorMystery,
+  [signalLostMystery.summary.id]: signalLostMystery,
 };
 
 export function findMystery(id: MysteryId): MysterySummary | undefined {
@@ -45,4 +49,5 @@ export function getMysteryAudio(id: MysteryId): {manifest: AudioManifest; direct
 /** Every audio manifest (shared first), for the renderer's registry. */
 export const audioManifests: readonly AudioManifest[] = [coreAudioManifest, ...Object.values(audio).map(a => a.manifest)];
 
+export {theHollowManor, theHollowManorMystery, signalLost, signalLostMystery};
 export {theLastTrain, theLastTrainMystery, lastTrainWorld, lastTrainAudio, lastTrainAudioManifest, coreAudioManifest, coreCueSounds, coreMusic};

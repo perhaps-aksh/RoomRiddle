@@ -18,7 +18,7 @@ test('GET /health reports ok and sees the mystery catalog', async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/health`);
     assert.equal(res.status, 200);
-    assert.deepEqual(await res.json(), { status: 'ok', service: 'roomriddle-server', mysteries: 4 });
+    assert.deepEqual(await res.json(), { status: 'ok', service: 'roomriddle-server', mysteries: 5 });
   });
 });
 

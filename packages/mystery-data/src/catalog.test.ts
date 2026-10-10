@@ -4,11 +4,13 @@ import { findMystery, mysteryCatalog, playableMysteries } from './index';
 import type {GameAction} from '@roomriddle/shared-types';
 import {applyAction, createInitialGameState, sceneSequence, validateMysteryDefinition} from '@roomriddle/game-engine';
 
-test('catalog lists The Last Train first, then the three planned mysteries', () => {
+test('catalog lists the five cases, The Last Train first, all playable', () => {
   assert.deepEqual(
     mysteryCatalog.map((m) => m.id),
-    ['the-last-train', 'the-hollow-manor', 'signal-lost', 'the-forgotten-temple'],
+    ['the-last-train', 'the-hollow-manor', 'signal-lost', 'the-forgotten-temple', 'the-yakshas-questions'],
   );
+  assert.equal(playableMysteries.length, 5);
+  assert.ok(mysteryCatalog.every((m) => m.availability === 'playable'));
 });
 
 test('mystery ids are unique kebab-case', () => {
@@ -52,12 +54,16 @@ test('every playable mystery can be played start to finish to its best ending', 
     act({type: 'ADVANCE_SCENE', at: T0});
     for (const scene of sceneSequence(m)) {
       assert.equal(state.currentSceneId, scene.id, `${m.summary.id}: expected to be in ${scene.id}`);
-      for (const id of scene.clueIds) act({type: 'DISCOVER_CLUE', clueId: id, at: T0 + 1000});
+      // Clues can depend on puzzles (and vice versa): discover whatever is available after each step.
+      const discover = () => scene.clueIds.forEach(id => act({type: 'DISCOVER_CLUE', clueId: id, at: T0 + 1000}));
+      discover();
       for (const id of scene.puzzleIds) {
         const puzzle = m.puzzles.find(p => p.id === id)!;
         act({type: 'SUBMIT_ANSWER', puzzleId: id, answer: puzzle.acceptedAnswers[0]!, at: T0 + 60_000});
         assert.ok(state.solvedPuzzleIds.includes(id), `${m.summary.id}: ${id} was not solved by its own answer`);
+        discover();
       }
+      for (const id of scene.clueIds) assert.ok(state.discoveredClueIds.includes(id), `${m.summary.id}: clue ${id} could never be found`);
       for (const id of scene.choiceIds ?? []) {
         const choice = m.choices!.find(c => c.id === id)!;
         const best = choice.options.find(o => o.completesMystery) ?? choice.options[0]!;

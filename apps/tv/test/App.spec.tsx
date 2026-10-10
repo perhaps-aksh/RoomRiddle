@@ -92,15 +92,15 @@ describe('RoomRiddle TV shell', () => {
     expect(screen.getByTestId('home-mysteries')).toBeTruthy();
   });
 
-  it('coming-soon mysteries show details but cannot be selected', () => {
+  it('every case in the library can be selected and opens at its own intro', () => {
     const screen = render(<App />);
     fireEvent.press(screen.getByTestId('home-mysteries'));
     fireEvent.press(screen.getByTestId('mystery-signal-lost'));
     expect(screen.getByText('SIGNAL LOST')).toBeTruthy();
-    expect(screen.queryByTestId('details-select')).toBeNull();
-    expect(
-      screen.getByText('Coming soon. This mystery is not playable yet.'),
-    ).toBeTruthy();
+    expect(screen.queryByText('Coming soon. This mystery is not playable yet.')).toBeNull();
+    fireEvent.press(screen.getByTestId('details-select'));
+    expect(screen.getByTestId('intro-begin')).toBeTruthy();
+    expect(screen.getByText('The operator, Nikhil Rao, is not here.')).toBeTruthy();
   });
 
   it('Select Mystery starts The Last Train at its intro', () => {

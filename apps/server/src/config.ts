@@ -31,6 +31,8 @@ export interface AiConfig {
   cooldownMs: number;
   /** Spoken replies (free Edge neural voices). VOICES_DISABLED=1 = subtitles only. */
   voices: boolean;
+  /** Voice providers in order, e.g. ['edge', 'groq']. */
+  voiceOrder: ('edge' | 'groq')[];
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
@@ -56,6 +58,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       maxQuestions: int(env.AI_MAX_QUESTIONS, 30),
       cooldownMs: int(env.AI_COOLDOWN_MS, 4000),
       voices: env.VOICES_DISABLED !== '1',
+      // Edge first: British/Irish/Indian accents fit the cases; Groq Orpheus (American, faster) is the backup.
+      voiceOrder: (env.VOICE_ORDER ?? 'edge,groq').split(',').map(s => s.trim()).filter((s): s is 'edge' | 'groq' => s === 'edge' || s === 'groq'),
     },
   };
 }

@@ -38,7 +38,7 @@ export class VoiceService {
 
   /** Clip id for this line in this voice, or null if no provider could speak it. */
   speak(text: string, voice: CharacterVoice = DEFAULT_VOICE): Promise<string | null> {
-    const id = createHash('sha1').update(JSON.stringify([voice.edge, voice.rate ?? '', voice.pitch ?? '', text])).digest('hex').slice(0, 20);
+    const id = createHash('sha1').update(JSON.stringify([voice.edge, voice.rate ?? '', voice.pitch ?? '', voice.groq ?? '', text])).digest('hex').slice(0, 20);
     if (this.cache.has(id)) return Promise.resolve(id);
     const running = this.inflight.get(id);
     if (running) return running;
@@ -69,6 +69,24 @@ export class VoiceService {
     }
     return null;
   }
+}
+
+/** Groq Orpheus (free tier, GROQ_API_KEY). WAV only. Needs the model terms accepted once in the Groq console. */
+export function groqVoiceProvider(apiKey: string, model = 'canopylabs/orpheus-v1-english', fetchImpl: typeof fetch = fetch): VoiceProvider {
+  return {
+    name: 'groq-orpheus',
+    async synthesize(text, voice, signal) {
+      if (!voice.groq) throw new Error('no groq voice cast');
+      const response = await fetchImpl('https://api.groq.com/openai/v1/audio/speech', {
+        method: 'POST',
+        signal,
+        headers: {'content-type': 'application/json', authorization: `Bearer ${apiKey}`},
+        body: JSON.stringify({model, voice: voice.groq, input: text, response_format: 'wav'}),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      return {data: Buffer.from(await response.arrayBuffer()), mime: 'audio/wav'};
+    },
+  };
 }
 
 /** XML-escape for SSML. */

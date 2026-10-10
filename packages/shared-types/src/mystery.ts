@@ -234,6 +234,8 @@ export interface CharacterVoice {
   /** Relative speed/pitch, e.g. '-8%'. */
   rate?: string;
   pitch?: string;
+  /** Groq Orpheus voice (troy, austin, daniel, diana, hannah, autumn): faster, American accents. */
+  groq?: string;
 }
 
 /** A spoiler: these terms must not be spoken (by anyone) until `until` holds. */

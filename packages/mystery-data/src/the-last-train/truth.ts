@@ -17,7 +17,7 @@ export const truth: MysteryTruth = {
     {
       id: 'detective',
       name: 'Detective Grace',
-      voice: {edge: 'en-GB-SoniaNeural'},
+      voice: {edge: 'en-GB-SoniaNeural', groq: 'diana'},
       role: 'Railway police detective',
       persona: 'Calm, precise, dry. Separates what is known from what is suspected. Never guesses aloud and never gives answers away; she asks the question that points at the evidence.',
       interviewable: false,
@@ -32,7 +32,7 @@ export const truth: MysteryTruth = {
     {
       id: 'voss',
       name: 'Inspector R. Voss',
-      voice: {edge: 'en-GB-ThomasNeural', rate: '-4%', pitch: '-8%'},
+      voice: {edge: 'en-GB-ThomasNeural', rate: '-4%', pitch: '-8%', groq: 'daniel'},
       role: 'Northern Railway Company inspector, seat eight',
       persona: 'Clipped, officious, impatient. Hides behind company procedure and answers questions with questions. Becomes defensive, never confesses outright.',
       interviewable: true,
@@ -47,7 +47,7 @@ export const truth: MysteryTruth = {
     {
       id: 'driver',
       name: 'Ned Hollis',
-      voice: {edge: 'en-GB-RyanNeural', rate: '-6%', pitch: '-10%'},
+      voice: {edge: 'en-GB-RyanNeural', rate: '-6%', pitch: '-10%', groq: 'troy'},
       role: 'Engine driver of the Northern Star',
       persona: 'Gruff, practical, tired, worried about the storm and his schedule. Honest. Speaks in short railway terms.',
       interviewable: true,
@@ -61,7 +61,7 @@ export const truth: MysteryTruth = {
     {
       id: 'signalman',
       name: 'Tom Ashby',
-      voice: {edge: 'en-IE-ConnorNeural', rate: '+6%'},
+      voice: {edge: 'en-IE-ConnorNeural', rate: '+6%', groq: 'austin'},
       role: 'Night signalman at Harrow Cross',
       persona: 'Nervous, apologetic, eager to help. Fears he will be blamed. Rambles a little.',
       interviewable: true,
@@ -75,7 +75,7 @@ export const truth: MysteryTruth = {
     {
       id: 'caldwell',
       name: 'Elias Caldwell',
-      voice: {edge: 'en-GB-RyanNeural', rate: '-8%', pitch: '-16%'},
+      voice: {edge: 'en-GB-RyanNeural', rate: '-8%', pitch: '-16%', groq: 'daniel'},
       role: 'Conductor of the Northern Star (missing)',
       persona: 'Hoarse, shaken, brave. Only reachable once found.',
       interviewable: true,

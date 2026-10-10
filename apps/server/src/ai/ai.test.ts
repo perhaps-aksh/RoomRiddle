@@ -9,7 +9,7 @@ import {CharacterService} from './CharacterService';
 import {authoredReply} from './fallback';
 import {checkReply} from './guard';
 import {allowedFacts, buildCharacterPrompt} from './prompt';
-import {ssmlText, VoiceService, type VoiceProvider} from './voice';
+import {groqVoiceProvider, ssmlText, VoiceService, type VoiceProvider} from './voice';
 import {geminiProvider, groqProvider, ProviderError, type AiProvider, type CompletionRequest} from './providers';
 
 const T0 = 1_700_000_000_000;
@@ -335,13 +335,26 @@ describe('voices', () => {
     assert.equal(service.clip(first!), undefined);
   });
 
+  test('Groq Orpheus: bearer key, cast voice, WAV; refuses characters without a Groq voice', async () => {
+    let body: {voice: string; response_format: string} | undefined;
+    const fetchImpl = (async (_u: string, init: RequestInit) => {
+      body = JSON.parse(init.body as string);
+      return new Response(Buffer.alloc(300, 2), {status: 200});
+    }) as unknown as typeof fetch;
+    const p = groqVoiceProvider('KEY', 'orpheus', fetchImpl);
+    const clip = await p.synthesize('Hi.', {edge: 'x', groq: 'daniel'}, AbortSignal.timeout(1000));
+    assert.equal(clip.mime, 'audio/wav');
+    assert.deepEqual([body!.voice, body!.response_format], ['daniel', 'wav']);
+    await assert.rejects(p.synthesize('Hi.', {edge: 'x'}, AbortSignal.timeout(1000)));
+  });
+
   test('SSML text is escaped', () => {
     assert.equal(ssmlText(`I'm <sure> & "certain"`), 'I&apos;m &lt;sure&gt; &amp; &quot;certain&quot;');
   });
 
   test('every interviewable character in every case has a voice', () => {
     for (const m of playableMysteries) {
-      for (const c of m.truth!.characters.filter(ch => ch.interviewable)) assert.ok(c.voice?.edge, `${m.summary.id}/${c.id}`);
+      for (const c of m.truth!.characters.filter(ch => ch.interviewable)) assert.ok(c.voice?.edge && c.voice.groq, `${m.summary.id}/${c.id}`);
     }
   });
 });

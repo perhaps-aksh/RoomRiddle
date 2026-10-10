@@ -2,13 +2,18 @@ import type {AiConfig} from '../config';
 import {CharacterService} from './CharacterService';
 import {geminiProvider, groqProvider, type AiProvider} from './providers';
 
-import {edgeVoiceProvider, VoiceService} from './voice';
+import {edgeVoiceProvider, groqVoiceProvider, VoiceService, type VoiceProvider} from './voice';
 
 export {CharacterService} from './CharacterService';
 export {VoiceService} from './voice';
 
 export function createVoiceService(config: AiConfig, log: (line: string) => void): VoiceService {
-  return new VoiceService(config.voices ? [edgeVoiceProvider()] : [], {log});
+  const providers: VoiceProvider[] = [];
+  for (const name of config.voices ? config.voiceOrder : []) {
+    if (name === 'edge') providers.push(edgeVoiceProvider());
+    if (name === 'groq' && config.groqKey) providers.push(groqVoiceProvider(config.groqKey));
+  }
+  return new VoiceService(providers, {log});
 }
 export type {AiProvider} from './providers';
 

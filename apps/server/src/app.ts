@@ -51,7 +51,7 @@ export function createAppServer(options: AppServerOptions = {}): Server {
       });
       return;
     }
-    const voice = /^\/voice\/([a-f0-9]{8,40})(\.mp3)?$/.exec(url.pathname);
+    const voice = /^\/voice\/([a-f0-9]{8,40})(\.(mp3|wav))?$/.exec(url.pathname);
     if (voice) {
       const clip = options.voiceClip?.(voice[1]!);
       if (!clip) {

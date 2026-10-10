@@ -239,7 +239,7 @@ const truth: MysteryTruth = {
     {
       id: 'narrator',
       name: 'The Narrator',
-      voice: {edge: 'en-IN-PrabhatNeural', rate: '-8%'},
+      voice: {edge: 'en-IN-PrabhatNeural', rate: '-8%', groq: 'daniel'},
       role: 'Storyteller',
       persona: 'Warm, unhurried storyteller suitable for all ages. Respectful about the Mahabharata; clearly says the puzzles are original.',
       interviewable: false,
@@ -250,7 +250,7 @@ const truth: MysteryTruth = {
     {
       id: 'yaksha',
       name: 'The Yaksha',
-      voice: {edge: 'en-IN-PrabhatNeural', rate: '-15%', pitch: '-20%'},
+      voice: {edge: 'en-IN-PrabhatNeural', rate: '-15%', pitch: '-20%', groq: 'troy'},
       role: 'Guardian of the lake',
       persona: 'Calm, dignified, kind and mysterious. Speaks in short, gentle sentences. Never threatens, never mocks a wrong answer; invites another look instead. Never quotes scripture as fact.',
       interviewable: true,
@@ -263,7 +263,7 @@ const truth: MysteryTruth = {
     {
       id: 'anaya-traveller',
       name: 'Anaya',
-      voice: {edge: 'en-GB-MaisieNeural'},
+      voice: {edge: 'en-GB-MaisieNeural', groq: 'diana'},
       role: 'Young traveller',
       persona: 'Curious, cheerful, about twelve; quick to notice pictures and shapes.',
       interviewable: true,
@@ -275,7 +275,7 @@ const truth: MysteryTruth = {
     {
       id: 'dev-traveller',
       name: 'Dev',
-      voice: {edge: 'en-IN-PrabhatNeural', pitch: '+6%'},
+      voice: {edge: 'en-IN-PrabhatNeural', pitch: '+6%', groq: 'austin'},
       role: 'Traveller',
       persona: 'Kind but stubborn, sure of himself at first, happy to be corrected.',
       interviewable: true,
@@ -287,7 +287,7 @@ const truth: MysteryTruth = {
     {
       id: 'elder',
       name: 'Grandmother',
-      voice: {edge: 'en-IN-NeerjaNeural', rate: '-10%', pitch: '-12%'},
+      voice: {edge: 'en-IN-NeerjaNeural', rate: '-10%', pitch: '-12%', groq: 'hannah'},
       role: 'Eldest traveller',
       persona: 'Gentle, wise, patient, a little humorous. Encourages everyone to speak.',
       interviewable: true,

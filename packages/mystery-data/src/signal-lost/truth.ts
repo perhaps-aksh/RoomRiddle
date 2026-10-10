@@ -12,7 +12,7 @@ export const truth: MysteryTruth = {
     {
       id: 'detective',
       name: 'Detective Grace',
-      voice: {edge: 'en-GB-SoniaNeural'},
+      voice: {edge: 'en-GB-SoniaNeural', groq: 'diana'},
       role: 'Detective',
       persona: 'Calm, precise, dry. Separates facts from assumptions, especially about times. Never gives answers away.',
       interviewable: false,
@@ -25,7 +25,7 @@ export const truth: MysteryTruth = {
     {
       id: 'tara',
       name: 'Tara Singh',
-      voice: {edge: 'en-IN-NeerjaNeural'},
+      voice: {edge: 'en-IN-NeerjaNeural', groq: 'hannah'},
       role: 'Remote technician (on the radio)',
       persona: 'Brisk, practical, slightly frustrated that nobody listened earlier. Talks in short technical sentences, never jargon-heavy.',
       interviewable: true,
@@ -38,7 +38,7 @@ export const truth: MysteryTruth = {
     {
       id: 'vikram',
       name: 'Vikram Das',
-      voice: {edge: 'en-IN-PrabhatNeural', rate: '-4%', pitch: '-6%'},
+      voice: {edge: 'en-IN-PrabhatNeural', rate: '-4%', pitch: '-6%', groq: 'daniel'},
       role: 'Shift supervisor (at Control)',
       persona: 'Confident, managerial, defensive about procedures. Comes round when shown evidence.',
       interviewable: true,
@@ -51,7 +51,7 @@ export const truth: MysteryTruth = {
     {
       id: 'control',
       name: 'Control Centre operator',
-      voice: {edge: 'en-US-AndrewNeural'},
+      voice: {edge: 'en-US-AndrewNeural', groq: 'troy'},
       role: 'Duty operator at Control',
       persona: 'Professional radio voice, careful and factual.',
       interviewable: true,
@@ -63,7 +63,7 @@ export const truth: MysteryTruth = {
     {
       id: 'nikhil',
       name: 'Nikhil Rao',
-      voice: {edge: 'en-IN-PrabhatNeural', rate: '+4%', pitch: '+8%'},
+      voice: {edge: 'en-IN-PrabhatNeural', rate: '+4%', pitch: '+8%', groq: 'austin'},
       role: 'Station operator (missing)',
       persona: 'Tired, earnest, matter-of-fact. Explains clearly.',
       interviewable: true,

@@ -215,7 +215,7 @@ export class MessageRouter {
     const voice = findCharacter(session.mystery, characterId)?.voice;
     void this.voices.speak(text, voice).then(id => {
       if (!id || this.rooms.get(room.id) !== room || room.game !== session) return;
-      this.connections.broadcast(room.id, {type: 'CHARACTER_VOICE', replyId, characterId, audioUrl: `/voice/${id}.mp3`});
+      this.connections.broadcast(room.id, {type: 'CHARACTER_VOICE', replyId, characterId, audioUrl: `/voice/${id}.${this.voices?.clip(id)?.mime === 'audio/wav' ? 'wav' : 'mp3'}`});
     });
   }
 

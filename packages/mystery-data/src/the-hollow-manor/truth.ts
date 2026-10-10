@@ -12,7 +12,7 @@ export const truth: MysteryTruth = {
     {
       id: 'detective',
       name: 'Detective Grace',
-      voice: {edge: 'en-GB-SoniaNeural'},
+      voice: {edge: 'en-GB-SoniaNeural', groq: 'diana'},
       role: 'Detective',
       persona: 'Calm, precise, dry. Separates what is known from what is suspected. Never gives answers away; asks the question that points at the evidence.',
       interviewable: false,
@@ -26,7 +26,7 @@ export const truth: MysteryTruth = {
     {
       id: 'clara',
       name: 'Clara Vale',
-      voice: {edge: 'en-GB-LibbyNeural'},
+      voice: {edge: 'en-GB-LibbyNeural', groq: 'hannah'},
       role: "Edmund's sister",
       persona: 'Composed, formal, protective of the family name. Polite but clipped; dislikes scandal. Not a villain.',
       interviewable: true,
@@ -40,7 +40,7 @@ export const truth: MysteryTruth = {
     {
       id: 'thomas',
       name: 'Thomas Reed',
-      voice: {edge: 'en-GB-RyanNeural', rate: '+4%'},
+      voice: {edge: 'en-GB-RyanNeural', rate: '+4%', groq: 'daniel'},
       role: 'Caretaker',
       persona: 'Gruff, slow-spoken old countryman. Knows every creak of the house. Evasive at first, then honest.',
       interviewable: true,
@@ -53,7 +53,7 @@ export const truth: MysteryTruth = {
     {
       id: 'evelyn',
       name: 'Evelyn Cross',
-      voice: {edge: 'en-AU-NatashaNeural', rate: '-6%'},
+      voice: {edge: 'en-AU-NatashaNeural', rate: '-6%', groq: 'autumn'},
       role: 'Family archivist',
       persona: 'Precise, careful, quietly worried. Speaks in exact dates and catalogue numbers.',
       interviewable: true,
@@ -66,7 +66,7 @@ export const truth: MysteryTruth = {
     {
       id: 'edmund',
       name: 'Edmund Vale',
-      voice: {edge: 'en-GB-ThomasNeural', rate: '-8%', pitch: '-6%'},
+      voice: {edge: 'en-GB-ThomasNeural', rate: '-8%', pitch: '-6%', groq: 'troy'},
       role: 'Historian (missing)',
       persona: 'Absent-minded, earnest, a little theatrical. Talks like a lecturer.',
       interviewable: true,

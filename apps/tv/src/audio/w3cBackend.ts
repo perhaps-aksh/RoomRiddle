@@ -1,5 +1,5 @@
 import {AppState, Image} from 'react-native';
-import {AudioContentType, AudioPlayer, AudioUsageType} from '@amazon-devices/react-native-w3cmedia';
+import {AudioContentType, AudioPlayer, AudioUsageType, MediaSource, W3CLibPolyfill} from '@amazon-devices/react-native-w3cmedia';
 import type {AudioDefinition} from '@roomriddle/shared-types';
 import type {AudioBackend} from '@roomriddle/scene';
 import {bundledAudio} from './bundled';
@@ -51,6 +51,28 @@ export interface AudioStats {
 }
 
 export const audioConfig = {pooling: false};
+
+/**
+ * Network clips (an AI character's spoken reply). Vega's player refuses plain
+ * http:// URLs (MediaError 4; https works), and the game server is http on the
+ * LAN. So the app fetches the bytes itself and feeds them through Media Source
+ * Extensions, which play AAC in fragmented MP4 (raw MP3 = decode error).
+ * Measured on the VVD 2026-10-10; see FL-014.
+ */
+export const REMOTE_MIME = 'audio/mp4';
+export const isRemotePath = (path: string) => /^https?:\/\//.test(path);
+let polyfilled = false;
+function createObjectUrl(source: unknown): string {
+  if (!polyfilled) {
+    polyfilled = true;
+    try {
+      W3CLibPolyfill.install();
+    } catch {
+      // already installed
+    }
+  }
+  return (URL as unknown as {createObjectURL(o: unknown): string}).createObjectURL(source);
+}
 
 export const audioStats: AudioStats = {created: 0, released: 0, errors: 0, active: 0, reused: 0, lastSoundId: '', lastPath: '', lastPlayerId: 0, lastError: '', states: {}};
 const statListeners = new Set<() => void>();
@@ -219,12 +241,18 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
             log(`[AUDIO_TEST] started soundId=${sound.id} playerId=${t.id} volume=${slot.volume.toFixed(3)} latencyMs=${Date.now() - t0} reused=false`);
           }
         });
-        p.addEventListener('error', () => {
+        let failed = false;
+        const onError = () => {
+          if (failed) {
+            return;
+          }
+          failed = true;
           fail(t, sound, path, false);
           slots.delete(handle);
           t.release();
           onEnded(handle);
-        });
+        };
+        p.addEventListener('error', onError);
         if (!sound.loop) {
           p.addEventListener('ended', () => {
             log(`[AUDIO_TEST] completed soundId=${sound.id} playerId=${t.id}`);
@@ -233,7 +261,11 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
           });
         }
         p.autoplay = true;
-        p.src = path;
+        if (isRemotePath(path)) {
+          streamInto(p, path, sound.id, t.id, onError);
+        } else {
+          p.src = path;
+        }
       })
       .catch(e => {
         log(`[AUDIO_ERROR] soundId=${sound.id} playerId=${t.id} init ${String(e)}`);
@@ -241,6 +273,42 @@ export function createW3cBackend(onEnded: (handle: number) => void, log: (msg: s
         slots.delete(handle);
         t.release();
         onEnded(handle);
+      });
+  };
+
+  /** fetch → MediaSource → player (see REMOTE_MIME). Failures surface as the player's 'error'. */
+  const streamInto = (p: AudioPlayer, url: string, soundId: string, playerId: number, onError: () => void) => {
+    fetch(url)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return res.arrayBuffer();
+      })
+      .then(bytes => {
+        const ms = new MediaSource();
+        ms.addEventListener('sourceopen', () => {
+          try {
+            const sb = ms.addSourceBuffer(REMOTE_MIME);
+            sb.addEventListener('updateend', () => {
+              try {
+                ms.endOfStream();
+              } catch {
+                // already ended
+              }
+            });
+            sb.appendBuffer(bytes);
+          } catch (e) {
+            trace('error', `id=${soundId} player=${playerId} mse ${String(e)}`);
+            onError();
+          }
+        });
+        p.src = createObjectUrl(ms);
+      })
+      .catch(e => {
+        trace('error', `id=${soundId} player=${playerId} fetch ${url} ${String(e)}`);
+        log(`[AUDIO_ERROR] soundId=${soundId} fetch ${url} ${String(e)}`);
+        onError();
       });
   };
 

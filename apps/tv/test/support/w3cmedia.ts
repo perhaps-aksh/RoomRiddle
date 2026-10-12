@@ -33,3 +33,33 @@ export class AudioPlayer {
   async play(): Promise<void> {}
   pause(): void {}
 }
+
+export const W3CLibPolyfill = {install(): void {}};
+
+/** Records appended bytes; opens on the next tick like the real one. */
+export class MediaSource {
+  static created: MediaSource[] = [];
+  appended: unknown[] = [];
+  ended = false;
+  private listeners: Record<string, (() => void)[]> = {};
+  constructor() {
+    MediaSource.created.push(this);
+    setTimeout(() => (this.listeners.sourceopen ?? []).forEach(cb => cb()), 0);
+  }
+  addEventListener(name: string, cb: () => void): void {
+    (this.listeners[name] ??= []).push(cb);
+  }
+  addSourceBuffer(_mime: string) {
+    const sbListeners: Record<string, (() => void)[]> = {};
+    return {
+      addEventListener: (name: string, cb: () => void) => (sbListeners[name] ??= []).push(cb),
+      appendBuffer: (bytes: unknown) => {
+        this.appended.push(bytes);
+        setTimeout(() => (sbListeners.updateend ?? []).forEach(cb => cb()), 0);
+      },
+    };
+  }
+  endOfStream(): void {
+    this.ended = true;
+  }
+}

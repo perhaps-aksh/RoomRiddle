@@ -21,6 +21,10 @@ import {isGameActionType, parseClientMessage} from './messages';
 
 type Logger = (line: string) => void;
 
+function extensionFor(mime: string | undefined): string {
+  return mime === 'audio/mp4' ? 'm4a' : mime === 'audio/wav' ? 'wav' : 'mp3';
+}
+
 /**
  * Routes validated client messages to the RoomManager and turns the results
  * into server messages. Owns no state of its own.
@@ -215,7 +219,7 @@ export class MessageRouter {
     const voice = findCharacter(session.mystery, characterId)?.voice;
     void this.voices.speak(text, voice).then(id => {
       if (!id || this.rooms.get(room.id) !== room || room.game !== session) return;
-      this.connections.broadcast(room.id, {type: 'CHARACTER_VOICE', replyId, characterId, audioUrl: `/voice/${id}.${this.voices?.clip(id)?.mime === 'audio/wav' ? 'wav' : 'mp3'}`});
+      this.connections.broadcast(room.id, {type: 'CHARACTER_VOICE', replyId, characterId, audioUrl: `/voice/${id}.${extensionFor(this.voices?.clip(id)?.mime)}`});
     });
   }
 

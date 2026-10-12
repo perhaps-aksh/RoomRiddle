@@ -1,3 +1,4 @@
+import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import type {CharacterVoice} from '@roomriddle/shared-types';
 
@@ -19,13 +20,43 @@ export interface VoiceProvider {
 
 export const DEFAULT_VOICE: CharacterVoice = {edge: 'en-GB-RyanNeural'};
 
+/** Re-encodes a clip for the TV. Must not throw for a clip it cannot handle: return it unchanged. */
+export type ClipTranscoder = (clip: VoiceClip, signal: AbortSignal) => Promise<VoiceClip>;
+
+export const TV_AUDIO_MIME = 'audio/mp4';
+
+/**
+ * Fire TV (Vega) only plays network audio over https; over the LAN the app fetches
+ * the bytes itself and feeds them to the player through Media Source Extensions,
+ * which accept AAC in fragmented MP4 (measured on the VVD: raw MP3 = decode error).
+ * Uses the ffmpeg on PATH (or FFMPEG_PATH).
+ */
+export function ffmpegTranscoder(ffmpeg = process.env.FFMPEG_PATH ?? 'ffmpeg'): ClipTranscoder {
+  return (clip, signal) =>
+    new Promise((resolve, reject) => {
+      const child = spawn(ffmpeg, ['-v', 'error', '-i', 'pipe:0', '-ac', '1', '-c:a', 'aac', '-b:a', '64k', '-movflags', 'frag_keyframe+empty_moov+default_base_moof', '-f', 'mp4', 'pipe:1'], {signal, windowsHide: true});
+      const out: Buffer[] = [];
+      let err = '';
+      child.stdout.on('data', (b: Buffer) => out.push(b));
+      child.stderr.on('data', (b: Buffer) => (err += b.toString()));
+      child.on('error', reject);
+      child.on('close', code => {
+        const data = Buffer.concat(out);
+        if (code === 0 && data.length > 200) resolve({data, mime: TV_AUDIO_MIME});
+        else reject(new Error(`ffmpeg exit ${code}: ${err.trim().slice(0, 200)}`));
+      });
+      child.stdin.on('error', () => undefined);
+      child.stdin.end(clip.data);
+    });
+}
+
 export class VoiceService {
   private readonly cache = new Map<string, VoiceClip>();
   private readonly inflight = new Map<string, Promise<string | null>>();
 
   constructor(
     private readonly providers: VoiceProvider[],
-    private readonly options: {timeoutMs?: number; maxClips?: number; log?: (line: string) => void} = {},
+    private readonly options: {timeoutMs?: number; maxClips?: number; log?: (line: string) => void; transcode?: ClipTranscoder} = {},
   ) {}
 
   get enabled(): boolean {
@@ -56,8 +87,15 @@ export class VoiceService {
     for (const provider of this.providers) {
       const started = Date.now();
       try {
-        const clip = await provider.synthesize(text, voice, AbortSignal.timeout(this.options.timeoutMs ?? 8000));
+        let clip = await provider.synthesize(text, voice, AbortSignal.timeout(this.options.timeoutMs ?? 8000));
         if (clip.data.length < 200) throw new Error(`clip too small (${clip.data.length} B)`);
+        if (this.options.transcode) {
+          try {
+            clip = await this.options.transcode(clip, AbortSignal.timeout(this.options.timeoutMs ?? 8000));
+          } catch (err) {
+            log(`[voice] transcode failed, serving ${clip.mime}: ${(err as Error).message}`);
+          }
+        }
         this.cache.set(id, clip);
         const max = this.options.maxClips ?? 400;
         while (this.cache.size > max) this.cache.delete(this.cache.keys().next().value!);

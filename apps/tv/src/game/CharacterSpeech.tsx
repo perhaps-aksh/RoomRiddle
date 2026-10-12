@@ -170,12 +170,13 @@ const styles = StyleSheet.create({
     left: theme.spacing.screenX,
     right: theme.spacing.screenX,
     bottom: theme.spacing.screenY,
-    alignItems: 'center',
+    // Right side: screens keep their primary buttons bottom-left, so the bubble never covers focus.
+    alignItems: 'flex-end',
   },
   bubble: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    width: px(1240),
+    width: px(820),
     paddingVertical: px(28),
     paddingHorizontal: px(36),
     columnGap: px(32),
@@ -214,9 +215,9 @@ const styles = StyleSheet.create({
   },
   asked: {
     ...theme.text.body,
-    fontSize: px(24),
+    fontSize: px(26),
     color: theme.colors.ink,
-    opacity: 0.6,
+    opacity: 0.7,
   },
   line: {
     ...theme.text.narration,

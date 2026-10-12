@@ -2,7 +2,7 @@ import type {AiConfig} from '../config';
 import {CharacterService} from './CharacterService';
 import {geminiProvider, groqProvider, type AiProvider} from './providers';
 
-import {edgeVoiceProvider, groqVoiceProvider, VoiceService, type VoiceProvider} from './voice';
+import {edgeVoiceProvider, ffmpegTranscoder, groqVoiceProvider, VoiceService, type VoiceProvider} from './voice';
 
 export {CharacterService} from './CharacterService';
 export {VoiceService} from './voice';
@@ -13,7 +13,7 @@ export function createVoiceService(config: AiConfig, log: (line: string) => void
     if (name === 'edge') providers.push(edgeVoiceProvider());
     if (name === 'groq' && config.groqKey) providers.push(groqVoiceProvider(config.groqKey));
   }
-  return new VoiceService(providers, {log});
+  return new VoiceService(providers, {log, transcode: ffmpegTranscoder()});
 }
 export type {AiProvider} from './providers';
 

@@ -9,7 +9,7 @@ import {CharacterService} from './CharacterService';
 import {authoredReply} from './fallback';
 import {checkReply} from './guard';
 import {allowedFacts, buildCharacterPrompt} from './prompt';
-import {groqVoiceProvider, ssmlText, VoiceService, type VoiceProvider} from './voice';
+import {ffmpegTranscoder, groqVoiceProvider, ssmlText, VoiceService, type VoiceProvider} from './voice';
 import {geminiProvider, groqProvider, ProviderError, type AiProvider, type CompletionRequest} from './providers';
 
 const T0 = 1_700_000_000_000;
@@ -346,6 +346,19 @@ describe('voices', () => {
     assert.equal(clip.mime, 'audio/wav');
     assert.deepEqual([body!.voice, body!.response_format], ['daniel', 'wav']);
     await assert.rejects(p.synthesize('Hi.', {edge: 'x'}, AbortSignal.timeout(1000)));
+  });
+
+  test('clips are transcoded for the TV; a failed transcode keeps the original', async () => {
+    const tv = new VoiceService([provider('ok')], {transcode: async c => ({data: Buffer.concat([c.data, Buffer.from('x')]), mime: 'audio/mp4'})});
+    assert.equal(tv.clip((await tv.speak('One.'))!)?.mime, 'audio/mp4');
+    const broken = new VoiceService([provider('ok')], {transcode: async () => {
+      throw new Error('no ffmpeg');
+    }});
+    assert.equal(broken.clip((await broken.speak('Two.'))!)?.mime, 'audio/mpeg');
+  });
+
+  test('ffmpeg transcoder reports a missing binary as an error (no crash)', async () => {
+    await assert.rejects(ffmpegTranscoder('definitely-not-ffmpeg-xyz')({data: Buffer.alloc(500), mime: 'audio/mpeg'}, AbortSignal.timeout(3000)));
   });
 
   test('SSML text is escaped', () => {

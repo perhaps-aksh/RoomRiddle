@@ -169,7 +169,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: theme.spacing.screenX,
     right: theme.spacing.screenX,
-    bottom: theme.spacing.screenY,
+    // Above the footer line most screens keep at the bottom edge.
+    bottom: theme.spacing.screenY + px(84),
     // Right side: screens keep their primary buttons bottom-left, so the bubble never covers focus.
     alignItems: 'flex-end',
   },

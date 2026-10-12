@@ -97,7 +97,7 @@ function topBar(view: RoomView): string {
     : null;
   const room = view.room ?? (view.session ? {code: view.session.roomCode} : null);
   return `<header class="topbar">
-    <span class="wordmark">RoomRiddle</span>
+    <span class="wordmark">Room Riddle</span>
     <span class="topbar-right">
       ${room ? `<span class="chip mono" aria-label="Room ${esc(room.code)}">RM ${esc(room.code)}</span>` : ''}
       ${status ? `<span class="status ${status.cls}" role="status" title="${status.text}"><i></i><span class="status-text">${status.text}</span></span>` : ''}
@@ -187,7 +187,7 @@ function lobbyScreen(view: RoomView): string {
   return `<section class="lobby">
     <div class="badge ok"><i></i>Joined</div>
     <p class="eyebrow">Case file</p>
-    <h1 class="display">${esc(view.mystery?.summary.title ?? 'RoomRiddle')}</h1>
+    <h1 class="display">${esc(view.mystery?.summary.title ?? 'Room Riddle')}</h1>
     <div class="id-card">
       <span class="label mono">Investigator #${String(seat).padStart(2, '0')}</span>
       <span class="id-name">${esc(self?.name.toUpperCase() ?? '')}</span>

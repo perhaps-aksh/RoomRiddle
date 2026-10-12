@@ -17,10 +17,10 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-describe('RoomRiddle TV shell', () => {
+describe('Room Riddle TV shell', () => {
   it('starts on Home with the four menu items', () => {
     const screen = render(<App />);
-    expect(screen.getByText('ROOMRIDDLE')).toBeTruthy();
+    expect(screen.getByText('ROOM RIDDLE')).toBeTruthy();
     expect(screen.getByText('Gather. Investigate. Unravel.')).toBeTruthy();
     for (const id of ['createRoom', 'joinRoom', 'mysteries', 'settings']) {
       expect(screen.getByTestId(`home-${id}`)).toBeTruthy();
@@ -169,7 +169,7 @@ describe('remote Back button', () => {
     mockBackHandler.exitApp.mockClear();
     const screen = render(<App />);
     expect(back()).toBe(true);
-    expect(screen.getByText('Leave RoomRiddle?')).toBeTruthy();
+    expect(screen.getByText('Leave Room Riddle?')).toBeTruthy();
     expect(mockBackHandler.exitApp).not.toHaveBeenCalled();
     fireEvent.press(screen.getByTestId('home-exit-stay'));
     expect(screen.getByTestId('home-createRoom')).toBeTruthy();

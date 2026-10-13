@@ -11,16 +11,18 @@ RoomRiddle is a multiplayer mystery game platform for Amazon Fire TV / Vega OS, 
 
 Tagline: *Gather. Investigate. Unravel the Mystery.*
 
-## Current development strategy
-Build the deterministic game first. **AI is deferred.**
+## AI: an actor, never a judge
+The deterministic game comes first and must always play without AI. On top of it, AI gives the characters a voice (suspect questioning now; adaptive hints and a narrator next). It lives in `apps/server/src/ai/`. See `docs/system-design.md#ai-layer`.
 
-Do NOT introduce any of these unless explicitly requested later:
-- Gemini, OpenAI, Claude or any other LLM API
-- RAG or vector databases
-- AI-generated clues, hints, story, puzzle answers or answer validation
-- LLM agents inside the app
+Rules:
+- **The engine decides everything.** AI never validates answers, unlocks anything, or changes score or state.
+- **Only unlocked facts reach a prompt.** Prompts are built from the character's truth table (`packages/mystery-data`), filtered by what the room has earned. Locked facts, solutions, hint text and answer keys never go to a model.
+- **Every reply is guarded** (spoilers, puzzle answers, out-of-character text) before anyone sees it, with an authored fallback line.
+- **Free for players.** Free-tier providers only (currently Groq text and Orpheus, plus Edge neural voices), with question budgets, cooldowns, caching and timeouts. `AI_DISABLED=1` and `VOICES_DISABLED=1` must keep every case playable.
+- **Keys stay server-side** in `apps/server/.env` (git-ignored; see `.env.example`). They never reach a client, a log or git.
+- Tests use fake providers; no test may need a key or the network.
 
-Also not without a concrete requirement: Redis, PostgreSQL, Firebase, AWS services, complex auth, microservices. In-memory server state is fine.
+Still not allowed without an explicit request: AI-generated clues, story, puzzles or answers at runtime; RAG or vector databases; autonomous agents inside the app. Also not without a concrete requirement: Redis, PostgreSQL, Firebase, AWS services, complex auth, microservices. In-memory server state is fine.
 
 ## Architecture
 | Part | Stack | Location |
@@ -83,5 +85,8 @@ The TV app (`apps/tv`) is built with the Vega CLI from a Linux/macOS shell. See 
 ## Friction log and product feedback
 Record every real problem with Vega, the VVD, React Native, remote navigation, the build system, networking or tooling in `docs/friction-log.md`, as it happens. Never invent entries. Product feedback on Amazon tools also goes in docs and must only reflect actual experience.
 
-## Current mystery
-The first mystery is **The Last Train**. Don't create content for other mysteries until the engine supports reusable mysteries and The Last Train is stable. The other three (The Hollow Manor, Signal Lost, The Forgotten Temple) are library listings only.
+## Mysteries
+Five cases are playable: **The Last Train** (the flagship, with the full 2.5D world), *The Hollow Manor*, *Signal Lost*, *The Forgotten Temple* and *The Yaksha's Three Questions*. Every case needs a truth table, three hints per puzzle, and must pass the catalog playthrough test. Content inspired by cultural or religious sources must be original and respectful, never presented as scripture, and worship is never a puzzle.
+
+## Art and assets
+Graphics are 2.5D (painted plates, cut-out layers, short video loops), not real-time 3D. Every asset is referenced by id through the world manifest and asset registry, so final art replaces placeholders without code changes. Record sources and licences in `CREDITS.md`.

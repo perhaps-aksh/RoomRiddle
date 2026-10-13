@@ -1,11 +1,12 @@
 import React, {useState} from 'react';
-import {BackHandler, StyleSheet, Text, View} from 'react-native';
+import {BackHandler, Image, StyleSheet, Text, View} from 'react-native';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {findMystery} from '../../data/mysteries';
 import {Route} from '../../navigation/TVNavigation';
 import {useBackInterceptor} from '../../navigation/useBackInterceptor';
 import {px, theme} from '../../theme/theme';
 import {Transition} from '../../ui/Transition';
+import {homeArt} from '../../ui/keyArt';
 import {ScreenProps} from '../types';
 
 interface MenuItem {
@@ -58,6 +59,7 @@ export const HomeScreen = ({navigator, initialFocusKey, selectedMysteryId}: Scre
 
   return (
     <View style={styles.screen}>
+      <Image source={homeArt} style={StyleSheet.absoluteFill} resizeMode="cover" testID="home-art" />
       <Transition preset="fade" style={styles.caseLine}>
         <Text style={styles.caseText}>INVESTIGATION SYSTEM</Text>
         <View style={styles.caseDot} />

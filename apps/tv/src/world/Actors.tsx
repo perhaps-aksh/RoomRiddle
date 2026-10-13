@@ -4,7 +4,7 @@ import type {CharacterState, PlaceholderShape, TrainDefinition, TrainState} from
 import {headlightsOn, steaming} from '@roomriddle/scene';
 import {theme as ds} from '@roomriddle/ui';
 import {PX_SCALE, px, theme} from '../theme/theme';
-import {assetRegistry} from './art';
+import {assetLoader, assetRegistry} from './art';
 import {AssetView, Shape} from './AssetView';
 import {Glow, Puffs} from './Effects';
 
@@ -43,6 +43,30 @@ export const TrainView = memo(
     const lights = effects.headlights ?? headlightsOn(state);
     const steam = (effects.steam ?? false) && steaming(state);
     const moving = state === 'approaching' || state === 'arriving' || state === 'departing' || state === 'far';
+    // Painted trains have their own windows and doors: the procedural leaves and
+    // window boxes are skipped, and the open door shows as light spilling out.
+    const painted = assetRegistry.resolve(def.assetId, assetLoader.isLoaded).kind === 'image';
+    if (painted) {
+      const door = doorShapes.find(s => s.role === 'door-left');
+      return (
+        <Animated.View pointerEvents="none" style={[styles.train, {top: px(y), width: px(width), height: px(height), transform: [{translateX: Animated.multiply(x, PX_SCALE)}]}]}>
+          <AssetView assetId={def.assetId} width={width} height={height} />
+          {door && doorway && (
+            <Animated.View style={[styles.abs, {left: px(door.x), top: px(door.y), opacity: doors.interpolate({inputRange: [0, 1], outputRange: [0, 0.3]})}]}>
+              <AssetView assetId={doorway.id} width={door.w * 2} height={door.h} />
+            </Animated.View>
+          )}
+          {lights && (
+            <>
+              <Glow x={width - 40} y={140} radius={90} color="headlight" strength={0.22} flicker={false} reduced={reduced} />
+              <View style={[styles.beam, {left: px(width - 30), top: px(96)}]} />
+            </>
+          )}
+          <Puffs on={steam} reduced={reduced} x={width * 0.35} y={height - 10} spread={width * 0.6} rise={160} size={150} count={6} />
+          <Puffs on={moving && state !== 'far'} reduced={reduced} x={width - 80} y={30} color="cloud" spread={80} rise={260} size={90} count={4} />
+        </Animated.View>
+      );
+    }
     return (
       <Animated.View pointerEvents="none" style={[styles.train, {top: px(y), width: px(width), height: px(height), transform: [{translateX: Animated.multiply(x, PX_SCALE)}]}]}>
         {/* Doorway light sits behind the door leaves: it shows as they part. */}

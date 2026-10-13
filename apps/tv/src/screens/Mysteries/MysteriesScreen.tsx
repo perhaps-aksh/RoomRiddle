@@ -1,11 +1,12 @@
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
 import {MysteryCard} from '../../components/MysteryCard/MysteryCard';
 import {ScreenHeader} from '../../components/ScreenHeader/ScreenHeader';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {mysteries} from '../../data/mysteries';
 import {px, theme} from '../../theme/theme';
 import {Transition} from '../../ui/Transition';
+import {libraryArt} from '../../ui/keyArt';
 import {ScreenProps} from '../types';
 
 export const MysteriesScreen = ({
@@ -17,6 +18,7 @@ export const MysteriesScreen = ({
 
   return (
     <View style={styles.screen}>
+      <Image source={libraryArt} style={StyleSheet.absoluteFill} resizeMode="cover" />
       <ScreenHeader title="Choose Your Mystery" subtitle={`${countWord(mysteries.length)} stories. One room. Tonight, who will find the truth?`} />
 
       <View style={styles.row}>

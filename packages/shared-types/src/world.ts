@@ -18,7 +18,7 @@ export type AssetType = 'background' | 'foreground' | 'character' | 'object' | '
 export type AssetGroup = 'environment' | 'train' | 'character' | 'object' | 'effect';
 /** placeholder = drawn procedurally today; final = production art is bundled for this id. */
 export type AssetStatus = 'placeholder' | 'final';
-export type AssetFormat = 'webp' | 'png' | 'procedural';
+export type AssetFormat = 'webp' | 'png' | 'jpg' | 'procedural';
 export type AssetAnimation = 'none' | 'loop' | 'states' | 'particles' | 'triggered';
 
 /** Back to front. The UI is a separate layer above all of these. */
@@ -116,6 +116,12 @@ export interface AssetDefinition {
   preload?: boolean;
   /** Procedural stand-in, drawn when no final art is available. */
   placeholder?: PlaceholderShape[];
+  /**
+   * Procedural detail drawn ON TOP of final art, in the asset box: clock hands
+   * that must show a clue's exact time, the text on a board. Painted art
+   * carries the look; the overlay carries the facts.
+   */
+  overlay?: PlaceholderShape[];
   /** Light this asset casts (a glow pool drawn above the night overlay), in its own box. */
   light?: {x: number; y: number; radius: number; color: 'lampGlow' | 'windowGlow' | 'headlight'; strength?: number; flicker?: boolean};
   description: string;

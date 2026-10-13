@@ -1,9 +1,10 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Animated, StyleSheet, Text, View} from 'react-native';
+import {Animated, Image, StyleSheet, Text, View} from 'react-native';
 import type {CharacterReply} from '@roomriddle/shared-types';
 import {useAudio} from '../audio/AudioContext';
 import {px, theme} from '../theme/theme';
 import {timing, useReducedMotion} from '../ui/motion';
+import {portraitFor} from '../world/art';
 import {useGame} from './GameContext';
 
 /** How long a reply may wait for its voice before the subtitle shows anyway. */
@@ -126,7 +127,7 @@ export const CharacterSpeech = () => {
     return (
       <View pointerEvents="none" style={styles.dock} testID="speech-thinking">
         <View style={[styles.bubble, styles.thinkingBubble]}>
-          <Portrait name={thinker.name} />
+          <Portrait characterId={thinker.id} name={thinker.name} pressed={false} />
           <View style={styles.body}>
             <Text style={styles.name}>{thinker.name.toUpperCase()}</Text>
             <Text style={styles.asked}>{thinking!.askedBy ? `${thinking!.askedBy} asks…` : 'The TV asks…'}</Text>
@@ -142,7 +143,7 @@ export const CharacterSpeech = () => {
   return (
     <Animated.View pointerEvents="none" style={[styles.dock, {opacity: fade}]} testID="speech-bubble">
       <View style={styles.bubble}>
-        <Portrait name={reply.characterName} />
+        <Portrait characterId={reply.characterId} name={reply.characterName} pressed={reply.evidenceClueId !== undefined} />
         <View style={styles.body}>
           <Text style={styles.name}>{reply.characterName.toUpperCase()}</Text>
           <Text style={styles.asked} numberOfLines={1}>
@@ -157,12 +158,15 @@ export const CharacterSpeech = () => {
   );
 };
 
-const Portrait = ({name}: {name: string}) => (
-  // Placeholder until the painted character portraits land (Asset List §characters).
-  <View style={styles.portrait}>
-    <Text style={styles.portraitText}>{initials(name)}</Text>
-  </View>
-);
+/** Painted portrait (pressed when shown evidence), or initials for characters without art yet. */
+const Portrait = ({characterId, name, pressed}: {characterId: string; name: string; pressed: boolean}) => {
+  const art = portraitFor(characterId, pressed);
+  return (
+    <View style={styles.portrait} testID={art ? `portrait-${characterId}-${pressed ? 'pressed' : 'calm'}` : undefined}>
+      {art ? <Image source={art} style={styles.portraitImage} /> : <Text style={styles.portraitText}>{initials(name)}</Text>}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   dock: {
@@ -199,6 +203,11 @@ const styles = StyleSheet.create({
     borderColor: theme.colors.accent,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  portraitImage: {
+    width: '100%',
+    height: '100%',
   },
   portraitText: {
     ...theme.text.h2,

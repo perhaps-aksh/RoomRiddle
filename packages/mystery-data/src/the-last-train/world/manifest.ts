@@ -262,7 +262,8 @@ const TRAIN_INTERIOR = asset({
   group: 'train',
   layer: 'background',
   depth: 0.35,
-  size: {width: 2400, height: 1080},
+  // Taller than the screen so the lifted resting camera never shows its bottom edge.
+  size: {width: 2400, height: 1180},
   animation: 'none',
   description: 'Sleeper carriage corridor: panelled wood, compartment doors, brass fittings, windows onto the storm.',
   placeholder: [
@@ -500,10 +501,10 @@ const BRAKE = asset({
   group: 'object',
   layer: 'interactive',
   depth: 0.7,
-  size: {width: 100, height: 200},
+  size: {width: 140, height: 337},
   animation: 'none',
-  description: 'Emergency brake handle in a red box on the corridor wall.',
-  placeholder: [r(0, 0, 100, 200, 'danger', {radius: 6}), r(20, 30, 60, 30, 'paper', {text: 'PULL', textColor: 'ink', textSize: 18}), r(40, 80, 20, 90, 'iron'), r(20, 160, 60, 20, 'iron', {radius: 8})],
+  description: 'Emergency brake handle in a red box on the corridor wall. The corridor painting includes it, so in the world this is an invisible hotspot sized to the painted box.',
+  placeholder: [r(0, 0, 140, 337, 'danger', {radius: 6}), r(28, 50, 84, 50, 'paper', {text: 'PULL', textColor: 'ink', textSize: 22}), r(56, 135, 28, 150, 'iron'), r(28, 270, 84, 34, 'iron', {radius: 8})],
 });
 
 const SIGNAL_BOX = asset({
@@ -512,7 +513,7 @@ const SIGNAL_BOX = asset({
   group: 'environment',
   layer: 'background',
   depth: 0.35,
-  size: {width: 2300, height: 1080},
+  size: {width: 2300, height: 1180},
   animation: 'none',
   description: 'Inside the signal box: timber walls, a long window over the tracks, the lamp-room door at the back.',
   placeholder: [
@@ -557,6 +558,64 @@ const LAMP_ROOM_DOOR = asset({
 const effect = (id: string, desc: string, depth: number, layer: AssetDefinition['layer'] = 'effects', animation: AssetDefinition['animation'] = 'particles', note?: string): AssetDefinition =>
   asset({id, type: 'effect', group: 'effect', layer, depth, size: {width: 1920, height: 1080}, animation, animationNote: note, description: desc, placeholder: []});
 
+// ── Final painted art (P8, Day 4) ─────────────────────────────────────
+// Files are made by apps/tv/scripts/art/prepare_last_train.py, sized to each
+// box. The placeholder stays on every entry: it is the fallback if a file
+// can't load, and the shape the camera, focus frame and tests reason about.
+
+/** Hands only (no dial): the painted dial carries the look, these carry the clue's time. */
+const hands = (face: {cx: number; cy: number; d: number}, time: {hours: number; minutes: number; seconds?: number}, secondHand = false): PlaceholderShape[] =>
+  clockFace({x: face.cx - face.d / 2, y: face.cy - face.d / 2, size: face.d, time, rimRatio: 0.02, marks: false, secondHand, hands: 'ink', rim: 'iron'}).filter(
+    s => s.role === 'hand-hour' || s.role === 'hand-minute' || s.role === 'hand-second' || s.role === 'hub',
+  );
+
+const FINAL_ART: Readonly<Record<string, {source: string; overlay?: PlaceholderShape[]}>> = {
+  'last-train.sky': {source: 'sky.jpg'},
+  'last-train.city': {source: 'city.png'},
+  'last-train.station.background': {source: 'station.background.png'},
+  'last-train.station.platform': {source: 'station.platform.jpg'},
+  'last-train.tracks': {source: 'tracks.jpg'},
+  'last-train.station.lights': {source: 'station.lights.png'},
+  'last-train.foreground.pole': {source: 'foreground.pole.png'},
+  'last-train.bench': {source: 'bench.png'},
+  'last-train.train': {source: 'train.png'},
+  'last-train.train.interior': {source: 'train.interior.jpg'},
+  'last-train.train.vestibule': {source: 'train.vestibule.jpg'},
+  'last-train.signal-box.interior': {source: 'signal-box.interior.jpg'},
+  'last-train.detective': {source: 'detective.png'},
+  // Stopped at 11:59: twelve minutes fast, so the true moment is 11:47.
+  'last-train.clock': {source: 'clock.png', overlay: hands({cx: 101, cy: 101, d: 118}, {hours: 11, minutes: 59})},
+  'last-train.notice': {source: 'notice.png', overlay: row(5, i => r(34, 30 + i * 13, i === 2 ? 112 : 84 + ((i * 17) % 26), 4, 'ink', {opacity: 0.5}))},
+  // True time, still running: 11:53.
+  'last-train.waiting-room-clock': {source: 'waiting-room-clock.png', overlay: hands({cx: 45, cy: 45, d: 62}, {hours: 11, minutes: 53, seconds: 20}, true)},
+  'last-train.suitcase': {source: 'suitcase.png'},
+  'last-train.newspaper': {source: 'newspaper.png'},
+  'last-train.ticket': {source: 'ticket.png'},
+  'last-train.departure-board': {
+    source: 'departure-board.png',
+    overlay: row(4, i => r(40, 92 + i * 24, 340, 18, 'ink', {text: ['107 DEPARTED', '207 HELD 00:00', '307 CANCELLED', '407 MONDAYS'][i], textColor: 'lamp', textSize: 14, opacity: 0.92})),
+  },
+  'last-train.carriage-plan': {source: 'carriage-plan.png'},
+  'last-train.carriage.props': {source: 'carriage.props.png'},
+  'last-train.ledger': {source: 'ledger.png'},
+  // Stopped where it fell: 11:47, the moment itself.
+  'last-train.pocket-watch': {source: 'pocket-watch.png', overlay: hands({cx: 72.8, cy: 53.3, d: 44}, {hours: 11, minutes: 47})},
+  'last-train.seat-card': {source: 'seat-card.png'},
+  'last-train.brake': {source: 'brake.png'},
+  'last-train.lever-frame': {source: 'lever-frame.png'},
+  'last-train.lamp-room-door': {source: 'lamp-room-door.png'},
+};
+
+function withFinalArt(a: AssetDefinition): AssetDefinition {
+  const art = FINAL_ART[a.id];
+  if (!art) {
+    return a;
+  }
+  // Painted lamps already glow: the procedural light pool only adds a hint on top.
+  const light = a.light ? {...a.light, strength: (a.light.strength ?? 0.16) * 0.45} : undefined;
+  return {...a, status: 'final', format: art.source.endsWith('.jpg') ? 'jpg' : 'png', source: art.source, ...(art.overlay ? {overlay: art.overlay} : {}), ...(light ? {light} : {})};
+}
+
 export const lastTrainManifest: AssetManifest = {
   mysteryId: 'the-last-train',
   idPrefix: 'last-train.',
@@ -600,7 +659,7 @@ export const lastTrainManifest: AssetManifest = {
     effect('last-train.smoke', 'Smoke from the engine chimney.', 0.6, 'effects', 'particles'),
     effect('last-train.light', 'Lamp glow pools and flicker; window glow.', 0.75, 'effects', 'triggered'),
     effect('last-train.lightning', 'Sky-wide lightning flash.', 0, 'effects', 'triggered'),
-  ],
+  ].map(withFinalArt),
 };
 
 export const TRAIN_SIZE = {width: TRAIN_W, height: TRAIN_H};

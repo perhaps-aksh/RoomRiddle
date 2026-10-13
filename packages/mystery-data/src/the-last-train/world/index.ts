@@ -110,9 +110,11 @@ const stationSet: WorldSet = {
     TRAIN_NODE,
     DOOR_NODE,
     {id: 'bench', assetId: 'last-train.bench', x: 700, y: 900, z: 1},
-    {id: 'clock', assetId: 'last-train.clock', x: 220, y: 200},
+    // Sits exactly over the clock painted on the tower (station art px 338,229, ⌀145).
+    {id: 'clock', assetId: 'last-train.clock', x: 175, y: 226, width: 246, height: 246},
     {id: 'notice', assetId: 'last-train.notice', x: 230, y: 430},
-    {id: 'waiting-clock', assetId: 'last-train.waiting-room-clock', x: 890, y: 440},
+    // Hangs over the clock painted in the booking hall's middle window (station art px 887,565).
+    {id: 'waiting-clock', assetId: 'last-train.waiting-room-clock', x: 802, y: 640},
     {id: 'suitcase', assetId: 'last-train.suitcase', x: 300, y: 880},
     {id: 'newspaper', assetId: 'last-train.newspaper', x: 780, y: 868},
     DETECTIVE_ON_PLATFORM,
@@ -185,13 +187,14 @@ const corridorSet: WorldSet = {
   id: 'corridor',
   label: 'Carriage C, the sleeper corridor',
   nodes: [
-    {id: 'interior', assetId: 'last-train.train.interior', x: -240, y: 0},
+    {id: 'interior', assetId: 'last-train.train.interior', x: -240, y: -20},
     {id: 'seat-seven', assetId: 'last-train.carriage.props', x: 180, y: 620},
     {id: 'seat-eight', assetId: 'last-train.carriage.props', x: 1260, y: 620},
     {id: 'ledger', assetId: 'last-train.ledger', x: 300, y: 660, z: 2},
     {id: 'pocket-watch', assetId: 'last-train.pocket-watch', x: 420, y: 870, z: 2},
     {id: 'seat-card', assetId: 'last-train.seat-card', x: 1420, y: 560, z: 2},
-    {id: 'brake', assetId: 'last-train.brake', x: 880, y: 380},
+    // The brake painted on the corridor wall (interior art px 922–1062 × 275–612) is the object: an invisible hotspot over it.
+    {id: 'brake', assetId: 'last-train.brake', x: 682, y: 255, depth: 0.35, visible: false},
     {id: 'detective-spot', assetId: 'last-train.detective', x: 1640, y: 470, depth: 0.82, z: 4},
   ],
   objects: [
@@ -209,7 +212,7 @@ const signalBoxSet: WorldSet = {
   id: 'signal-box',
   label: 'The signal box',
   nodes: [
-    {id: 'interior', assetId: 'last-train.signal-box.interior', x: -190, y: 0},
+    {id: 'interior', assetId: 'last-train.signal-box.interior', x: -190, y: -20},
     {id: 'lamp-room-door', assetId: 'last-train.lamp-room-door', x: 1480, y: 380},
     {id: 'lever-frame', assetId: 'last-train.lever-frame', x: 300, y: 620},
     {id: 'detective-spot', assetId: 'last-train.detective', x: 1180, y: 480, depth: 0.82, z: 4},

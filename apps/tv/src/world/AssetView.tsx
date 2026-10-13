@@ -63,7 +63,19 @@ export const Shape = ({s, style}: {s: PlaceholderShape; style?: ViewStyle}) => {
 export const AssetView = memo(({assetId, width, height, skipRoles}: {assetId: string; width: number; height: number; skipRoles?: readonly string[]}) => {
   const resolved = assetRegistry.resolve(assetId, assetLoader.isLoaded);
   if (resolved.kind === 'image') {
-    return <Image source={imageSourceFor(resolved.asset.id, resolved.uri)} style={{width: px(width), height: px(height)}} resizeMode="stretch" />;
+    const image = <Image source={imageSourceFor(resolved.asset.id, resolved.uri)} style={{width: px(width), height: px(height)}} resizeMode="stretch" />;
+    if (resolved.overlay.length === 0) {
+      return image;
+    }
+    // Painted art carries the look; the overlay carries the facts (clock hands at the clue's time).
+    const ox = width / resolved.asset.size.width;
+    const oy = height / resolved.asset.size.height;
+    return (
+      <View style={{width: px(width), height: px(height)}} pointerEvents="none">
+        {image}
+        {resolved.overlay.map((s, i) => (s.role !== undefined && skipRoles?.includes(s.role) ? null : <Shape key={i} s={scaleShape(s, ox, oy)} />))}
+      </View>
+    );
   }
   if (resolved.kind === 'missing') {
     // Visible in development, never a crash on the TV.

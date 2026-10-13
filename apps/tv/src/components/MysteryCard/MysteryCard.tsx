@@ -1,9 +1,10 @@
 import React, {useEffect, useRef} from 'react';
-import {Animated, Easing, StyleSheet, Text, View} from 'react-native';
+import {Animated, Easing, Image, StyleSheet, Text, View} from 'react-native';
 import {FocusableCard} from '../FocusableCard/FocusableCard';
 import {formatPlayers, TVMystery} from '../../data/mysteries';
 import {px, theme} from '../../theme/theme';
 import {useReducedMotion} from '../../ui/motion';
+import {cardArtFor} from '../../ui/keyArt';
 
 export interface MysteryCardProps {
   mystery: TVMystery;
@@ -15,7 +16,8 @@ export interface MysteryCardProps {
 
 // Five cases fit across the 1664 px safe width (1920 − 2 × 128) with room for the focus scale.
 export const CARD_WIDTH = px(312);
-const CARD_HEIGHT = px(500);
+// Taller since the painted header: it still ends above the footer row.
+const CARD_HEIGHT = px(540);
 
 export const MysteryCard = ({
   mystery,
@@ -25,6 +27,9 @@ export const MysteryCard = ({
   testID,
 }: MysteryCardProps) => {
   const available = mystery.availability === 'available';
+  const art = cardArtFor(mystery.id);
+  // Under a painted header a three-line title leaves room for one line of description.
+  const descriptionLines = art === undefined ? 3 : mystery.title.length > 22 ? 1 : 2;
   return (
     <FocusableCard
       onPress={onPress}
@@ -38,6 +43,11 @@ export const MysteryCard = ({
       {focused => (
         <>
           <CardAtmosphere active={focused} />
+          {art !== undefined && (
+            <View style={styles.artFrame}>
+              <Image source={art} style={[styles.art, focused && styles.artFocused]} resizeMode="cover" />
+            </View>
+          )}
           <View style={styles.topRow}>
             <Text style={styles.genre} numberOfLines={1}>{mystery.genre.toUpperCase()}</Text>
             {selected ? (
@@ -51,7 +61,7 @@ export const MysteryCard = ({
             numberOfLines={3}>
             {mystery.title}
           </Text>
-          <Text style={styles.description} numberOfLines={3}>
+          <Text style={styles.description} numberOfLines={descriptionLines}>
             {mystery.shortDescription}
           </Text>
           <View style={styles.spacer} />
@@ -135,6 +145,24 @@ const styles = StyleSheet.create({
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
     padding: theme.spacing.lg,
+    overflow: 'hidden',
+  },
+  // The case painting as a header, bleeding to the card's edges.
+  artFrame: {
+    height: px(150),
+    marginTop: -theme.spacing.lg,
+    marginHorizontal: -theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    borderBottomWidth: px(2),
+    borderBottomColor: theme.colors.accentSoft,
+  },
+  art: {
+    width: '100%',
+    height: '100%',
+    opacity: 0.82,
+  },
+  artFocused: {
+    opacity: 1,
   },
   // Label tracking (6) is sized for headings; on a 382 px card two labels need tighter
   // tracking and an explicit gap or they run together ("THRILLERSELECTED").
@@ -165,11 +193,11 @@ const styles = StyleSheet.create({
   },
   title: {
     ...theme.text.h1,
-    fontSize: px(34),
-    lineHeight: px(40),
+    fontSize: px(30),
+    lineHeight: px(36),
     letterSpacing: 0,
     textTransform: 'none',
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
     color: theme.colors.textPrimary,
   },
   titleFocused: {

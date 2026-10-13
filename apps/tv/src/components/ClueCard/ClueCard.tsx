@@ -1,13 +1,15 @@
 import React from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
 import type {Clue} from '@roomriddle/shared-types';
 import {px, theme} from '../../theme/theme';
 import {Transition} from '../../ui/Transition';
+import {closeupFor} from '../../world/art';
 
 /**
  * A discovered clue, presented as a found document: a paper slip with an
  * evidence number tab. Key evidence carries a stamp. `fresh` plays the
  * discovery reveal (scale up out of the dark) once, for a clue just found.
+ * A clue with painted close-up art shows it pinned beside the text.
  */
 export const ClueCard = ({
   clue,
@@ -25,8 +27,10 @@ export const ClueCard = ({
   testID?: string;
 }) => {
   const number = index !== undefined ? `#${String(index).padStart(2, '0')}` : '';
+  const closeup = closeupFor(clue.id);
   const body = (
-    <View style={[styles.card, compact && styles.compact]} testID={testID}>
+    <View style={[styles.card, compact && styles.compact, closeup !== undefined && styles.withPhoto]} testID={testID}>
+      <View style={styles.text}>
       <View style={styles.tabRow}>
         <Text style={styles.tab}>EVIDENCE {number}</Text>
         {clue.major && (
@@ -43,6 +47,12 @@ export const ClueCard = ({
           {line}
         </Text>
       ))}
+      </View>
+      {closeup !== undefined && (
+        <View style={[styles.photo, compact && styles.photoCompact]} testID={testID ? `${testID}-closeup` : undefined}>
+          <Image source={closeup} style={styles.photoImage} resizeMode="contain" />
+        </View>
+      )}
     </View>
   );
   return fresh ? (
@@ -63,6 +73,31 @@ const styles = StyleSheet.create({
   },
   compact: {
     padding: theme.spacing.md,
+  },
+  withPhoto: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: theme.spacing.md,
+  },
+  text: {
+    flex: 1,
+  },
+  // A photograph pinned to the slip: dark mount, slight tilt.
+  photo: {
+    width: px(240),
+    height: px(190),
+    padding: px(8),
+    backgroundColor: theme.colors.ink,
+    transform: [{rotate: '2deg'}],
+  },
+  photoCompact: {
+    width: px(170),
+    height: px(136),
+    padding: px(6),
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
   },
   tabRow: {
     flexDirection: 'row',

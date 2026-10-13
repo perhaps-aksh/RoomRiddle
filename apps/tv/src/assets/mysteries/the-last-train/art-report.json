@@ -1,0 +1,241 @@
+{
+  "clock": {
+    "file": "clock.png",
+    "px": [
+      400,
+      400
+    ],
+    "kb": 183,
+    "face": {
+      "cx": 101,
+      "cy": 101,
+      "d": 118
+    }
+  },
+  "waiting-room-clock": {
+    "file": "waiting-room-clock.png",
+    "px": [
+      270,
+      270
+    ],
+    "kb": 106,
+    "face": {
+      "cx": 45,
+      "cy": 45,
+      "d": 62
+    }
+  },
+  "pocket-watch": {
+    "file": "pocket-watch.png",
+    "px": [
+      320,
+      180
+    ],
+    "kb": 81,
+    "face": {
+      "cx": 72.8,
+      "cy": 53.3,
+      "d": 44
+    }
+  },
+  "sky": {
+    "file": "sky.jpg",
+    "px": [
+      2600,
+      1200
+    ],
+    "kb": 235
+  },
+  "city": {
+    "file": "city.png",
+    "px": [
+      3400,
+      360
+    ],
+    "kb": 1370
+  },
+  "station.background": {
+    "file": "station.background.png",
+    "px": [
+      1700,
+      760
+    ],
+    "kb": 2000
+  },
+  "station.platform": {
+    "file": "station.platform.jpg",
+    "px": [
+      5600,
+      320
+    ],
+    "kb": 638
+  },
+  "tracks": {
+    "file": "tracks.jpg",
+    "px": [
+      5600,
+      90
+    ],
+    "kb": 178
+  },
+  "station.lights": {
+    "file": "station.lights.png",
+    "px": [
+      90,
+      560
+    ],
+    "kb": 48
+  },
+  "foreground.pole": {
+    "file": "foreground.pole.png",
+    "px": [
+      110,
+      1200
+    ],
+    "kb": 102
+  },
+  "bench": {
+    "file": "bench.png",
+    "px": [
+      320,
+      120
+    ],
+    "kb": 51
+  },
+  "train": {
+    "file": "train.png",
+    "px": [
+      2600,
+      380
+    ],
+    "kb": 1470
+  },
+  "train.interior": {
+    "file": "train.interior.jpg",
+    "px": [
+      2400,
+      1180
+    ],
+    "kb": 431
+  },
+  "train.vestibule": {
+    "file": "train.vestibule.jpg",
+    "px": [
+      2200,
+      1080
+    ],
+    "kb": 277
+  },
+  "signal-box.interior": {
+    "file": "signal-box.interior.jpg",
+    "px": [
+      2300,
+      1180
+    ],
+    "kb": 461
+  },
+  "detective": {
+    "file": "detective.png",
+    "px": [
+      480,
+      1120
+    ],
+    "kb": 632
+  },
+  "notice": {
+    "file": "notice.png",
+    "px": [
+      360,
+      240
+    ],
+    "kb": 154
+  },
+  "suitcase": {
+    "file": "suitcase.png",
+    "px": [
+      340,
+      240
+    ],
+    "kb": 119
+  },
+  "newspaper": {
+    "file": "newspaper.png",
+    "px": [
+      300,
+      120
+    ],
+    "kb": 64
+  },
+  "ticket": {
+    "file": "ticket.png",
+    "px": [
+      300,
+      160
+    ],
+    "kb": 73
+  },
+  "departure-board": {
+    "file": "departure-board.png",
+    "px": [
+      840,
+      400
+    ],
+    "kb": 505
+  },
+  "carriage-plan": {
+    "file": "carriage-plan.png",
+    "px": [
+      240,
+      300
+    ],
+    "kb": 125
+  },
+  "carriage.props": {
+    "file": "carriage.props.png",
+    "px": [
+      420,
+      300
+    ],
+    "kb": 137
+  },
+  "ledger": {
+    "file": "ledger.png",
+    "px": [
+      340,
+      220
+    ],
+    "kb": 117
+  },
+  "seat-card": {
+    "file": "seat-card.png",
+    "px": [
+      220,
+      140
+    ],
+    "kb": 44
+  },
+  "brake": {
+    "file": "brake.png",
+    "px": [
+      280,
+      674
+    ],
+    "kb": 355
+  },
+  "lever-frame": {
+    "file": "lever-frame.png",
+    "px": [
+      900,
+      360
+    ],
+    "kb": 349
+  },
+  "lamp-room-door": {
+    "file": "lamp-room-door.png",
+    "px": [
+      240,
+      440
+    ],
+    "kb": 192
+  }
+}

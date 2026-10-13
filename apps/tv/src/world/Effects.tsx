@@ -197,6 +197,9 @@ export const Glow = ({x, y, radius, color = 'lampGlow', strength = 0.16, flicker
 /** Full-screen lightning flash. */
 export const Lightning = ({on, reduced}: {on: boolean; reduced: boolean}) => {
   const [v] = useState(() => new Animated.Value(0));
+  // The flash always runs to the end: timelines switch the effect off ~200 ms
+  // later, and stopping it then left a grey veil over the scene.
+  useEffect(() => () => v.stopAnimation(), [v]);
   useEffect(() => {
     if (!on) {
       return;
@@ -209,7 +212,6 @@ export const Lightning = ({on, reduced}: {on: boolean; reduced: boolean}) => {
       Animated.timing(v, {toValue: 0, duration: 420, useNativeDriver: true}),
     ]);
     a.start();
-    return () => a.stop();
   }, [on, reduced, v]);
   return <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, {backgroundColor: W.steam, opacity: v}]} />;
 };

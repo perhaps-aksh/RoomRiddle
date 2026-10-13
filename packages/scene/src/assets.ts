@@ -12,7 +12,7 @@
 import type {AssetDefinition, AssetManifest, LayerId, PlaceholderShape} from '@roomriddle/shared-types';
 
 export type ResolvedAsset =
-  | {kind: 'image'; asset: AssetDefinition; uri: string}
+  | {kind: 'image'; asset: AssetDefinition; uri: string; overlay: PlaceholderShape[]}
   | {kind: 'placeholder'; asset: AssetDefinition; shapes: PlaceholderShape[]}
   | {kind: 'missing'; id: string};
 
@@ -77,7 +77,7 @@ export class AssetRegistry {
       }
       const uri = this.uriOf(current);
       if (uri !== null && isLoaded(current)) {
-        return {kind: 'image', asset, uri};
+        return {kind: 'image', asset, uri, overlay: asset.overlay ?? []};
       }
       if (asset.fallback === undefined && asset.placeholder) {
         return {kind: 'placeholder', asset, shapes: asset.placeholder};
@@ -228,10 +228,15 @@ export function validateManifest(manifest: AssetManifest): string[] {
     if (a.status === 'placeholder' && !a.placeholder && a.fallback === undefined) {
       errors.push(`${a.id}: a placeholder asset needs placeholder shapes or a fallback`);
     }
-    for (const s of a.placeholder ?? []) {
-      if (s.x < -1 || s.y < -1 || s.x + s.w > a.size.width + 1 || s.y + s.h > a.size.height + 1) {
-        errors.push(`${a.id}: placeholder shape${s.role ? ` "${s.role}"` : ''} falls outside the ${a.size.width}×${a.size.height} asset box`);
+    for (const [kind, shapes] of [['placeholder', a.placeholder], ['overlay', a.overlay]] as const) {
+      for (const s of shapes ?? []) {
+        if (s.x < -1 || s.y < -1 || s.x + s.w > a.size.width + 1 || s.y + s.h > a.size.height + 1) {
+          errors.push(`${a.id}: ${kind} shape${s.role ? ` "${s.role}"` : ''} falls outside the ${a.size.width}×${a.size.height} asset box`);
+        }
       }
+    }
+    if (a.overlay && a.status !== 'final') {
+      errors.push(`${a.id}: an overlay only makes sense on final art`);
     }
   }
   for (const a of manifest.assets) {

@@ -427,8 +427,9 @@ test('the Last Train world is complete and consistent with the mystery', () => {
   for (const id of ['last-train.station.background', 'last-train.train', 'last-train.detective', 'last-train.clock', 'last-train.ticket', 'last-train.ledger', 'last-train.rain', 'last-train.steam', 'last-train.fog', 'last-train.smoke', 'last-train.suitcase', 'last-train.newspaper', 'last-train.city', 'last-train.tracks', 'last-train.train.interior']) {
     assert.ok(ids.has(id), id);
   }
-  // Placeholder-first: nothing claims to be final art yet.
-  assert.ok(world.manifest.assets.every(a => a.status === 'placeholder'));
+  // Final art keeps its placeholder: the fallback if a file can't load.
+  assert.ok(world.manifest.assets.every(a => a.status === 'placeholder' || (a.source !== undefined && a.placeholder !== undefined)));
+  assert.ok(world.manifest.assets.some(a => a.status === 'final'));
 });
 
 test('validateWorld catches broken references', () => {

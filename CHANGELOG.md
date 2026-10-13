@@ -2,7 +2,14 @@
 
 All notable changes, newest first. The project follows [Conventional Commits](https://www.conventionalcommits.org/); see `git log` for every commit.
 
-## [Unreleased]: public release prep
+## 2026-10-13: Painted art (Day 4)
+- The Last Train is painted: 28 world assets (sky to signal box, the train, Detective Grace, every clue object), placed to line up with what's painted.
+- Clue clocks keep exact procedural hands over the painted dials (new manifest `overlay`).
+- Evidence cards show painted close-ups; the speech bubble shows painted portraits, with a "pressed" expression when shown evidence.
+- Home and library key art; case cards with painted headers.
+- Fix: a lightning flash cut short no longer leaves a grey veil.
+
+## 2026-10-13: Public release
 - **Brand:** the app is now "Room Riddle", with a launcher icon on the TV and a favicon and web manifest on the phone.
 - **Docs:** showcase README with screenshots; technical reference moved to `docs/system-design.md`; contributing guide, code of conduct, security policy, credits, `.env.example`, CI and issue/PR templates.
 

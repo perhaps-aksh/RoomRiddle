@@ -4,7 +4,7 @@
 
 ## Art
 - App icon, banner and concept art: AI-assisted illustration, art-directed and edited by the author. Released with the project under the MIT licence.
-- TV scenes in the current build use code-drawn placeholder shapes; painted plates and character art are being added through the asset system.
+- The Last Train's scenes, objects, characters, clue close-ups and the menu key art are AI-assisted paintings, art-directed, cut out and edited by the author (`apps/tv/scripts/art/` sizes them for the TV). The other cases still use code-drawn placeholder shapes.
 - Screenshots in `docs/images` were captured from the Vega Virtual Device and a phone browser.
 
 ## Audio

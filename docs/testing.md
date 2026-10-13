@@ -27,7 +27,7 @@ Test files sit next to the code as `*.test.ts`.
 | `server` (rooms, multiplayer, AI prompt/guard/fallback/service, voices, HTTP) | 78 |
 | `player` | 11 |
 | **Root `npm run check`** | **244** |
-| TV, Jest (`apps/tv/scripts/wsl-check.sh`) | 75 |
+| TV, Jest (`apps/tv/scripts/wsl-check.sh`) | 80 |
 
 CI (`.github/workflows/ci.yml`) runs `npm run check` on every push to `main` and every pull request, with `AI_DISABLED=1` and `VOICES_DISABLED=1`, so no keys or network are needed. The AI tests use fake providers. The TV suite needs the Vega SDK and runs locally.
 

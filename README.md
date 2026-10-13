@@ -34,7 +34,7 @@
 
 <p align="center">
   <img src="docs/images/hero-tv-phone.jpg" alt="A suspect answers on the TV while the player questions him from a phone" width="100%" />
-  <br/><sub>Asking Inspector Voss a question from a phone. He answers on the TV, in character and in his own voice.</sub>
+  <br/><sub>Asking Inspector Voss a question from a phone. He answers on the TV, in character, in his own voice, with his painted portrait.</sub>
 </p>
 
 1. **Open a room on the TV.** It shows a 4-digit code and a QR code.
@@ -48,8 +48,21 @@
 |:---:|:---:|
 | <img src="docs/images/tv-home.jpg" alt="Home screen" /> | <img src="docs/images/tv-library.jpg" alt="The case library" /> |
 | **Home:** create or join a room with the remote | **Library:** five complete cases |
-| <img src="docs/images/tv-lobby.jpg" alt="Room lobby with QR code" /> | <img src="docs/images/tv-station.jpg" alt="The 2.5D station scene" /> |
-| **Lobby:** scan the QR code, see who's in | **The world:** a layered 2.5D scene you explore with the remote |
+| <img src="docs/images/tv-lobby.jpg" alt="Room lobby with QR code" /> | <img src="docs/images/tv-arrival.jpg" alt="The Northern Star arriving at Harrow Cross" /> |
+| **Lobby:** scan the QR code, see who's in | **Arrival:** the Northern Star pulls in through the rain |
+
+### Inside The Last Train
+
+Painted 2.5D scenes: depth layers move with the camera, rain and steam play over the art, and every clue object sits where it's painted.
+
+| | |
+|:---:|:---:|
+| <img src="docs/images/tv-station.jpg" alt="Platform two, explorable with the remote" /> | <img src="docs/images/tv-clue.jpg" alt="Evidence card with a painted close-up" /> |
+| **Platform two:** focus objects with the remote | **Evidence:** every clue has its painted close-up |
+| <img src="docs/images/tv-vestibule.jpg" alt="Detective Grace in the carriage doorway" /> | <img src="docs/images/tv-ticket.jpg" alt="The torn ticket beside the train" /> |
+| **Detective Grace** narrates and reacts to what you find | **On the platform:** a torn ticket in a puddle |
+| <img src="docs/images/tv-corridor.jpg" alt="The sleeper corridor of carriage C" /> | <img src="docs/images/tv-signal-box.jpg" alt="The signal box at two minutes to midnight" /> |
+| **Carriage C:** the sleeper corridor | **The signal box:** two minutes to midnight |
 
 ### Your phone is your notebook
 
@@ -57,8 +70,6 @@
   <img src="docs/images/phones.jpg" alt="Phone screens: join, scene evidence, suspect questioning, puzzle with hints" width="100%" />
   <br/><sub>Join in seconds · examine evidence · question suspects · solve puzzles with three-step hints</sub>
 </p>
-
-> **Art note:** the TV scenes in these screenshots use the built-in placeholder art. The painted art pass (illustrated plates, character portraits, video loops) goes in through the asset system without code changes; see [Status](#-status).
 
 ---
 
@@ -141,7 +152,7 @@ npm run serve          # build the phone app and start the server on :4000
 **TV app** (inside Ubuntu or WSL2 with the Vega SDK):
 
 ```bash
-bash apps/tv/scripts/wsl-check.sh      # typecheck + lint + 75 Jest tests
+bash apps/tv/scripts/wsl-check.sh      # typecheck + lint + 80 Jest tests
 bash apps/tv/scripts/wsl-build.sh      # build the .vpkg
 bash apps/tv/scripts/wsl-install.sh    # install and launch on the Vega Virtual Device
 ```
@@ -214,7 +225,7 @@ The full technical reference is in **[docs/system-design.md](docs/system-design.
 
 ## ✦ Quality
 
-- **About 320 automated tests:** 58 engine, 22 content, 52 scene, 19 client, 4 UI tokens, 78 server, 11 phone and 75 TV.
+- **About 325 automated tests:** 58 engine, 22 content, 52 scene, 19 client, 4 UI tokens, 78 server, 11 phone and 80 TV.
 - **Every case is played to the end automatically.** Content validation fails the build on unreachable scenes, broken references, puzzles that need clues from later scenes, and spoilers that could never unlock.
 - **Spoiler-attack tests** run against the AI guard and the prompt builder.
 - **Scripted device QA:** the Vega Virtual Device is driven with remote key presses and screenshots, with an audio trace sink.
@@ -231,7 +242,8 @@ The full technical reference is in **[docs/system-design.md](docs/system-design.
 | Phone app: Scene, Evidence and Question tabs | ✅ Done, tested |
 | TV app: screens, lobby, settings, library, 2.5D world, audio | ✅ Done, verified on the Vega Virtual Device |
 | AI suspect questioning with voices on the TV | ✅ Done, verified on the Vega Virtual Device |
-| Painted art, video loops and final audio | 🎨 In progress (assets in production) |
+| Painted art for The Last Train, portraits, clue close-ups, menu key art | ✅ Done, verified on the Vega Virtual Device |
+| Art for the other four cases, video loops, final audio | 🎨 In progress |
 | UI redesign to the final art direction | 🎨 In progress |
 | AI hints and narrator | 🔜 Next |
 | Validation on Fire TV Stick hardware | 🔜 Next |

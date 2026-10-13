@@ -9,6 +9,8 @@ export const theLastTrain: MysterySummary = {
   title: 'The Last Train',
   tagline: 'Can you uncover the truth before midnight?',
   genre: 'Thriller',
+  ageGroup: 'teens',
+  storyType: 'thriller',
   synopsis:
     'A stormy night. The conductor has vanished, the last train north is held at the ' +
     'platform, and something happened at 11:47 PM. Find out what before it leaves at midnight.',

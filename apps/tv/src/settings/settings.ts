@@ -24,6 +24,8 @@ export interface Settings {
   voice: Volume;
   muted: boolean;
   subtitles: boolean;
+  /** Has seen how the game works (Home shows the three steps until then). */
+  onboarded: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -35,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   voice: 100,
   muted: false,
   subtitles: true,
+  onboarded: false,
 };
 
 const isVolume = (v: unknown): v is Volume => typeof v === 'number' && (VOLUME_STEPS as readonly number[]).includes(v);
@@ -72,6 +75,9 @@ export function parseSettings(raw: string | null | undefined): Partial<Settings>
   }
   if (typeof d.muted === 'boolean') {
     out.muted = d.muted;
+  }
+  if (typeof d.onboarded === 'boolean') {
+    out.onboarded = d.onboarded;
   }
   if (typeof d.subtitles === 'boolean') {
     out.subtitles = d.subtitles;

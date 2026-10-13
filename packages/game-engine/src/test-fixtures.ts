@@ -18,6 +18,8 @@ export const fixtureMystery: MysteryDefinition = {
     minPlayers: 1,
     maxPlayers: 4,
     availability: 'playable',
+    ageGroup: 'teens',
+    storyType: 'thriller',
   },
   intro: {title: 'Intro', narration: ['Welcome.']},
   startSceneId: 'hall',

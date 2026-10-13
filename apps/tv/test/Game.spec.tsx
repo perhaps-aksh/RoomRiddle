@@ -203,7 +203,7 @@ describe('The Last Train on the TV', () => {
       pressBack();
     });
     press(screen, 'scene-leave-risky');
-    expect(screen.getByText('CHOOSE YOUR MYSTERY')).toBeTruthy();
+    expect(screen.getByText('CHOOSE A CASE')).toBeTruthy();
   });
 
   it('Play Again restarts the mystery from its intro', () => {

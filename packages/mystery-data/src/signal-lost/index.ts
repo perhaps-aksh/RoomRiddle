@@ -10,6 +10,8 @@ export const signalLost: MysterySummary = {
   title: 'Signal Lost',
   tagline: 'The station sent one warning. Then silence.',
   genre: 'Tech',
+  ageGroup: 'teens',
+  storyType: 'tech',
   synopsis:
     'At 10:16 PM the remote Northpoint station sends one short transmission and goes silent. ' +
     'The equipment is still running, the operator is gone, and the log makes no sense.',

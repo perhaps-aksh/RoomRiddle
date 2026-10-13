@@ -5,6 +5,7 @@ import {ScreenTransition} from './components/Background/ScreenTransition';
 import {DEFAULT_MYSTERY_ID} from './data/mysteries';
 import {GameProvider, GameProviderProps, useGame} from './game/GameContext';
 import {CharacterSpeech} from './game/CharacterSpeech';
+import {HowToPlayScreen} from './screens/HowToPlay/HowToPlayScreen';
 import {RoomWatcher} from './game/RoomWatcher';
 import {ToastProvider} from './ui/Toast';
 import type {TransitionPreset} from './ui/Transition';
@@ -234,6 +235,8 @@ function renderScreen(route: Route, props: ScreenProps) {
       return <MysteryDetailsScreen {...props} route={route} />;
     case 'settings':
       return <SettingsScreen {...props} />;
+    case 'howToPlay':
+      return <HowToPlayScreen {...props} />;
     case 'audioDiagnostics':
       return <AudioDiagnosticsScreen {...props} />;
     case 'gameIntro':

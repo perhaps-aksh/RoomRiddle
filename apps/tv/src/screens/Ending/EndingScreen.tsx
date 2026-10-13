@@ -98,7 +98,7 @@ export const EndingScreen = ({navigator}: ScreenProps) => {
         {/* Floats beside the buttons, so the story and numbers never move. */}
         {refusal && (
           <View style={styles.refusal}>
-            <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} />
+            <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} autoHideMs={0} />
           </View>
         )}
         <TVButton variant="action" tone="primary" label="Play Again" onPress={playAgain} preferredFocus testID="ending-again" />

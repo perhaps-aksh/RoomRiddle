@@ -505,7 +505,7 @@ describe('lifecycle (Step 4)', () => {
     await run(100);
     press(screen, 'scene-leave-risky');
     await run(3000);
-    expect(screen.getByText('CHOOSE YOUR MYSTERY')).toBeTruthy();
+    expect(screen.getByText('CHOOSE A CASE')).toBeTruthy();
     // Every one-shot ends as the platform would (the fake player never ends by itself).
     for (const p of players.filter(x => x.live && x.src && !x.loop)) {
       p.emit('ended');

@@ -18,13 +18,37 @@ afterEach(() => {
 });
 
 describe('Room Riddle TV shell', () => {
-  it('starts on Home with the four menu items', () => {
+  it('starts on Home: Quick Start first, and a first-time TV sees how it works', () => {
     const screen = render(<App />);
     expect(screen.getByText('ROOM RIDDLE')).toBeTruthy();
     expect(screen.getByText('Gather. Investigate. Unravel.')).toBeTruthy();
-    for (const id of ['createRoom', 'joinRoom', 'mysteries', 'settings']) {
+    expect(screen.getByLabelText(/Quick Start/i)).toBeTruthy();
+    for (const id of ['createRoom', 'mysteries', 'joinRoom', 'howToPlay', 'settings']) {
       expect(screen.getByTestId(`home-${id}`)).toBeTruthy();
     }
+    expect(screen.getByTestId('home-how-it-works')).toBeTruthy();
+  });
+
+  it('How to Play leads straight into a room, and afterwards Home shows tonight\'s case', () => {
+    const screen = render(<App />);
+    fireEvent.press(screen.getByTestId('home-howToPlay'));
+    expect(screen.getByText('Three steps. About a minute.')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('howto-back'));
+    expect(screen.getByTestId('home-tonight')).toBeTruthy();
+    expect(screen.queryByTestId('home-how-it-works')).toBeNull();
+  });
+
+  it('the library filters by age group and story type', () => {
+    const screen = render(<App />);
+    fireEvent.press(screen.getByTestId('home-mysteries'));
+    fireEvent.press(screen.getByTestId('filter-age-family'));
+    expect(screen.getByTestId('mystery-the-forgotten-temple')).toBeTruthy();
+    expect(screen.getByTestId('mystery-the-yakshas-questions')).toBeTruthy();
+    expect(screen.queryByTestId('mystery-the-last-train')).toBeNull();
+    fireEvent.press(screen.getByTestId('filter-type-tech'));
+    expect(screen.getByTestId('mysteries-empty')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('filter-age-any'));
+    expect(screen.getByTestId('mystery-signal-lost')).toBeTruthy();
   });
 
   it('opens Create Room: the server room code, live players, and asks before closing', () => {
@@ -76,7 +100,7 @@ describe('Room Riddle TV shell', () => {
   it('lists all mysteries and opens The Last Train details', () => {
     const screen = render(<App />);
     fireEvent.press(screen.getByTestId('home-mysteries'));
-    expect(screen.getByText('CHOOSE YOUR MYSTERY')).toBeTruthy();
+    expect(screen.getByText('CHOOSE A CASE')).toBeTruthy();
     for (const mystery of mysteries) {
       expect(screen.getByTestId(`mystery-${mystery.id}`)).toBeTruthy();
     }
@@ -87,7 +111,7 @@ describe('Room Riddle TV shell', () => {
     expect(screen.getByText('2–6')).toBeTruthy();
 
     fireEvent.press(screen.getByTestId('details-back'));
-    expect(screen.getByText('CHOOSE YOUR MYSTERY')).toBeTruthy();
+    expect(screen.getByText('CHOOSE A CASE')).toBeTruthy();
     fireEvent.press(screen.getByTestId('mysteries-back'));
     expect(screen.getByTestId('home-mysteries')).toBeTruthy();
   });
@@ -144,7 +168,7 @@ describe('remote Back button', () => {
     fireEvent.press(screen.getByTestId('home-mysteries'));
     fireEvent.press(screen.getByTestId('mystery-the-last-train'));
     expect(back()).toBe(true);
-    expect(screen.getByText('CHOOSE YOUR MYSTERY')).toBeTruthy();
+    expect(screen.getByText('CHOOSE A CASE')).toBeTruthy();
     expect(back()).toBe(true);
     expect(screen.getByTestId('home-mysteries')).toBeTruthy();
   });

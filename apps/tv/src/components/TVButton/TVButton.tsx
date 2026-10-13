@@ -25,6 +25,10 @@ export interface TVButtonProps {
   disabled?: boolean;
   accessibilityLabel?: string;
   accessibilityHint?: string;
+  /** Row width for a menu row (default 640). The focus frame follows it. */
+  width?: number;
+  /** A small action (filter chips): shorter, no minimum width. */
+  compact?: boolean;
   testID?: string;
 }
 
@@ -48,6 +52,8 @@ export const TVButton = ({
   disabled,
   accessibilityLabel,
   accessibilityHint,
+  width,
+  compact,
   testID,
 }: TVButtonProps) => {
   const [focused, setFocused] = useState(false);
@@ -89,19 +95,21 @@ export const TVButton = ({
       accessibilityHint={accessibilityHint}
       accessibilityState={{selected: focused, disabled: !!disabled}}
       testID={testID}>
-      <Animated.View style={{transform: [{scale}]}}>
+      <Animated.View style={{transform: [{scale}], alignSelf: 'flex-start'}}>
         <View
           style={[
             styles.base,
             isMenu ? styles.menu : styles.action,
             isMenu ? (fill ? styles.menuFocused : styles.menuIdle) : fill ? (tone === 'danger' ? styles.actionDanger : styles.actionFocused) : tone === 'primary' ? styles.actionPrimary : styles.actionIdle,
             disabled && styles.disabled,
+            isMenu && width !== undefined && {width},
+            !isMenu && compact && styles.compact,
           ]}>
           {isMenu && (
             <Animated.Text style={[styles.marker, {opacity: progress, transform: [{translateX: markerShift}]}]}>▶</Animated.Text>
           )}
           <View style={isMenu ? styles.menuText : undefined}>
-            <Text style={[theme.text.button, isMenu ? styles.menuLabel : styles.actionLabel, {color: labelColor}]} numberOfLines={1}>
+            <Text style={[theme.text.button, isMenu ? styles.menuLabel : styles.actionLabel, compact && styles.compactLabel, {color: labelColor}]} numberOfLines={1}>
               {label.toUpperCase()}
             </Text>
             {caption !== undefined && isMenu && (
@@ -147,6 +155,15 @@ const styles = StyleSheet.create({
     height: px(76),
     paddingHorizontal: theme.spacing.lg,
     justifyContent: 'center',
+  },
+  compact: {
+    minWidth: 0,
+    height: px(56),
+    paddingHorizontal: theme.spacing.md,
+  },
+  compactLabel: {
+    fontSize: px(22),
+    letterSpacing: px(2),
   },
   actionIdle: {
     borderColor: theme.colors.border,

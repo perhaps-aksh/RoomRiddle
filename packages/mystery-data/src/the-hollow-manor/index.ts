@@ -11,6 +11,8 @@ export const theHollowManor: MysterySummary = {
   title: 'The Hollow Manor',
   tagline: 'No one left the room. So where did he go?',
   genre: 'Detective',
+  ageGroup: 'teens',
+  storyType: 'gothic',
   synopsis:
     'During a storm, historian Edmund Vale vanishes from his study, locked from the inside. ' +
     'A family document is missing too. Find out how he left, and why.',

@@ -27,7 +27,15 @@ export interface MysterySummary {
   /** Optional large background motif, e.g. "11:47". */
   motif?: string;
   availability: MysteryAvailability;
+  /** Library filter: who it is written for. */
+  ageGroup: AgeGroup;
+  /** Library filter: the kind of story. */
+  storyType: StoryType;
 }
+
+/** `all` = all ages, `family` = ages 8+ with grown-ups, `teens` = teens & adults. */
+export type AgeGroup = 'all' | 'family' | 'teens';
+export type StoryType = 'thriller' | 'gothic' | 'tech' | 'adventure' | 'riddle';
 
 /** Something that must be true before a clue or puzzle becomes available. */
 export interface Requirement {

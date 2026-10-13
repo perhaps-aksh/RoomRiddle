@@ -11,6 +11,8 @@ export const theYakshasQuestions: MysterySummary = {
   title: "The Yaksha's Three Questions",
   tagline: 'A guardian, a lake, and three questions.',
   genre: 'All ages',
+  ageGroup: 'all',
+  storyType: 'riddle',
   synopsis:
     'At sunrise, travellers reach a quiet forest lake. A calm guardian, the Yaksha, ' +
     'asks three questions. Observe, think, and answer together.',

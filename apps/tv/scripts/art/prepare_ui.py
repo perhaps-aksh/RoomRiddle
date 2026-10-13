@@ -65,6 +65,12 @@ def main():
         card = cover(im, 624, 300)
         card = shade(card, lambda x, y: 0.95 - 0.3 * np.clip((y - 0.7) / 0.3, 0, 1))
         card.save(OUT / 'cards' / f'{mystery_id}.jpg', quality=84, optimize=True)
+    # Detective Grace for Home: the full figure, trimmed, 900 px tall, transparent.
+    grace = Image.open(src / 'shared.grace.full.png').convert('RGBA')
+    grace = grace.crop(grace.getchannel('A').point(lambda v: 255 if v > 12 else 0).getbbox())
+    grace = grace.resize((round(grace.width * 900 / grace.height), 900), Image.LANCZOS)
+    grace.save(OUT / 'grace.png', optimize=True)
+    print('grace.png', grace.size)
     for p in sorted(OUT.rglob('*.jpg')):
         print(p.relative_to(OUT), round(p.stat().st_size / 1024), 'KB')
 

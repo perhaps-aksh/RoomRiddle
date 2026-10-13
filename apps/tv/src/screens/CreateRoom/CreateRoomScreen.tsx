@@ -8,6 +8,7 @@ import {TVButton} from '../../components/TVButton/TVButton';
 import {findMystery} from '../../data/mysteries';
 import {useGame} from '../../game/GameContext';
 import {useBackInterceptor} from '../../navigation/useBackInterceptor';
+import {useSettings} from '../../settings/SettingsContext';
 import {px, theme} from '../../theme/theme';
 import {Feedback} from '../../ui/Feedback';
 import {LoadingState} from '../../ui/LoadingState';
@@ -32,14 +33,19 @@ export const CreateRoomScreen = ({navigator, selectedMysteryId}: ScreenProps) =>
   const [refusal, setRefusal] = useState<{title: string; detail: string; key: number} | null>(null);
   const mystery = findMystery(selectedMysteryId);
   const requested = useRef(false);
+  const {settings, update} = useSettings();
 
   // One room per visit. Opening the screen creates it; leaving closes it.
   useEffect(() => {
     if (!requested.current) {
       requested.current = true;
       createRoom(selectedMysteryId);
+      // Having opened a room, this TV knows how it works: Home shows tonight's case from now on.
+      if (!settings.onboarded) {
+        update({onboarded: true});
+      }
     }
-  }, [createRoom, selectedMysteryId]);
+  }, [createRoom, selectedMysteryId, settings.onboarded, update]);
 
   // The server started the game (our START_GAME, or a replay): go play.
   const started = view.room?.status === 'playing' && state !== null;
@@ -150,7 +156,7 @@ export const CreateRoomScreen = ({navigator, selectedMysteryId}: ScreenProps) =>
         ) : (
           <>
             <View style={styles.feedbackSlot} testID="room-notice">
-              {refusal && <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} />}
+              {refusal && <Feedback kind="failure" title={refusal.title} detail={refusal.detail} playKey={refusal.key} autoHideMs={0} />}
             </View>
             <View style={styles.actionRow}>
               <TVButton

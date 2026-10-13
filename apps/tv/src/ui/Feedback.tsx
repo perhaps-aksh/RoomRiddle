@@ -24,7 +24,16 @@ export interface FeedbackProps {
   /** Changing this key replays the animation (e.g. per attempt). */
   playKey?: string | number;
   layout?: 'banner' | 'stack';
+  /**
+   * Fades out after this long (ms) so notices never linger on screen. 0 keeps
+   * it (for refusals the player must act on). Default: 5 s, longer for long text.
+   */
+  autoHideMs?: number;
   testID?: string;
+}
+
+export function feedbackHoldMs(title: string, detail?: string): number {
+  return Math.min(9000, 4000 + (title.length + (detail?.length ?? 0)) * 35);
 }
 
 /**
@@ -33,7 +42,7 @@ export interface FeedbackProps {
  * short horizontal shake ("that doesn't fit"); hints unfold. Each replays when
  * `playKey` changes, so a second wrong answer still registers.
  */
-export const Feedback = ({kind, title, detail, amount, playKey, layout = 'banner', testID}: FeedbackProps) => {
+export const Feedback = ({kind, title, detail, amount, playKey, layout = 'banner', autoHideMs, testID}: FeedbackProps) => {
   const reduced = useReducedMotion();
   const [progress] = useState(() => new Animated.Value(0));
   const [shake] = useState(() => new Animated.Value(0));
@@ -46,9 +55,12 @@ export const Feedback = ({kind, title, detail, amount, playKey, layout = 'banner
       kind === 'failure' && !reduced
         ? Animated.sequence([1, -1, 0.6, -0.4, 0].map(v => timing(shake, v, 'press', false)))
         : null;
-    const all = shakes ? Animated.parallel([enter, shakes]) : enter;
+    const shown = shakes ? Animated.parallel([enter, shakes]) : enter;
+    const hold = autoHideMs ?? feedbackHoldMs(title, detail);
+    const all = hold > 0 ? Animated.sequence([shown, Animated.delay(hold), timing(progress, 0, 'modalExit', reduced)]) : shown;
     all.start();
     return () => all.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kind, playKey, progress, shake, reduced]);
 
   const look = LOOK[kind];

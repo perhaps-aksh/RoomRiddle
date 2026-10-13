@@ -6,6 +6,9 @@ import type {ImageSourcePropType} from 'react-native';
  */
 export const homeArt: ImageSourcePropType = require('../assets/ui/home.jpg');
 export const libraryArt: ImageSourcePropType = require('../assets/ui/library.jpg');
+/** Detective Grace, full figure (900 px tall, transparent). */
+export const graceArt: ImageSourcePropType = require('../assets/ui/grace.png');
+export const GRACE_ASPECT = 0.5;
 
 const cards: Readonly<Record<string, ImageSourcePropType>> = {
   'the-last-train': require('../assets/ui/cards/the-last-train.jpg'),

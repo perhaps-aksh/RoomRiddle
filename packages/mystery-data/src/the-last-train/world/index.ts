@@ -38,17 +38,23 @@ const TRAIN_NODE: WorldNode = {id: 'train', assetId: 'last-train.train', x: TRAI
 const STATION_BACKDROP: WorldNode[] = [
   {id: 'sky', assetId: 'last-train.sky', x: -340, y: -60},
   {id: 'city', assetId: 'last-train.city', x: -740, y: 430},
-  {id: 'station', assetId: 'last-train.station.background', x: -40, y: 120},
-  {id: 'tracks', assetId: 'last-train.tracks', x: -1840, y: 960, z: -2},
+  // Raised so the booking-hall windows (and the clock in one) show above the train's roof.
+  {id: 'station', assetId: 'last-train.station.background', x: -40, y: 40},
+  // Ballast + rails: the ground under the train, so no sky shows below the platform in any shot.
+  {id: 'tracks', assetId: 'last-train.tracks', x: -1840, y: 790, z: -2},
   {id: 'platform', assetId: 'last-train.station.platform', x: -1840, y: 990, z: 1},
-  {id: 'lamp-1', assetId: 'last-train.station.lights', x: 180, y: 440, z: 2},
-  {id: 'lamp-2', assetId: 'last-train.station.lights', x: 1320, y: 440, z: 2},
-  {id: 'lamp-3', assetId: 'last-train.station.lights', x: 2420, y: 440, z: 2},
+  // The camera follows the arriving train far to the left: the ground continues there too.
+  {id: 'tracks-west', assetId: 'last-train.tracks', x: -7440, y: 790, z: -2},
+  {id: 'platform-west', assetId: 'last-train.station.platform', x: -7440, y: 990, z: 1},
+  {id: 'lamp-1', assetId: 'last-train.station.lights', x: 600, y: 440, z: 2},
+  {id: 'lamp-2', assetId: 'last-train.station.lights', x: 1500, y: 440, z: 2},
+  {id: 'lamp-3', assetId: 'last-train.station.lights', x: 2480, y: 440, z: 2},
   {id: 'pole-1', assetId: 'last-train.foreground.pole', x: -60, y: -40},
   {id: 'pole-2', assetId: 'last-train.foreground.pole', x: 1980, y: -40},
 ];
 
-const DETECTIVE_ON_PLATFORM: WorldNode = {id: 'detective-spot', assetId: 'last-train.detective', x: 1560, y: 560, depth: 0.82, z: 4};
+// Feet on the platform (its edge is at y 990 in the 0.75 plane).
+const DETECTIVE_ON_PLATFORM: WorldNode = {id: 'detective-spot', assetId: 'last-train.detective', x: 1580, y: 625, width: 166, height: 390, depth: 0.82, z: 4};
 
 /**
  * Where the camera rests when players have control: lifted a little, so
@@ -111,16 +117,21 @@ const stationSet: WorldSet = {
     DOOR_NODE,
     {id: 'bench', assetId: 'last-train.bench', x: 700, y: 900, z: 1},
     // Sits exactly over the clock painted on the tower (station art px 338,229, ⌀145).
-    {id: 'clock', assetId: 'last-train.clock', x: 175, y: 226, width: 246, height: 246},
-    {id: 'notice', assetId: 'last-train.notice', x: 230, y: 430},
-    // Hangs over the clock painted in the booking hall's middle window (station art px 887,565).
-    {id: 'waiting-clock', assetId: 'last-train.waiting-room-clock', x: 802, y: 640},
+    {id: 'clock', assetId: 'last-train.clock', x: 175, y: 146, width: 246, height: 246},
+    // Pinned on the tower, under the clock.
+    {id: 'notice', assetId: 'last-train.notice', x: 208, y: 405},
+    // Over the clock painted in the booking hall's middle window (station art px 887,565).
+    // Background layer: the train passes in front of it, never behind it.
+    {id: 'waiting-clock', assetId: 'last-train.waiting-room-clock', x: 802, y: 560, layer: 'background', z: 5},
     {id: 'suitcase', assetId: 'last-train.suitcase', x: 300, y: 880},
     {id: 'newspaper', assetId: 'last-train.newspaper', x: 780, y: 868},
+    // Ned Hollis waits by the carriages, cap in hand.
+    {id: 'driver', assetId: 'last-train.driver', x: 1150, y: 625, width: 166, height: 390, z: 3},
     DETECTIVE_ON_PLATFORM,
   ],
   objects: [
-    {id: 'obj-clock', nodeId: 'clock', name: 'Platform clock', interaction: 'inspect', clueId: 'platform-clock', inspectZoom: 1.9},
+    // Focus hugs the dial (centre 298,269, ⌀145), not the tower stonework around it.
+    {id: 'obj-clock', nodeId: 'clock', name: 'Platform clock', interaction: 'inspect', clueId: 'platform-clock', inspectZoom: 1.9, bounds: {x: 222, y: 193, width: 152, height: 152}},
     {id: 'obj-notice', nodeId: 'notice', name: 'Company notice', interaction: 'read', clueId: 'company-notice', inspectZoom: 2.1},
     {id: 'obj-waiting-clock', nodeId: 'waiting-clock', name: 'Waiting room clock', interaction: 'inspect', clueId: 'waiting-room-clock', inspectZoom: 2.2},
     {
@@ -153,7 +164,8 @@ const vestibuleSet: WorldSet = {
   label: 'Carriage C, inside the door',
   nodes: [
     {id: 'vestibule', assetId: 'last-train.train.vestibule', x: -140, y: 0},
-    {id: 'detective-spot', assetId: 'last-train.detective', x: 1180, y: 470, depth: 0.8, z: 2},
+    // Inside, the camera is close: the cast stands larger, feet on the vestibule floor.
+    {id: 'detective-spot', assetId: 'last-train.detective', x: 1150, y: 330, width: 290, height: 680, depth: 0.8, z: 2},
   ],
   objects: [],
   camera: {x: 0, y: 0, zoom: 1},
@@ -167,9 +179,12 @@ const trainSet: WorldSet = {
   nodes: [
     ...STATION_BACKDROP,
     TRAIN_NODE,
-    {id: 'departure-board', assetId: 'last-train.departure-board', x: 1320, y: 260},
-    {id: 'carriage-plan', assetId: 'last-train.carriage-plan', x: TRAIN_STOP_X + BOARDING_DOOR.x + 140, y: TRAIN_Y + 130, depth: TRAIN_DEPTH, z: 2},
+    // Hangs from the canopy on the platform side, in front of the booking hall.
+    {id: 'departure-board', assetId: 'last-train.departure-board', x: 800, y: 430, depth: 0.75, z: 2},
+    // On the carriage side, below the windows (the painted train fills the bottom 253 px of its box).
+    {id: 'carriage-plan', assetId: 'last-train.carriage-plan', x: TRAIN_STOP_X + BOARDING_DOOR.x + 140, y: TRAIN_Y + 175, width: 96, height: 120, depth: TRAIN_DEPTH, z: 2},
     {id: 'ticket', assetId: 'last-train.ticket', x: 1180, y: 940},
+    {id: 'driver', assetId: 'last-train.driver', x: 300, y: 625, width: 166, height: 390, z: 3},
     DETECTIVE_ON_PLATFORM,
   ],
   objects: [
@@ -186,19 +201,23 @@ const trainSet: WorldSet = {
 const corridorSet: WorldSet = {
   id: 'corridor',
   label: 'Carriage C, the sleeper corridor',
+  // The painting is the set: objects are focus spots over what is painted (art px = node + 380, 20).
   nodes: [
-    {id: 'interior', assetId: 'last-train.train.interior', x: -240, y: -20},
-    {id: 'seat-seven', assetId: 'last-train.carriage.props', x: 180, y: 620},
-    {id: 'seat-eight', assetId: 'last-train.carriage.props', x: 1260, y: 620},
-    {id: 'ledger', assetId: 'last-train.ledger', x: 300, y: 660, z: 2},
-    {id: 'pocket-watch', assetId: 'last-train.pocket-watch', x: 420, y: 870, z: 2},
-    {id: 'seat-card', assetId: 'last-train.seat-card', x: 1420, y: 560, z: 2},
-    // The brake painted on the corridor wall (interior art px 922–1062 × 275–612) is the object: an invisible hotspot over it.
-    {id: 'brake', assetId: 'last-train.brake', x: 682, y: 255, depth: 0.35, visible: false},
-    {id: 'detective-spot', assetId: 'last-train.detective', x: 1640, y: 470, depth: 0.82, z: 4},
+    {id: 'interior', assetId: 'last-train.train.interior', x: -380, y: -20},
+    // Left on the brass rail ledge under the window.
+    {id: 'ledger', assetId: 'last-train.ledger', x: 220, y: 740, width: 300, height: 100, depth: 0.35, visible: false},
+    // A brass glint on the corridor runner, by compartment seven.
+    {id: 'pocket-watch', assetId: 'last-train.pocket-watch', x: 1110, y: 790, width: 120, height: 80, depth: 0.35, visible: false},
+    // The brass plate on compartment eight's door.
+    {id: 'seat-card', assetId: 'last-train.seat-card', x: 1700, y: 185, width: 130, height: 100, depth: 0.35, visible: false},
+    // The emergency brake painted on the wall (art px 930–1060 × 280–610).
+    {id: 'brake', assetId: 'last-train.brake', x: 550, y: 260, width: 130, height: 330, depth: 0.35, visible: false},
+    // Voss waits down the corridor, feet on the runner, in the painting's perspective.
+    {id: 'voss', assetId: 'last-train.voss', x: 1290, y: 500, width: 150, height: 360, depth: 0.35, z: 3},
+    {id: 'detective-spot', assetId: 'last-train.detective', x: 1000, y: 490, width: 260, height: 640, depth: 0.35, z: 4},
   ],
   objects: [
-    {id: 'obj-watch', nodeId: 'pocket-watch', name: 'Beneath seat seven', interaction: 'inspect', clueId: 'pocket-watch', inspectZoom: 2},
+    {id: 'obj-watch', nodeId: 'pocket-watch', name: 'By compartment seven', interaction: 'inspect', clueId: 'pocket-watch', inspectZoom: 2},
     {id: 'obj-ledger', nodeId: 'ledger', name: "Conductor's ledger", interaction: 'open', clueId: 'conductors-ledger', inspectZoom: 2},
     {id: 'obj-seat-card', nodeId: 'seat-card', name: 'Seat eight', interaction: 'read', clueId: 'seat-eight-card', inspectZoom: 2.2},
     {id: 'obj-brake', nodeId: 'brake', name: 'Emergency brake', interaction: 'activate', clueId: 'wired-brake', inspectZoom: 1.8},
@@ -211,11 +230,14 @@ const corridorSet: WorldSet = {
 const signalBoxSet: WorldSet = {
   id: 'signal-box',
   label: 'The signal box',
+  // The lever frame and the lamp-room door are painted: focus spots sit over them (art px = node + 380, 20).
   nodes: [
-    {id: 'interior', assetId: 'last-train.signal-box.interior', x: -190, y: -20},
-    {id: 'lamp-room-door', assetId: 'last-train.lamp-room-door', x: 1480, y: 380},
-    {id: 'lever-frame', assetId: 'last-train.lever-frame', x: 300, y: 620},
-    {id: 'detective-spot', assetId: 'last-train.detective', x: 1180, y: 480, depth: 0.82, z: 4},
+    {id: 'interior', assetId: 'last-train.signal-box.interior', x: -380, y: -20},
+    {id: 'lever-frame', assetId: 'last-train.lever-frame', x: 90, y: 560, width: 1230, height: 360, depth: 0.35, visible: false},
+    {id: 'lamp-room-door', assetId: 'last-train.lamp-room-door', x: 1700, y: 240, width: 220, height: 600, depth: 0.35, visible: false},
+    // Tom Ashby by the lamp stand, feet on the boards.
+    {id: 'signalman', assetId: 'last-train.signalman', x: 1450, y: 440, width: 210, height: 520, depth: 0.35, z: 3},
+    {id: 'detective-spot', assetId: 'last-train.detective', x: 1060, y: 420, width: 260, height: 680, depth: 0.35, z: 4},
   ],
   objects: [
     {id: 'obj-levers', nodeId: 'lever-frame', name: 'Lever frame', interaction: 'inspect', clueId: 'blackwater-lever', inspectZoom: 1.5},

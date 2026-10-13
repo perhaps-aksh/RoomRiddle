@@ -37,15 +37,20 @@ SPEC = {
     'city': ('last-train/last-train.city.png', 3400, 360, 'band', {'from': 0.52, 'fade': 0.45}),
     'station.background': ('last-train/last-train.station.background.png', 1700, 760, 'cover', {'fade': 0.22}),
     'station.platform': ('last-train/last-train.station.platform.png', 5600, 320, 'tile', {}),
-    'tracks': ('last-train/last-train.tracks.png', 5600, 90, 'tile', {}),
+    'tracks': ('last-train/last-train.tracks.png', 5600, 260, 'trackbed', {}),
     'station.lights': ('last-train/last-train.station.lights.png', 90, 560, 'contain', {'align': 'bottom'}),
-    'foreground.pole': ('last-train/last-train.foreground.pole.png', 110, 1200, 'contain', {'align': 'bottom', 'stretch': True}),
+    'foreground.pole': ('last-train/last-train.foreground.pole.png', 240, 1200, 'contain', {'align': 'bottom'}),
     'bench': ('last-train/last-train.bench.png', 320, 120, 'contain', {'align': 'bottom'}),
-    'train': ('last-train/last-train.train.png', 2600, 380, 'contain', {'align': 'bottom', 'stretch': True}),
+    # True proportions (the painting is 10:1); it sits at the bottom of the 2600x380 box.
+    'train': ('last-train/last-train.train.png', 2600, 380, 'width', {}),
     'train.interior': ('last-train/last-train.train.interior.png', 2400, 1180, 'cover', {}),
     'train.vestibule': ('last-train/last-train.train.vestibule.png', 2200, 1080, 'cover', {}),
     'signal-box.interior': ('last-train/last-train.signal-box.interior.png', 2300, 1180, 'cover', {}),
-    'detective': ('shared/shared.grace.full.png', 240, 560, 'contain', {'align': 'bottom', 'scale': 2}),
+    'detective': ('shared/shared.grace.full.png', 200, 470, 'contain', {'align': 'bottom', 'scale': 2}),
+    # The rest of the cast, standing in the world (same scale as Grace).
+    'voss': ('last-train/characters/last-train.voss.neutral.png', 200, 470, 'contain', {'align': 'bottom', 'scale': 2}),
+    'driver': ('last-train/characters/last-train.driver.neutral.png', 200, 470, 'contain', {'align': 'bottom', 'scale': 2}),
+    'signalman': ('last-train/characters/last-train.signalman.nervous.png', 200, 470, 'contain', {'align': 'bottom', 'scale': 2}),
     'clock': ('last-train/last-train.clock.png', 200, 200, 'contain', {'scale': 2, 'face': {'cx': 101, 'cy': 101, 'd': 118}}),
     'notice': ('last-train/last-train.notice.png', 180, 120, 'contain', {'scale': 2}),
     'waiting-room-clock': ('last-train/last-train.waiting-room-clock.png', 90, 90, 'disc', {'scale': 3, 'at': (0.502, 0.445, 0.27), 'face': {'cx': 45, 'cy': 45, 'd': 62}}),
@@ -154,6 +159,37 @@ def save(im, path_stem):
     return p
 
 
+# Clue close-ups whose painted dials have no hands: (cx, cy, r) as fractions of
+# the image width (measured by eye), and the clue's time. They must match the world.
+CLOSEUP_HANDS = {
+    'platform-clock': ((0.44, 0.555, 0.235), (11, 59, None)),
+    'waiting-room-clock': ((0.505, 0.385, 0.2), (11, 53, 20)),
+    'pocket-watch': ((0.433, 0.506, 0.2), (11, 47, None)),
+}
+
+
+def draw_hands(im, at, time):
+    import math
+    from PIL import ImageDraw
+    k = 4  # supersample for smooth edges
+    layer = Image.new('RGBA', (im.width * k, im.height * k), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    cx, cy, r = at[0] * im.width * k, at[1] * im.width * k, at[2] * im.width * k
+    h, m, s = time
+    def hand(deg, length, width, color, tail=0.12):
+        a = math.radians(deg)
+        x2, y2 = cx + length * math.sin(a), cy - length * math.cos(a)
+        x1, y1 = cx - tail * length * math.sin(a), cy + tail * length * math.cos(a)
+        d.line((x1, y1, x2, y2), fill=color, width=max(1, int(width)))
+    ink = (24, 18, 14, 245)
+    hand(((h % 12) + m / 60) * 30, r * 0.52, r * 0.075, ink)
+    hand(m * 6, r * 0.8, r * 0.05, ink)
+    if s is not None:
+        hand(s * 6, r * 0.86, r * 0.02, (150, 30, 24, 235), tail=0.2)
+    d.ellipse((cx - r * 0.07, cy - r * 0.07, cx + r * 0.07, cy + r * 0.07), fill=(150, 112, 50, 255))
+    im.alpha_composite(layer.resize(im.size, Image.LANCZOS))
+
+
 def extras(src: Path):
     """Clue close-ups (shown on evidence cards) and speech-bubble portraits."""
     closeups = {
@@ -167,6 +203,8 @@ def extras(src: Path):
     for clue, name in closeups.items():
         im = trim(Image.open(src / f'last-train/closeups/last-train.{name}.closeup.png').convert('RGBA'))
         im.thumbnail((560, 400), Image.LANCZOS)
+        if clue in CLOSEUP_HANDS:
+            draw_hands(im, *CLOSEUP_HANDS[clue])
         im.save(d / f'{clue}.png', optimize=True)
         print(f'closeup {clue:20s} {im.size}')
     # Portraits: the head and shoulders of each expression, square.
@@ -226,6 +264,21 @@ def main():
             out = fade_top(tile(band, W, H), o['fade'])
         elif mode == 'tile':
             out = tile(im, W, H)
+        elif mode == 'trackbed':
+            # Rails along the bottom, dark ballast above: the ground between
+            # the station and the platform, so no sky shows under the train.
+            rails = tile(im, W, 90)
+            out = Image.new('RGB', (W, H), (14, 13, 13))
+            a = np.zeros((H - 90, W, 3), dtype=np.uint8)
+            g = np.linspace(9, 22, H - 90)[:, None, None]
+            a[:] = g.astype(np.uint8)
+            out.paste(Image.fromarray(a), (0, 0))
+            out.paste(rails, (0, H - 90))
+        elif mode == 'width':
+            im = trim(im.convert('RGBA'))
+            nh = round(im.height * W / im.width)
+            out = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+            out.alpha_composite(im.resize((W, nh), Image.LANCZOS), (0, H - nh))
         elif mode == 'disc':
             out = disc(im, W, H, o['at'])
         else:

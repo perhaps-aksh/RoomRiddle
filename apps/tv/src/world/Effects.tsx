@@ -176,7 +176,8 @@ export const Glow = ({x, y, radius, color = 'lampGlow', strength = 0.16, flicker
   }, [flicker, reduced, seed, v]);
   return (
     <Animated.View pointerEvents="none" style={[styles.abs, {left: px(x - radius), top: px(y - radius), width: px(radius * 2), height: px(radius * 2), opacity: v}]}>
-      {[1, 0.66, 0.36].map((k, i) => (
+      {/* Five soft steps read as a falloff, not as rings. */}
+      {[1, 0.8, 0.6, 0.42, 0.26].map((k, i) => (
         <View
           key={i}
           style={[styles.abs, {
@@ -186,7 +187,7 @@ export const Glow = ({x, y, radius, color = 'lampGlow', strength = 0.16, flicker
             height: px(radius * 2 * k),
             borderRadius: px(radius * k),
             backgroundColor: W[color],
-            opacity: strength,
+            opacity: strength * 0.62,
           }]}
         />
       ))}

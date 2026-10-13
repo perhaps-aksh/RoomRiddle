@@ -74,9 +74,9 @@
     "file": "tracks.jpg",
     "px": [
       5600,
-      90
+      260
     ],
-    "kb": 178
+    "kb": 203
   },
   "station.lights": {
     "file": "station.lights.png",
@@ -89,10 +89,10 @@
   "foreground.pole": {
     "file": "foreground.pole.png",
     "px": [
-      110,
+      240,
       1200
     ],
-    "kb": 102
+    "kb": 202
   },
   "bench": {
     "file": "bench.png",
@@ -108,7 +108,7 @@
       2600,
       380
     ],
-    "kb": 1470
+    "kb": 1074
   },
   "train.interior": {
     "file": "train.interior.jpg",
@@ -137,10 +137,10 @@
   "detective": {
     "file": "detective.png",
     "px": [
-      480,
-      1120
+      400,
+      940
     ],
-    "kb": 632
+    "kb": 452
   },
   "notice": {
     "file": "notice.png",
@@ -237,5 +237,29 @@
       440
     ],
     "kb": 192
+  },
+  "voss": {
+    "file": "voss.png",
+    "px": [
+      400,
+      940
+    ],
+    "kb": 441
+  },
+  "driver": {
+    "file": "driver.png",
+    "px": [
+      400,
+      940
+    ],
+    "kb": 531
+  },
+  "signalman": {
+    "file": "signalman.png",
+    "px": [
+      400,
+      940
+    ],
+    "kb": 454
   }
 }

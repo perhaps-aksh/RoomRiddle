@@ -111,14 +111,16 @@ const TRACKS = asset({
   group: 'environment',
   layer: 'midground',
   depth: 0.6,
-  size: {width: 5600, height: 90},
+  // Rails at the bottom, ballast above: also the ground between station and platform.
+  size: {width: 5600, height: 260},
   animation: 'none',
-  description: 'Rails and sleepers running the length of the platform.',
+  description: 'Rails and sleepers running the length of the platform, on dark ballast.',
   placeholder: [
-    r(0, 30, 5600, 60, 'iron'),
-    ...row(56, i => r(i * 100, 38, 60, 44, 'wood', {opacity: 0.7})),
-    r(0, 34, 5600, 8, 'rail'),
-    r(0, 70, 5600, 8, 'rail'),
+    r(0, 0, 5600, 260, 'coatDark'),
+    r(0, 200, 5600, 60, 'iron'),
+    ...row(56, i => r(i * 100, 208, 60, 44, 'wood', {opacity: 0.7})),
+    r(0, 204, 5600, 8, 'rail'),
+    r(0, 240, 5600, 8, 'rail'),
   ],
 });
 
@@ -132,7 +134,8 @@ const LAMP = asset({
   animation: 'triggered',
   animationNote: 'Lamp head glow flickers (effect: flicker). Final art: lamp without glow; glow stays procedural.',
   description: 'Cast-iron platform gas lamp.',
-  light: {x: 45, y: 50, radius: 170, color: 'lampGlow', strength: 0.14, flicker: true},
+  // Centred on the painted lamp head (measured: 45,97).
+  light: {x: 45, y: 97, radius: 120, color: 'lampGlow', strength: 0.14, flicker: true},
   placeholder: [r(38, 60, 14, 500, 'iron'), r(20, 20, 50, 60, 'ironLight', {radius: 8}), r(28, 30, 34, 40, 'lamp', {radius: 6, role: 'lamp-head'})],
 });
 
@@ -142,10 +145,10 @@ const POLE = asset({
   group: 'environment',
   layer: 'foreground',
   depth: 1,
-  size: {width: 110, height: 1200},
+  size: {width: 240, height: 1200},
   animation: 'none',
   description: 'Canopy column close to the camera, almost black.',
-  placeholder: [r(20, 0, 70, 1200, 'iron'), r(0, 0, 110, 60, 'iron')],
+  placeholder: [r(85, 0, 70, 1200, 'iron'), r(60, 0, 120, 60, 'iron')],
 });
 
 const BENCH = asset({
@@ -310,20 +313,32 @@ const DETECTIVE = asset({
   group: 'character',
   layer: 'character',
   depth: 0.8,
-  size: {width: 240, height: 560},
+  // Scaled to the train: a carriage side is ~250 px tall in its plane.
+  size: {width: 200, height: 470},
   animation: 'states',
   animationNote: 'Layers: shadow, body, coat, face, dialogue pose. States: enter, idle (breathing), talk, react, exit. Final: layered PNG/WebP parts or a short sprite per state.',
   description: 'The detective: long coat, hat brim low, seen from the side-back. Placeholder silhouette.',
-  placeholder: [
-    r(30, 530, 180, 30, 'shadow', {radius: 15, opacity: 0.5, role: 'shadow'}),
-    r(70, 250, 100, 280, 'coatDark', {radius: 12, role: 'legs'}),
-    r(50, 120, 140, 300, 'coat', {radius: 30, role: 'body'}),
-    r(96, 70, 56, 70, 'skin', {radius: 26, role: 'face'}),
-    r(64, 52, 120, 26, 'hat', {radius: 12, role: 'hat'}),
-    r(88, 20, 72, 44, 'hat', {radius: 14, role: 'hat'}),
-    r(50, 150, 140, 16, 'coatDark', {role: 'collar'}),
-  ],
+  placeholder: figure(),
 });
+
+/** A standing silhouette in a 200×470 box (fallback for any cast member). */
+function figure(coat: WorldColor = 'coat'): PlaceholderShape[] {
+  return [
+    r(25, 445, 150, 25, 'shadow', {radius: 12, opacity: 0.5, role: 'shadow'}),
+    r(58, 210, 84, 235, 'coatDark', {radius: 10, role: 'legs'}),
+    r(42, 100, 116, 250, coat, {radius: 26, role: 'body'}),
+    r(80, 58, 46, 58, 'skin', {radius: 22, role: 'face'}),
+    r(53, 44, 100, 22, 'hat', {radius: 10, role: 'hat'}),
+    r(73, 16, 60, 36, 'hat', {radius: 12, role: 'hat'}),
+  ];
+}
+
+const castMember = (id: string, description: string): AssetDefinition =>
+  asset({id, type: 'character', group: 'character', layer: 'interactive', depth: 0.82, size: {width: 200, height: 470}, animation: 'none', description, placeholder: figure('coatDark')});
+
+const VOSS = castMember('last-train.voss', 'Inspector R. Voss, Northern Railway Company: bowler hat, dark overcoat, standing.');
+const DRIVER = castMember('last-train.driver', 'Ned Hollis, engine driver: cap, soot-dark overalls, standing.');
+const SIGNALMAN = castMember('last-train.signalman', 'Tom Ashby, night signalman: waistcoat, lamp in hand, standing.');
 
 // ── Objects (interactive) ──────────────────────────────────────────────
 
@@ -583,6 +598,9 @@ const FINAL_ART: Readonly<Record<string, {source: string; overlay?: PlaceholderS
   'last-train.train.vestibule': {source: 'train.vestibule.jpg'},
   'last-train.signal-box.interior': {source: 'signal-box.interior.jpg'},
   'last-train.detective': {source: 'detective.png'},
+  'last-train.voss': {source: 'voss.png'},
+  'last-train.driver': {source: 'driver.png'},
+  'last-train.signalman': {source: 'signalman.png'},
   // Stopped at 11:59: twelve minutes fast, so the true moment is 11:47.
   'last-train.clock': {source: 'clock.png', overlay: hands({cx: 101, cy: 101, d: 118}, {hours: 11, minutes: 59})},
   'last-train.notice': {source: 'notice.png', overlay: row(5, i => r(34, 30 + i * 13, i === 2 ? 112 : 84 + ((i * 17) % 26), 4, 'ink', {opacity: 0.5}))},
@@ -637,6 +655,9 @@ export const lastTrainManifest: AssetManifest = {
     TRAIN_INTERIOR,
     VESTIBULE,
     DETECTIVE,
+    VOSS,
+    DRIVER,
+    SIGNALMAN,
     CLOCK,
     NOTICE,
     WAITING_CLOCK,

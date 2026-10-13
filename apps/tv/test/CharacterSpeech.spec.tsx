@@ -33,8 +33,8 @@ afterEach(() => jest.useRealTimers());
 test('helpers: initials drop titles, hold time scales with the line, http base from the socket URL', () => {
   expect(initials('Inspector R. Voss')).toBe('RV');
   expect(initials('The Yaksha')).toBe('Y');
-  expect(holdMsFor('short')).toBe(5000);
-  expect(holdMsFor('x'.repeat(1000))).toBe(16000);
+  expect(holdMsFor('short')).toBe(7000);
+  expect(holdMsFor('x'.repeat(1000))).toBe(18000);
   expect(httpBase('ws://10.0.2.2:4000/ws')).toBe('http://10.0.2.2:4000');
   expect(httpBase('wss://rr.example/ws')).toBe('https://rr.example');
 });

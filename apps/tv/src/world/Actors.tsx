@@ -44,18 +44,12 @@ export const TrainView = memo(
     const steam = (effects.steam ?? false) && steaming(state);
     const moving = state === 'approaching' || state === 'arriving' || state === 'departing' || state === 'far';
     // Painted trains have their own windows and doors: the procedural leaves and
-    // window boxes are skipped, and the open door shows as light spilling out.
+    // window boxes are skipped (its doors are painted).
     const painted = assetRegistry.resolve(def.assetId, assetLoader.isLoaded).kind === 'image';
     if (painted) {
-      const door = doorShapes.find(s => s.role === 'door-left');
       return (
         <Animated.View pointerEvents="none" style={[styles.train, {top: px(y), width: px(width), height: px(height), transform: [{translateX: Animated.multiply(x, PX_SCALE)}]}]}>
           <AssetView assetId={def.assetId} width={width} height={height} />
-          {door && doorway && (
-            <Animated.View style={[styles.abs, {left: px(door.x), top: px(door.y), opacity: doors.interpolate({inputRange: [0, 1], outputRange: [0, 0.3]})}]}>
-              <AssetView assetId={doorway.id} width={door.w * 2} height={door.h} />
-            </Animated.View>
-          )}
           {lights && (
             <>
               <Glow x={width - 40} y={140} radius={90} color="headlight" strength={0.22} flicker={false} reduced={reduced} />

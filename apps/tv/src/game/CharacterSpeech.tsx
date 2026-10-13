@@ -11,7 +11,8 @@ import {useGame} from './GameContext';
 export const VOICE_WAIT_MS = 3500;
 /** On screen for about as long as it takes to say, within limits. */
 export function holdMsFor(text: string): number {
-  return Math.min(16_000, Math.max(5000, 2200 + text.length * 70));
+  // Long enough to read from the couch while the voice plays (≈ 14 characters a second, plus a beat).
+  return Math.min(18_000, Math.max(7000, 3000 + text.length * 75));
 }
 
 export function initials(name: string): string {
@@ -173,8 +174,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: theme.spacing.screenX,
     right: theme.spacing.screenX,
-    // Above the footer line most screens keep at the bottom edge.
-    bottom: theme.spacing.screenY + px(84),
+    // Clear of the world's action bar (top edge ~850) and every screen's footer row.
+    bottom: px(250),
     // Right side: screens keep their primary buttons bottom-left, so the bubble never covers focus.
     alignItems: 'flex-end',
   },

@@ -1,0 +1,18 @@
+name: Feature or case idea
+description: Suggest a feature, an improvement or a new mystery
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Who it helps and why
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else (sketches, references)

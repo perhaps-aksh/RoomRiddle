@@ -1,7 +1,8 @@
 schema-version = 1
 
 [package]
-title = "Basic UI React Native Application for project roomriddletv"
+title = "Room Riddle"
+icon = "@image/roomriddle_icon.png"
 version = "0.1.0"
 id = "com.roomriddle.tv"
 

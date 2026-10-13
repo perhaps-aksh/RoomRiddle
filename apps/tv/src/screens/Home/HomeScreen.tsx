@@ -68,7 +68,7 @@ export const HomeScreen = ({navigator, initialFocusKey, selectedMysteryId}: Scre
         <View style={styles.wordRow}>
           <View style={styles.wordRule} />
           <Text style={styles.wordmark} accessibilityRole="header">
-            ROOMRIDDLE
+            ROOM RIDDLE
           </Text>
           <View style={styles.wordRule} />
         </View>
@@ -79,7 +79,7 @@ export const HomeScreen = ({navigator, initialFocusKey, selectedMysteryId}: Scre
         {confirmExit ? (
           <Transition preset="scale" motion="modalEnter" style={styles.confirm}>
             <Text style={styles.confirmLabel}>CONFIRM</Text>
-            <Text style={styles.confirmText}>Leave RoomRiddle?</Text>
+            <Text style={styles.confirmText}>Leave Room Riddle?</Text>
             <View style={styles.confirmRow}>
               <TVButton variant="action" tone="primary" label="Stay" onPress={() => setConfirmExit(false)} preferredFocus testID="home-exit-stay" />
               <TVButton variant="action" tone="danger" label="Exit" onPress={() => BackHandler.exitApp()} testID="home-exit-confirm" />

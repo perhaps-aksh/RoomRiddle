@@ -15,6 +15,7 @@
   "dependencies": {
     "@roomriddle/client": "*",
     "@roomriddle/game-engine": "*",
+    "@roomriddle/scene": "*",
     "@roomriddle/mystery-data": "*",
     "@roomriddle/shared-types": "*",
     "msedge-tts": "^2.0.9",

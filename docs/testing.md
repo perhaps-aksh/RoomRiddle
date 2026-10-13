@@ -16,7 +16,24 @@ Test files sit next to the code as `*.test.ts`.
 - **Server:** room create/join, intent validation, broadcasts, reconnection, and making sure clients can't claim results.
 - **TV:** remote-only navigation walkthroughs on the Vega Virtual Device (manual checklist per milestone, automated where Vega tooling allows).
 
-## Current coverage (Phase 6)
+## Totals (2026-10-12)
+| Suite | Tests |
+|---|---|
+| `game-engine` | 58 |
+| `mystery-data` (validation + automatic playthrough of all five cases) | 22 |
+| `scene` | 52 |
+| `client` | 19 |
+| `ui` | 4 |
+| `server` (rooms, multiplayer, AI prompt/guard/fallback/service, voices, HTTP) | 78 |
+| `player` | 11 |
+| **Root `npm run check`** | **244** |
+| TV, Jest (`apps/tv/scripts/wsl-check.sh`) | 75 |
+
+CI (`.github/workflows/ci.yml`) runs `npm run check` on every push to `main` and every pull request, with `AI_DISABLED=1` and `VOICES_DISABLED=1`, so no keys or network are needed. The AI tests use fake providers. The TV suite needs the Vega SDK and runs locally.
+
+The sections below record coverage as it grew, phase by phase.
+
+## Coverage at Phase 6
 - **`game-engine` (55) and `mystery-data` (14):** the Phase 3 engine and The Last Train.
 - **`server` (43):**
   - `RoomManager.test.ts`: codes, join rules, name rules, limits, host-only start, the reconnect seat, token checks, lobby expiry, host pause/resume/timeout, and the action log.

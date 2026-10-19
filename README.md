@@ -228,7 +228,7 @@ The full technical reference is in **[docs/system-design.md](docs/system-design.
 
 ## ✦ Quality
 
-- **About 325 automated tests:** 58 engine, 22 content, 52 scene, 19 client, 4 UI tokens, 78 server, 11 phone and 80 TV.
+- **331 automated tests:** 58 engine, 22 content, 52 scene, 19 client, 4 UI tokens, 79 server, 12 phone and 85 TV.
 - **Every case is played to the end automatically.** Content validation fails the build on unreachable scenes, broken references, puzzles that need clues from later scenes, and spoilers that could never unlock.
 - **Spoiler-attack tests** run against the AI guard and the prompt builder.
 - **Scripted device QA:** the Vega Virtual Device is driven with remote key presses and screenshots, with an audio trace sink.

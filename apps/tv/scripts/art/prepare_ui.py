@@ -42,8 +42,31 @@ def shade(im, f):
     return Image.fromarray(np.clip(a * m[..., None], 0, 255).astype(np.uint8))
 
 
+def procedural_desk(w=1920, h=1080):
+    """Stand-in desk until painted art (shared.desk.png) arrives: dark walnut
+    with grain, a green felt blotter in the middle, vignette."""
+    rng = np.random.default_rng(7)
+    ys, xs = np.mgrid[0:h, 0:w] / np.array([h, w])[:, None, None]
+    # Fine, irregular grain along the boards: warped high-frequency bands plus noise.
+    warp = np.sin(xs * 7.0 + ys * 3.0) * 0.004 + np.sin(xs * 23.0) * 0.0015
+    grain = (np.sin((ys + warp) * 900) * 0.5 + np.sin((ys + warp * 2) * 2300) * 0.3 + 1) / 2
+    grain = 0.75 * grain + 0.25 * rng.random((h, w))
+    wood = np.stack([48 + 16 * grain, 30 + 10 * grain, 18 + 6 * grain], -1)
+    felt = np.array([30, 46, 38]) + rng.normal(0, 3, (h, w, 1))
+    inside = (xs > 0.06) & (xs < 0.94) & (ys > 0.1) & (ys < 0.9)
+    a = np.where(inside[..., None], felt, wood)
+    edge = ((np.abs(xs - 0.06) < 0.003) | (np.abs(xs - 0.94) < 0.003)) & (ys > 0.1) & (ys < 0.9) | ((np.abs(ys - 0.1) < 0.005) | (np.abs(ys - 0.9) < 0.005)) & (xs > 0.06) & (xs < 0.94)
+    a[edge] = [150, 118, 64]
+    vign = 1 - 0.55 * (((xs - 0.5) / 0.7) ** 2 + ((ys - 0.5) / 0.7) ** 2)
+    return Image.fromarray(np.clip(a * vign[..., None], 0, 255).astype(np.uint8))
+
+
 def main():
     src = Path(sys.argv[1]) / 'shared'
+    # Puzzle desk: painted art when supplied, else the procedural stand-in.
+    desk = src / 'shared.desk.png'
+    (cover(Image.open(desk).convert('RGB'), 1920, 1080) if desk.exists() else procedural_desk()).save(OUT / 'desk.jpg', quality=86)
+    print('desk.jpg', 'painted' if desk.exists() else 'procedural')
     (OUT / 'cards').mkdir(parents=True, exist_ok=True)
 
     # Home: the menu sits in the centre, so the middle is darkened most; the street stays visible at the edges.

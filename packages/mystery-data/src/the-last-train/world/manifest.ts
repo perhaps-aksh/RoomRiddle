@@ -124,6 +124,23 @@ const TRACKS = asset({
   ],
 });
 
+/**
+ * Dark ground below the platform edge, on the platform's plane. Close-ups of
+ * low objects (the ticket, the carriage plan) zoom past the platform's lower
+ * edge; this keeps the night sky from ever showing there. Procedural on purpose.
+ */
+const GROUND = asset({
+  id: 'last-train.ground',
+  type: 'background',
+  group: 'environment',
+  layer: 'midground',
+  depth: 0.75,
+  size: {width: 5600, height: 1400},
+  animation: 'none',
+  description: 'Dark wet ground under the platform edge (never the focus of a shot).',
+  placeholder: [r(0, 0, 5600, 1400, 'coatDark')],
+});
+
 const LAMP = asset({
   id: 'last-train.station.lights',
   type: 'object',
@@ -644,6 +661,7 @@ export const lastTrainManifest: AssetManifest = {
     STATION,
     PLATFORM,
     TRACKS,
+    GROUND,
     LAMP,
     POLE,
     BENCH,

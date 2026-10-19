@@ -365,7 +365,7 @@ describe('voice ducking through the game (Step 3)', () => {
     expect(traceLines.filter(l => l.kind === 'state').pop()!.msg).toContain('voice=-');
   }, 60_000);
 
-  it('a voice line with no file: no duck, the subtitle text still shows, the game goes on', async () => {
+  it('a voice line with no file: spoken by TTS (ducked), the subtitle text still shows, the game goes on', async () => {
     delete (bundledAudio as Record<string, number>)['last-train.vo.react-clock'];
     try {
       const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
@@ -385,11 +385,15 @@ describe('voice ducking through the game (Step 3)', () => {
       await run(100);
       expect(screen.getByTestId('world-dialogue')).toBeTruthy();
       expect(screen.getByText(/Eleven fifty-nine/)).toBeTruthy();
-      expect(volOf('last-train.music.investigation')).toBeCloseTo(full, 5);
+      // No recorded take: the server speaks the subtitle (TTS), so the music ducks under it.
+      expect(volOf('last-train.music.investigation')!).toBeLessThan(full);
       await closeDialogue(screen);
       pressBack();
       await run(800);
       expect(screen.getByTestId('world-object-obj-clock').props.accessibilityLabel).toBe('Platform clock. Examined');
+      // Let the spoken subtitle's player finish releasing before the next test counts players.
+      screen.unmount();
+      await run(1000);
       warn.mockRestore();
     } finally {
       // afterEach restores the bundle.
@@ -489,6 +493,9 @@ describe('settings during play (Step 6)', () => {
 
 describe('lifecycle (Step 4)', () => {
   it('a station run, then leaving the mystery: every one-shot released; only the library\'s menu bed remains', async () => {
+    // Earlier tests in this file may still be tearing players down; count only this run.
+    const before = audioStats.created - audioStats.released - audioStats.active;
+    const errorsBefore = audioStats.errors;
     const screen = render(<App />);
     await run(100);
     await toStation(screen);
@@ -514,8 +521,8 @@ describe('lifecycle (Step 4)', () => {
     const live = liveIds();
     expect(live).toEqual(['core.music.menu']);
     // Counts: everything created is released except the one live bed.
-    expect(audioStats.created - audioStats.released).toBe(audioStats.active);
-    expect(audioStats.errors).toBe(0);
+    expect(audioStats.created - audioStats.released - audioStats.active).toBe(before);
+    expect(audioStats.errors).toBe(errorsBefore);
     console.log(`[LIFECYCLE] created=${audioStats.created} released=${audioStats.released} active=${audioStats.active} errors=${audioStats.errors} loops=${live.join(',')}`);
   }, 120_000);
 });

@@ -128,9 +128,9 @@ export const CharacterSpeech = () => {
     return (
       <View pointerEvents="none" style={styles.dock} testID="speech-thinking">
         <View style={[styles.bubble, styles.thinkingBubble]}>
+          <NamePlate name={thinker.name} />
           <Portrait characterId={thinker.id} name={thinker.name} pressed={false} />
           <View style={styles.body}>
-            <Text style={styles.name}>{thinker.name.toUpperCase()}</Text>
             <Text style={styles.asked}>{thinking!.askedBy ? `${thinking!.askedBy} asks…` : 'The TV asks…'}</Text>
             <Text style={styles.thinkingText}>is thinking…</Text>
           </View>
@@ -144,9 +144,9 @@ export const CharacterSpeech = () => {
   return (
     <Animated.View pointerEvents="none" style={[styles.dock, {opacity: fade}]} testID="speech-bubble">
       <View style={styles.bubble}>
+        <NamePlate name={reply.characterName} />
         <Portrait characterId={reply.characterId} name={reply.characterName} pressed={reply.evidenceClueId !== undefined} />
         <View style={styles.body}>
-          <Text style={styles.name}>{reply.characterName.toUpperCase()}</Text>
           <Text style={styles.asked} numberOfLines={1}>
             {reply.askedBy ?? 'TV'}: “{reply.question}”{evidence ? `  ·  shows ${evidence}` : ''}
           </Text>
@@ -158,6 +158,13 @@ export const CharacterSpeech = () => {
     </Animated.View>
   );
 };
+
+/** The speaker's name on a dark brass-edged plaque over the parchment. */
+const NamePlate = ({name}: {name: string}) => (
+  <View style={styles.plate}>
+    <Text style={styles.plateText}>{name.toUpperCase()}</Text>
+  </View>
+);
 
 /** Painted portrait (pressed when shown evidence), or initials for characters without art yet. */
 const Portrait = ({characterId, name, pressed}: {characterId: string; name: string; pressed: boolean}) => {
@@ -174,16 +181,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: theme.spacing.screenX,
     right: theme.spacing.screenX,
-    // Clear of the world's action bar (top edge ~850) and every screen's footer row.
-    bottom: px(250),
-    // Right side: screens keep their primary buttons bottom-left, so the bubble never covers focus.
-    alignItems: 'flex-end',
+    // Top-left, under the header: the bottom belongs to Grace's narration and the action bar,
+    // the right to the inspect panel, so a reply never covers either.
+    top: px(150),
+    alignItems: 'flex-start',
   },
   bubble: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     width: px(820),
-    paddingVertical: px(28),
+    paddingTop: px(40),
+    paddingBottom: px(28),
     paddingHorizontal: px(36),
     columnGap: px(32),
     backgroundColor: theme.colors.paper,
@@ -218,11 +226,22 @@ const styles = StyleSheet.create({
     flex: 1,
     rowGap: px(6),
   },
-  name: {
+  plate: {
+    position: 'absolute',
+    top: -px(24),
+    left: px(200),
+    paddingHorizontal: px(22),
+    paddingVertical: px(6),
+    backgroundColor: theme.colors.ink,
+    borderWidth: px(2),
+    borderColor: theme.colors.accent,
+    borderRadius: px(4),
+  },
+  plateText: {
     ...theme.text.label,
     fontSize: px(24),
-    letterSpacing: px(3),
-    color: theme.colors.ink,
+    letterSpacing: px(4),
+    color: theme.colors.accent,
   },
   asked: {
     ...theme.text.body,

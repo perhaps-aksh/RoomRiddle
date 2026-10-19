@@ -352,6 +352,17 @@ function initials(name: string): string {
   return name.replace(/^(Inspector|Detective|The)\s+/i, '').split(/\s+/).map(w => w[0] ?? '').join('').slice(0, 2).toUpperCase();
 }
 
+// "mysteryId/characterId" for every painted portrait, injected by build.mjs (empty in tests).
+declare const __PORTRAITS__: string[] | undefined;
+const PORTRAITS = new Set<string>(typeof __PORTRAITS__ !== 'undefined' ? __PORTRAITS__ : []);
+
+/** The painted portrait when the case has one, else initials on a disc. */
+export function avatar(mysteryId: string, c: {id: string; name: string}, big = false, portraits: ReadonlySet<string> = PORTRAITS): string {
+  const key = `${mysteryId}/${c.id}`;
+  const art = portraits.has(key) ? `<img src="/portraits/${esc(key)}.png" alt="" loading="lazy" />` : '';
+  return `<span class="avatar${big ? ' big' : ''}${art ? ' painted' : ''}" aria-hidden="true">${art || esc(initials(c.name))}</span>`;
+}
+
 /** Pick a person, ask in your own words, optionally show a found clue. Replies come from the server. */
 export function suspectsView(view: RoomView, ui: UiState): string {
   const mystery = view.mystery!;
@@ -369,7 +380,7 @@ export function suspectsView(view: RoomView, ui: UiState): string {
         .map(c => {
           const asked = view.conversation.filter(r => r.characterId === c.id).length;
           return `<li><button class="cast-card" data-suspect="${esc(c.id)}">
-            <span class="avatar" aria-hidden="true">${esc(initials(c.name))}</span>
+            ${avatar(mystery.summary.id, c)}
             <span class="cast-text"><b>${esc(c.name)}</b><span class="muted">${esc(c.role)}</span></span>
             ${asked ? `<span class="mono muted">${asked}</span>` : ''}<span class="pc-arrow" aria-hidden="true">→</span>
           </button></li>`;
@@ -387,7 +398,7 @@ export function suspectsView(view: RoomView, ui: UiState): string {
   return `<section class="interview">
     <button id="suspects-back" class="link">← Everyone</button>
     <div class="cast-head">
-      <span class="avatar big" aria-hidden="true">${esc(initials(suspect.name))}</span>
+      ${avatar(mystery.summary.id, suspect, true)}
       <div><h1 class="display">${esc(suspect.name)}</h1><p class="muted">${esc(suspect.role)}</p></div>
     </div>
     <ol class="thread" aria-live="polite">${thread

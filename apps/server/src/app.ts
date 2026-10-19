@@ -15,6 +15,7 @@ const MIME: Record<string, string> = {
   '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.jpg': 'image/jpeg',
   '.ico': 'image/x-icon',
 };
 
@@ -27,6 +28,8 @@ export interface AppServerOptions {
   stats?: () => {rooms: number; connections: number};
   /** Spoken replies, served at /voice/<id>. */
   voiceClip?: VoiceClipLookup;
+  /** Speaks an authored line (subtitles) and resolves to its clip id, or null. */
+  speak?: (text: string, voice: {edge: string; rate?: string; pitch?: string}) => Promise<string | null>;
 }
 
 /**
@@ -76,6 +79,25 @@ export function createAppServer(options: AppServerOptions = {}): Server {
       }
       res.writeHead(200, {...headers, 'content-length': size});
       res.end(req.method === 'HEAD' ? undefined : clip.data);
+      return;
+    }
+    // Spoken subtitles: /speak?text=…&voice=en-GB-SoniaNeural[&rate=-4%&pitch=-8%] → a 302 to its /voice clip.
+    if (url.pathname === '/speak' && options.speak) {
+      const text = (url.searchParams.get('text') ?? '').trim();
+      const voice = url.searchParams.get('voice') ?? '';
+      if (!text || text.length > 400 || !/^[a-z]{2}-[A-Z]{2}-[A-Za-z]+Neural$/.test(voice)) {
+        sendJson(res, 400, {error: 'bad_request'});
+        return;
+      }
+      const tone = (v: string | null) => (v && /^[+-]\d{1,2}%$/.test(v) ? v : undefined);
+      options
+        .speak(text, {edge: voice, rate: tone(url.searchParams.get('rate')), pitch: tone(url.searchParams.get('pitch'))})
+        .then(id => {
+          if (!id) return sendJson(res, 503, {error: 'voice_unavailable'});
+          res.writeHead(302, {location: `/voice/${id}.m4a`, 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=86400'});
+          res.end();
+        })
+        .catch(() => sendJson(res, 503, {error: 'voice_unavailable'}));
       return;
     }
     if (servePlayerApp(res, playerDir, url.pathname)) return;

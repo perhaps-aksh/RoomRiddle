@@ -12,14 +12,15 @@ html, body {
   font: var(--t-body-font);
   -webkit-font-smoothing: antialiased;
 }
-/* Atmosphere: two faint light pools and a paper-grain vignette, no images. */
+/* Atmosphere: the TV's rainy-street painting, dimmed far down, under a lamp-light pool. */
 body::before {
   content: "";
   position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
     radial-gradient(120% 60% at 85% -10%, var(--c-accent-wash), transparent 60%),
-    radial-gradient(90% 50% at -10% 110%, var(--c-signal-wash), transparent 60%),
-    linear-gradient(var(--c-background), var(--c-veil));
+    linear-gradient(color-mix(in srgb, var(--c-background) 86%, transparent), var(--c-background) 70%),
+    url("backdrop.jpg") center top / cover no-repeat,
+    var(--c-background);
 }
 main {
   max-width: 560px; margin: 0 auto;
@@ -151,9 +152,14 @@ button.option.pending { opacity: .6; }
 .tabs button.on { color: var(--c-accent); border-bottom-color: var(--c-accent); }
 .tabs .mono { color: var(--c-text-muted); }
 
-.evidence { margin-top: var(--s-sm); padding: var(--s-lg); background: var(--c-surface); border: 1px solid var(--c-border); border-top: 3px solid var(--c-accent-soft); border-radius: var(--r-sm); box-shadow: var(--shadow-card); animation: reveal var(--m-discovery) both; }
-.evidence.solved { border-top-color: var(--c-success); }
-.evidence header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s-xs); font-size: 12px; color: var(--c-text-muted); }
+/* Evidence is a paper slip from the case journal: ink on paper, a pin, a slight hand-placed tilt. */
+.evidence { position: relative; margin-top: var(--s-md); padding: var(--s-lg); background: var(--c-paper); color: var(--c-ink); border: 0; border-radius: 2px; box-shadow: var(--shadow-card); animation: reveal var(--m-discovery) both; }
+.evidence:nth-of-type(odd) { rotate: -0.6deg; } .evidence:nth-of-type(even) { rotate: 0.5deg; }
+.evidence::before { content: ""; position: absolute; top: -6px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #a3301f; box-shadow: 0 2px 3px rgba(0,0,0,.4); }
+.evidence.solved::before { background: var(--c-success); }
+.story .evidence p, .evidence p, .evidence h4 { color: var(--c-ink); }
+.evidence .tag.ok, .evidence .muted { color: color-mix(in srgb, var(--c-ink) 65%, transparent); }
+.evidence header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--s-xs); font-size: 12px; color: #8a2c1c; }
 .evidence h4 { margin-bottom: var(--s-xs); }
 .tag { font: var(--t-label-font); letter-spacing: 1.5px; text-transform: uppercase; }
 .tag.ok { color: var(--c-success); }
@@ -178,15 +184,19 @@ button.option.pending { opacity: .6; }
 .cast-text { display: grid; gap: 2px; }
 .cast-text b { font: var(--t-h2-font); font-size: 18px; }
 .cast-text .muted { font-size: 13px; }
-.avatar { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--c-accent-soft); background: var(--c-surface-sunken); color: var(--c-accent); font: var(--t-label-font); letter-spacing: 1px; }
-.avatar.big { width: 64px; height: 64px; font-size: 18px; }
+.avatar { position: relative; display: grid; place-items: center; width: 52px; height: 52px; overflow: hidden; border-radius: 50%; border: 2px solid var(--c-accent-soft); background: var(--c-surface-sunken); color: var(--c-accent); font: var(--t-label-font); letter-spacing: 1px; }
+.avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.avatar.big { width: 88px; height: 88px; font-size: 20px; border-color: var(--c-accent); }
 .cast-head { display: flex; gap: var(--s-md); align-items: center; margin: var(--s-sm) 0 var(--s-lg); }
 .cast-head .display { margin: 0; font-size: 26px; line-height: 32px; }
 .thread { list-style: none; margin: 0 0 var(--s-lg); padding: 0; display: grid; gap: var(--s-sm); }
 .thread li { max-width: 88%; padding: var(--s-sm) var(--s-md); border-radius: var(--r-md); animation: reveal var(--m-discovery) both; }
 .thread .q { justify-self: end; background: var(--c-surface-elevated); border: 1px solid var(--c-border); }
 .thread .q .label { font-size: 10px; margin-bottom: 2px; }
-.thread .a { justify-self: start; background: var(--c-surface); border-left: 3px solid var(--c-accent); font: var(--t-body-font); font-style: italic; }
+/* Replies look like the TV's speech bubble: parchment, ink, a tail toward the speaker. */
+.thread .a { position: relative; justify-self: start; background: var(--c-paper); color: var(--c-ink); border: 1px solid var(--c-accent-soft); font: var(--t-narration-font); font-size: 17px; line-height: 25px; }
+.thread .a::before { content: ""; position: absolute; left: 14px; top: -7px; width: 12px; height: 12px; background: var(--c-paper); border-left: 1px solid var(--c-accent-soft); border-top: 1px solid var(--c-accent-soft); transform: rotate(45deg); }
+.thread .a .dots i { background: var(--c-ink); }
 .thread .empty-thread { justify-self: center; background: none; font-size: 14px; }
 .dots { display: inline-flex; gap: 5px; padding: 4px 0; }
 .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--c-accent); animation: pulse 700ms infinite alternate; }

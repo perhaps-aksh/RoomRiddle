@@ -151,8 +151,9 @@ const WorldView = ({
   state: GameState;
   hub: NonNullable<ReturnType<typeof useSceneHub>>;
 }) => {
-  const {dispatch} = useGame();
+  const {dispatch, serverBase} = useGame();
   const session = useWorldSession();
+  const voiceOf = (characterId: string | undefined) => mystery.truth?.characters.find(c => c.id === characterId)?.voice;
   const reduced = useReducedMotion();
   const gameKey = `${mystery.summary.id}:${state.startedAt ?? 0}`;
 
@@ -326,6 +327,11 @@ const WorldView = ({
     if (line?.audioId) {
       worldAudio({name: 'dialogue', payload: {audioId: line.audioId, lineId: line.id}});
     }
+    // No recorded take: the server speaks the subtitle in the character's voice (TTS), when it can.
+    if (line && !audio.hasVoice(line.audioId)) {
+      audio.speakUrl(`line.${line.id}`, speakUrlFor(serverBase, line.text, voiceOf(line.characterId)));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line]);
 
   // ── Set transitions (push / pull / depth / fade / crossfade) ─────────
@@ -571,6 +577,14 @@ const WorldView = ({
     </View>
   );
 };
+
+/** The server's spoken-subtitle URL for a line in a character's voice (narrator: Sonia). */
+export function speakUrlFor(base: string, text: string, voice?: {edge: string; rate?: string; pitch?: string}): string {
+  const q = [`text=${encodeURIComponent(text)}`, `voice=${encodeURIComponent(voice?.edge ?? 'en-GB-SoniaNeural')}`];
+  if (voice?.rate) q.push(`rate=${encodeURIComponent(voice.rate)}`);
+  if (voice?.pitch) q.push(`pitch=${encodeURIComponent(voice.pitch)}`);
+  return `${base}/speak?${q.join('&')}`;
+}
 
 /** `text` null: subtitles are off and the line is heard, so only the speaker shows. */
 const DialogueBox = ({speaker, text, spoken, onNext, aside, side = 'center'}: {speaker: string; text: string | null; spoken: string; onNext: () => void; aside: boolean; side?: 'left' | 'right' | 'center'}) => (

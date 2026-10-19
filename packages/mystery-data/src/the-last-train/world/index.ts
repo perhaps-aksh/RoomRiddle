@@ -46,6 +46,9 @@ const STATION_BACKDROP: WorldNode[] = [
   // The camera follows the arriving train far to the left: the ground continues there too.
   {id: 'tracks-west', assetId: 'last-train.tracks', x: -7440, y: 790, z: -2},
   {id: 'platform-west', assetId: 'last-train.station.platform', x: -7440, y: 990, z: 1},
+  // Under the platform edge (bottom at y 1310), behind it: close-ups of low objects never show sky.
+  {id: 'ground', assetId: 'last-train.ground', x: -1840, y: 1280, z: 0},
+  {id: 'ground-west', assetId: 'last-train.ground', x: -7440, y: 1280, z: 0},
   {id: 'lamp-1', assetId: 'last-train.station.lights', x: 600, y: 440, z: 2},
   {id: 'lamp-2', assetId: 'last-train.station.lights', x: 1500, y: 440, z: 2},
   {id: 'lamp-3', assetId: 'last-train.station.lights', x: 2480, y: 440, z: 2},

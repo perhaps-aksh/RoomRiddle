@@ -95,12 +95,13 @@ The AI is an **actor, not a judge**. A pure, deterministic game engine decides e
 
 ```mermaid
 flowchart LR
-  Q["📱 'Where were you<br/>at 11:47?'"] --> B["Budget, cooldown,<br/>length checks"]
+  Q["Phone: Where were you<br/>at 11:47?"] --> B["Budget, cooldown,<br/>length checks"]
   B --> F["Truth table:<br/>only unlocked facts"]
   F --> M["Free LLM<br/>(Groq gpt-oss-120b)"]
-  M --> G{"Guard:<br/>spoilers? answers?<br/>out of character?"}
-  G -- safe --> V["🔊 Voice on the TV<br/>+ subtitles"]
-  G -- unsafe / offline --> A["Authored fallback line"] --> V
+  M --> G{"Guard: spoilers,<br/>answers, out of character"}
+  G -->|"safe"| V["Voice on the TV<br/>+ subtitles"]
+  G -->|"unsafe or offline"| A["Authored fallback line"]
+  A --> V
 ```
 
 - **Locked facts never reach the model.** The prompt holds only the persona, the unlocked facts and the clues already found.
@@ -168,11 +169,11 @@ bash apps/tv/scripts/wsl-install.sh    # install and launch on the Vega Virtual 
 
 ```mermaid
 flowchart LR
-  subgraph Home["Living room"]
-    TV["📺 Fire TV · Vega OS<br/>React Native for Vega"]
-    P["📱 Phones<br/>(browser, no install)"]
+  subgraph room["Living room"]
+    TV["Fire TV, Vega OS<br/>React Native for Vega"]
+    P["Phones<br/>(browser, no install)"]
   end
-  subgraph Server["Game server · Node.js + TypeScript"]
+  subgraph srv["Game server: Node.js + TypeScript"]
     WS["WebSocket gateway"]
     GS["Rooms + GameSession"]
     ENG["Game engine<br/>(pure, deterministic)"]
@@ -181,9 +182,11 @@ flowchart LR
   end
   TV <-->|"intents / state"| WS
   P <-->|"intents / state"| WS
-  WS --> GS --> ENG --> MD
+  WS --> GS
+  GS --> ENG
+  ENG --> MD
   GS --> AI
-  AI -.-> LLM["Groq · Edge TTS<br/>(free tiers)"]
+  AI -.-> LLM["Groq + Edge TTS<br/>(free tiers)"]
 ```
 
 **Ground rules**
@@ -225,7 +228,7 @@ The full technical reference is in **[docs/system-design.md](docs/system-design.
 
 ## ✦ Quality
 
-- **About 325 automated tests:** 58 engine, 22 content, 52 scene, 19 client, 4 UI tokens, 78 server, 11 phone and 80 TV.
+- **331 automated tests:** 58 engine, 22 content, 52 scene, 19 client, 4 UI tokens, 79 server, 12 phone and 85 TV.
 - **Every case is played to the end automatically.** Content validation fails the build on unreachable scenes, broken references, puzzles that need clues from later scenes, and spoilers that could never unlock.
 - **Spoiler-attack tests** run against the AI guard and the prompt builder.
 - **Scripted device QA:** the Vega Virtual Device is driven with remote key presses and screenshots, with an audio trace sink.

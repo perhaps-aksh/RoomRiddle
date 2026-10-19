@@ -285,6 +285,6 @@ describe('Phase 5 experience', () => {
     fireEvent.press(screen.getByTestId('details-select'));
     fireEvent.press(screen.getByTestId('intro-begin'));
     fireEvent.press(screen.getByTestId('scene-evidence'));
-    expect(screen.getByText('NO EVIDENCE YET')).toBeTruthy();
+    expect(screen.getByText('No evidence yet')).toBeTruthy();
   });
 });

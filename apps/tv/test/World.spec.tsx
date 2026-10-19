@@ -171,7 +171,7 @@ describe('2.5D world: The Last Train', () => {
     press(screen, 'world-inspect-back');
     await run(800);
     press(screen, 'scene-evidence');
-    expect(screen.getByText('NO EVIDENCE YET')).toBeTruthy();
+    expect(screen.getByText('No evidence yet')).toBeTruthy();
   }, 30_000);
 
   it('Back during the cinematic skips it; Back in the world asks before leaving', async () => {

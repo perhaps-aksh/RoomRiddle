@@ -17,8 +17,8 @@ function phone(name: string, onMessage: (m: ServerMessage, ws: WebSocket) => voi
 }
 
 let asked = false;
-phone('Mira', () => {});
-phone('Aksh', (m, ws) => {
+phone(process.env.ASK_NAME2 ?? 'Mira', () => {});
+phone(process.env.ASK_NAME ?? 'Aksh', (m, ws) => {
   if (m.type === 'ERROR') console.log(`[bot] ERROR ${m.code}: ${m.message}`);
   if ((m.type === 'GAME_STARTED' || (m.type === 'ROOM_JOINED' && m.room.status === 'playing')) && !asked) {
     asked = true;

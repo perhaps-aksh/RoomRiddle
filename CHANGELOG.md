@@ -2,6 +2,15 @@
 
 All notable changes, newest first. The project follows [Conventional Commits](https://www.conventionalcommits.org/); see `git log` for every commit.
 
+## 2026-10-13: Quick Start, onboarding, journal, spoken subtitles (Day 5)
+- **Home** rebuilt: Detective Grace, Quick Start (one press to a room and its QR code), a one-minute "how it works" for first-time TVs, and a How to Play screen.
+- **Case library** with filters by age group and story type, and a preview pane.
+- **Spoken subtitles:** every in-game line without a recorded take is voiced in the character's voice (server `/speak`, cached clips).
+- **Evidence journal:** an open case book with a painted photo per clue. Puzzles sit on a detective's desk. Notices fade by themselves.
+- **Phone:** painted suspect portraits, the rainy-street backdrop, evidence as pinned paper slips, parchment replies.
+- **World fixes:** corridor and signal box use their painted props; Voss and Ashby stand on the floor; no sky under the platform in any shot.
+- Edge TTS client updated (msedge-tts 2.1.0) after Edge began rejecting the old one.
+
 ## 2026-10-13: Painted art (Day 4)
 - The Last Train is painted: 28 world assets (sky to signal box, the train, Detective Grace, every clue object), placed to line up with what's painted.
 - Clue clocks keep exact procedural hands over the painted dials (new manifest `overlay`).

@@ -43,9 +43,9 @@ const rand = (i: number, salt: number) => {
 };
 
 const RAIN_BANDS = [
-  {count: 10, length: 26, width: 1.5, opacity: 0.18, duration: 1500, drift: 60, salt: 1},
-  {count: 10, length: 46, width: 2, opacity: 0.28, duration: 1050, drift: 90, salt: 2},
-  {count: 8, length: 90, width: 3, opacity: 0.4, duration: 650, drift: 140, salt: 3},
+  {count: 6, length: 26, width: 1.5, opacity: 0.18, duration: 1500, drift: 60, salt: 1},
+  {count: 7, length: 46, width: 2, opacity: 0.28, duration: 1050, drift: 90, salt: 2},
+  {count: 6, length: 90, width: 3, opacity: 0.4, duration: 650, drift: 140, salt: 3},
 ] as const;
 
 /** One band of rain: two stacked copies scrolling down forever (seamless). */

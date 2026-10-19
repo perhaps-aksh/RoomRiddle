@@ -81,3 +81,21 @@ test('serves spoken replies by id, immutable, and 404s unknown or malformed ids'
     await new Promise<void>((resolve) => server.close(() => resolve()));
   }
 });
+
+test('speaks subtitle lines: validates input and redirects to the clip', async () => {
+  const asked: string[] = [];
+  const server = createAppServer({ playerDir: '/nonexistent', speak: async (text, voice) => (asked.push(`${voice.edge}|${voice.rate ?? ''}|${text}`), 'abcdef0123456789abcd') });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  const { port } = server.address() as AddressInfo;
+  const base = `http://127.0.0.1:${port}`;
+  try {
+    const ok = await fetch(`${base}/speak?text=${encodeURIComponent('The platform clock.')}&voice=en-GB-SoniaNeural&rate=-4%25`, { redirect: 'manual' });
+    assert.equal(ok.status, 302);
+    assert.equal(ok.headers.get('location'), '/voice/abcdef0123456789abcd.m4a');
+    assert.deepEqual(asked, ['en-GB-SoniaNeural|-4%|The platform clock.']);
+    assert.equal((await fetch(`${base}/speak?text=hi&voice=evil`)).status, 400);
+    assert.equal((await fetch(`${base}/speak?text=${'a'.repeat(401)}&voice=en-GB-SoniaNeural`)).status, 400);
+  } finally {
+    server.close();
+  }
+});

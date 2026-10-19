@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {initialRoomView, type RoomView} from '@roomriddle/client';
 import {createInitialGameState} from '@roomriddle/game-engine';
 import type {CharacterReply, PublicMystery, Room} from '@roomriddle/shared-types';
-import {errorState, initialUi, loadingState, renderScreen, screenName} from './render';
+import {avatar, errorState, initialUi, loadingState, renderScreen, screenName} from './render';
 
 const room = (over: Partial<Room> = {}): Room => ({
   id: 'r',
@@ -132,4 +132,14 @@ test('with no questions left the form is closed', () => {
   const html = renderScreen(playing({conversation: [reply({questionsLeft: 0})]}), ui);
   assert.match(html, /No questions left/);
   assert.match(html, /<textarea[^>]*disabled/);
+});
+
+test('suspects show their painted portrait when the case has one, initials otherwise', () => {
+  const art = new Set(['the-last-train/voss']);
+  const voss = avatar('the-last-train', {id: 'voss', name: 'Inspector Voss'}, true, art);
+  assert.match(voss, /<img src="\/portraits\/the-last-train\/voss.png" alt=""/);
+  assert.match(voss, /avatar big painted/);
+  const ned = avatar('the-last-train', {id: 'driver', name: 'Ned Hollis'}, false, art);
+  assert.doesNotMatch(ned, /<img/);
+  assert.match(ned, />NH</);
 });

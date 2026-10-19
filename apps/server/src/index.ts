@@ -31,7 +31,7 @@ const server = createAppServer({stats: () => ({rooms: rooms.size, connections: s
   const clip = voices.clip(id);
   log(`[voice] GET ${id} ${clip ? "200" : "404"}`);
   return clip;
-}});
+}, speak: voices.enabled ? (text, voice) => voices.speak(text, {groq: 'diana', ...voice}) : undefined});
 const sockets = attachGameSocket(server, rooms, {log, characters, voices});
 socketCount = () => sockets.connections.count;
 

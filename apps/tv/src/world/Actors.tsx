@@ -56,7 +56,7 @@ export const TrainView = memo(
               <View style={[styles.beam, {left: px(width - 30), top: px(96)}]} />
             </>
           )}
-          <Puffs on={steam} reduced={reduced} x={width * 0.35} y={height - 10} spread={width * 0.6} rise={160} size={150} count={6} />
+          <Puffs on={steam} reduced={reduced} x={width * 0.35} y={height - 10} spread={width * 0.6} rise={160} size={150} count={4} />
           <Puffs on={moving && state !== 'far'} reduced={reduced} x={width - 80} y={30} color="cloud" spread={80} rise={260} size={90} count={4} />
         </Animated.View>
       );
@@ -87,7 +87,7 @@ export const TrainView = memo(
             <View style={[styles.beam, {left: px(width - 30), top: px(96)}]} />
           </>
         )}
-        <Puffs on={steam} reduced={reduced} x={width * 0.35} y={height - 10} spread={width * 0.6} rise={160} size={150} count={6} />
+        <Puffs on={steam} reduced={reduced} x={width * 0.35} y={height - 10} spread={width * 0.6} rise={160} size={150} count={4} />
         <Puffs on={moving && state !== 'far'} reduced={reduced} x={width - 80} y={30} color="cloud" spread={80} rise={260} size={90} count={4} />
       </Animated.View>
     );

@@ -1,19 +1,25 @@
 import React, {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
 import {getEvidence} from '@roomriddle/game-engine';
-import {ClueCard} from '../../components/ClueCard/ClueCard';
+import type {Clue} from '@roomriddle/shared-types';
+import {FocusableCard} from '../../components/FocusableCard/FocusableCard';
 import {GameHeader} from '../../components/GameHeader/GameHeader';
 import {TVButton} from '../../components/TVButton/TVButton';
 import {useGame} from '../../game/GameContext';
 import {px, theme} from '../../theme/theme';
 import {Transition} from '../../ui/Transition';
+import {closeupFor} from '../../world/art';
 import {ScreenProps} from '../types';
 
+/** A slight, stable tilt per photo, so the page looks pinned by hand. */
+const TILTS = ['-2.5deg', '1.8deg', '-1deg', '2.6deg', '-1.8deg', '1deg', '-2.2deg', '1.4deg'];
+const PER_PAGE = 8;
+
 /**
- * The evidence board: every clue found so far, from every scene, numbered in
- * the order it was found. Focus an entry on the left to read the slip on the
- * right. Slots for evidence not yet found are shown as sealed, so the players
- * can see how much of the case is still out there without spoilers.
+ * The evidence journal, after the "journal clues" reference: an open case
+ * book. The right page holds a photo of every clue found (numbered in the
+ * order found) and sealed slots for what is still out there; the left page
+ * reads the photo in focus. No spoilers: sealed slots carry no titles.
  */
 export const EvidenceScreen = ({navigator}: ScreenProps) => {
   const {mystery, state} = useGame();
@@ -26,117 +32,246 @@ export const EvidenceScreen = ({navigator}: ScreenProps) => {
   const shown = evidence.find(c => c.id === focusedId) ?? evidence[evidence.length - 1];
   const sceneTitle = (sceneId: string) => mystery.scenes.find(s => s.id === sceneId)?.title ?? '';
   const numberOf = (id: string) => state.discoveredClueIds.indexOf(id) + 1;
-  const sealed = Math.max(0, mystery.clues.length - evidence.length);
+  const onPage = evidence.slice(-PER_PAGE);
+  const sealed = Math.max(0, Math.min(PER_PAGE, mystery.clues.length) - onPage.length);
+  const tag = (n: number) => `#${String(n).padStart(2, '0')}`;
 
   return (
     <View style={styles.screen}>
       <GameHeader context={`Evidence · ${evidence.length} of ${mystery.clues.length} found`} />
-      <View style={styles.body}>
-        <View style={styles.list}>
-          <View style={styles.listHead}>
-            <Text style={styles.heading}>CASE FILE</Text>
-            <Text style={styles.count}>
-              {String(evidence.length).padStart(2, '0')}/{String(mystery.clues.length).padStart(2, '0')}
-            </Text>
-          </View>
-          {evidence.length === 0 && (
-            <View style={styles.empty}>
-              <Text style={styles.emptyTitle}>NO EVIDENCE YET</Text>
-              <Text style={styles.emptyText}>Nothing yet. Investigate the scene to find clues.</Text>
+      <View style={styles.book}>
+        {/* Left page: the clue in focus. */}
+        <View style={[styles.page, styles.leftPage]}>
+          <Text style={styles.pageKicker}>CASE JOURNAL</Text>
+          {shown ? (
+            <Transition key={shown.id} preset="fade" motion="focusIn" style={styles.reading} testID="journal-reading">
+              <Text style={styles.readTag}>
+                EVIDENCE {tag(numberOf(shown.id))} · {sceneTitle(shown.sceneId).toUpperCase()}
+                {shown.major ? '  ·  KEY' : ''}
+              </Text>
+              <Text style={styles.readTitle}>{shown.title}</Text>
+              <View style={styles.inkRule} />
+              {shown.description.map((line, i) => (
+                <Text key={i} style={styles.readLine}>
+                  {line}
+                </Text>
+              ))}
+            </Transition>
+          ) : (
+            <View style={styles.reading}>
+              <Text style={styles.readTitle}>No evidence yet</Text>
+              <Text style={styles.readLine}>Nothing yet. Investigate the scene to find clues.</Text>
             </View>
           )}
-          {evidence.map((clue, index) => (
-            <TVButton
-              key={clue.id}
-              label={`#${String(numberOf(clue.id)).padStart(2, '0')}  ${clue.title}`}
-              value={sceneTitle(clue.sceneId)}
-              onPress={() => setFocusedId(clue.id)}
-              onFocus={() => setFocusedId(clue.id)}
-              preferredFocus={index === evidence.length - 1}
-              accessibilityLabel={`Evidence ${numberOf(clue.id)}: ${clue.title}, found in ${sceneTitle(clue.sceneId)}`}
-              testID={`evidence-${clue.id}`}
-            />
-          ))}
-          {sealed > 0 && evidence.length > 0 && (
-            <Text style={styles.sealed}>
-              {'▪ '.repeat(Math.min(sealed, 12)).trim()} {sealed} SEALED
-            </Text>
-          )}
-          <View style={styles.spacer} />
-          <TVButton label="Back to scene" onPress={() => navigator.back()} preferredFocus={evidence.length === 0} testID="evidence-back" />
+          <View style={styles.back}>
+            <TVButton variant="action" label="Back to scene" onPress={() => navigator.back()} preferredFocus={evidence.length === 0} testID="evidence-back" />
+          </View>
         </View>
-        <View style={styles.detail}>
-          {shown && (
-            <Transition key={shown.id} preset="fade" motion="focusIn">
-              <ClueCard clue={shown} index={numberOf(shown.id)} />
-            </Transition>
-          )}
+
+        <View style={styles.spine} />
+
+        {/* Right page: the photos. */}
+        <View style={[styles.page, styles.rightPage]}>
+          <Text style={styles.pageKicker}>
+            FOUND {String(evidence.length).padStart(2, '0')}/{String(mystery.clues.length).padStart(2, '0')}
+          </Text>
+          <View style={styles.grid}>
+            {onPage.map((clue, index) => (
+              <Photo
+                key={clue.id}
+                clue={clue}
+                label={tag(numberOf(clue.id))}
+                tilt={TILTS[index % TILTS.length]!}
+                preferredFocus={index === onPage.length - 1}
+                onFocus={() => setFocusedId(clue.id)}
+                accessibilityLabel={`Evidence ${numberOf(clue.id)}: ${clue.title}, found in ${sceneTitle(clue.sceneId)}`}
+              />
+            ))}
+            {Array.from({length: sealed}, (_, i) => (
+              <View key={`sealed-${i}`} style={[styles.photo, styles.sealedPhoto, {transform: [{rotate: TILTS[(onPage.length + i) % TILTS.length]!}]}]}>
+                <Text style={styles.sealedText}>?</Text>
+              </View>
+            ))}
+          </View>
         </View>
       </View>
     </View>
   );
 };
 
+const Photo = ({
+  clue,
+  label,
+  tilt,
+  preferredFocus,
+  onFocus,
+  accessibilityLabel,
+}: {
+  clue: Clue;
+  label: string;
+  tilt: string;
+  preferredFocus: boolean;
+  onFocus: () => void;
+  accessibilityLabel: string;
+}) => {
+  const art = closeupFor(clue.id);
+  return (
+    <FocusableCard
+      onPress={onFocus}
+      onFocus={onFocus}
+      preferredFocus={preferredFocus}
+      accessibilityLabel={accessibilityLabel}
+      focusScale={1.08}
+      style={{transform: [{rotate: tilt}]}}
+      testID={`evidence-${clue.id}`}>
+      {() => (
+        <View style={styles.photo}>
+          <View style={styles.photoWindow}>
+            {art ? <Image source={art} style={styles.photoImage} resizeMode="cover" /> : <Text style={styles.photoInitial}>{clue.title.slice(0, 1)}</Text>}
+          </View>
+          <Text style={styles.photoCaption} numberOfLines={1}>
+            {label} {clue.title}
+          </Text>
+          {clue.major && <View style={styles.pin} />}
+        </View>
+      )}
+    </FocusableCard>
+  );
+};
+
+const PHOTO_W = px(200);
+const LEATHER = '#3a2618';
+
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
     paddingHorizontal: theme.spacing.screenX,
     paddingTop: theme.spacing.screenY - px(24),
-    paddingBottom: theme.spacing.screenY - px(16),
+    paddingBottom: theme.spacing.screenY - px(24),
+    backgroundColor: theme.colors.background,
   },
-  body: {
+  book: {
     flex: 1,
     flexDirection: 'row',
-    marginTop: theme.spacing.xl,
-    gap: theme.spacing.xl,
+    marginTop: theme.spacing.md,
+    borderRadius: theme.radii.md,
+    overflow: 'hidden',
+    borderWidth: px(10),
+    borderColor: LEATHER,
   },
-  list: {
+  page: {
+    backgroundColor: theme.colors.paper,
+    paddingHorizontal: px(44),
+    paddingVertical: px(32),
+  },
+  leftPage: {
     width: px(680),
-    gap: px(2),
   },
-  listHead: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+  rightPage: {
+    flex: 1,
   },
-  heading: {
+  spine: {
+    width: px(14),
+    backgroundColor: LEATHER,
+  },
+  pageKicker: {
     ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: theme.colors.ink,
+    opacity: 0.6,
+  },
+  reading: {
+    flex: 1,
+    marginTop: theme.spacing.md,
+  },
+  readTag: {
+    ...theme.text.label,
+    fontFamily: theme.fonts.technical,
+    color: '#8a2c1c',
+  },
+  readTitle: {
+    ...theme.text.h1,
+    color: theme.colors.ink,
+    marginTop: px(6),
+  },
+  inkRule: {
+    height: px(2),
+    width: px(120),
+    backgroundColor: theme.colors.ink,
+    opacity: 0.5,
+    marginVertical: theme.spacing.sm,
+  },
+  readLine: {
+    ...theme.text.narration,
+    color: theme.colors.ink,
+    marginBottom: px(10),
+  },
+  back: {
+    flexDirection: 'row',
+  },
+  grid: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignContent: 'flex-start',
+    gap: px(28),
+    marginTop: theme.spacing.md,
+  },
+  photo: {
+    width: PHOTO_W,
+    padding: px(12),
+    paddingBottom: px(10),
+    backgroundColor: '#f6f1e4',
+    shadowColor: '#000',
+    shadowOpacity: 0.35,
+    shadowRadius: px(8),
+    shadowOffset: {width: 0, height: px(4)},
+    elevation: 6,
+  },
+  photoWindow: {
+    height: PHOTO_W - px(24),
+    backgroundColor: theme.colors.ink,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  photoImage: {
+    width: '100%',
+    height: '100%',
+  },
+  photoInitial: {
+    ...theme.text.display,
     color: theme.colors.accent,
   },
-  count: {
-    ...theme.text.label,
-    fontFamily: theme.fonts.technical,
-    color: theme.colors.textMuted,
-  },
-  empty: {
-    paddingVertical: theme.spacing.lg,
-    paddingHorizontal: theme.spacing.md,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: theme.colors.border,
-  },
-  emptyTitle: {
-    ...theme.text.label,
-    fontFamily: theme.fonts.technical,
-    color: theme.colors.textMuted,
-  },
-  emptyText: {
+  photoCaption: {
     ...theme.text.body,
-    color: theme.colors.textSecondary,
-    marginTop: theme.spacing.xs,
+    fontSize: px(20),
+    lineHeight: px(28),
+    color: theme.colors.ink,
+    marginTop: px(8),
   },
-  sealed: {
-    ...theme.text.label,
-    fontFamily: theme.fonts.technical,
-    color: theme.colors.textMuted,
-    marginTop: theme.spacing.sm,
-    marginLeft: theme.spacing.md,
+  pin: {
+    position: 'absolute',
+    top: -px(8),
+    alignSelf: 'center',
+    width: px(18),
+    height: px(18),
+    borderRadius: px(9),
+    backgroundColor: '#a3301f',
   },
-  spacer: {
-    flex: 1,
-  },
-  detail: {
-    flex: 1,
+  sealedPhoto: {
+    height: PHOTO_W + px(36),
+    backgroundColor: 'transparent',
+    borderWidth: px(3),
+    borderStyle: 'dashed',
+    borderColor: 'rgba(40,30,20,0.35)',
+    alignItems: 'center',
     justifyContent: 'center',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  sealedText: {
+    ...theme.text.display,
+    color: 'rgba(40,30,20,0.3)',
   },
 });

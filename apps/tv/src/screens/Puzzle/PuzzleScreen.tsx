@@ -1,5 +1,6 @@
 import React, {useState} from 'react';
-import {StyleSheet, Text, View} from 'react-native';
+import {Image, StyleSheet, Text, View} from 'react-native';
+import {deskArt} from '../../ui/keyArt';
 import {combinationAnswer, getPuzzleView, getSceneView} from '@roomriddle/game-engine';
 import type {GameEvent, Puzzle, ScoreBreakdown} from '@roomriddle/shared-types';
 import {applyDigitKey, DigitEntry} from '../../components/DigitEntry/DigitEntry';
@@ -99,6 +100,7 @@ export const PuzzleScreen = ({navigator, route}: ScreenProps & {route: {puzzleId
     const byPhone = result === null;
     return (
       <View style={styles.screen}>
+        <Image source={deskArt} style={StyleSheet.absoluteFill} resizeMode="cover" />
         <GameHeader context={`Puzzle ${number} · Solved`} />
         <View style={styles.resultBody}>
           <Feedback
@@ -147,6 +149,7 @@ export const PuzzleScreen = ({navigator, route}: ScreenProps & {route: {puzzleId
   const attempts = state.incorrectAttempts[puzzle.id] ?? 0;
   return (
     <View style={styles.screen}>
+      <Image source={deskArt} style={StyleSheet.absoluteFill} resizeMode="cover" testID="puzzle-desk" />
       <GameHeader context={`Puzzle ${number} · worth ${view.currentValue.awarded}`} />
       <View style={styles.main}>
         <View style={styles.left}>
@@ -320,7 +323,8 @@ type Notice = {kind: 'failure' | 'info' | 'hint'; title: string; text: string; a
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    paddingHorizontal: theme.spacing.screenX,
+    // Inside the desk's felt blotter (6–94 % of the width).
+    paddingHorizontal: px(160),
     paddingTop: theme.spacing.screenY - px(24),
     paddingBottom: theme.spacing.screenY - px(24),
   },
